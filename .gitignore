@@ -3,3 +3,6 @@ dist
 packages
 .webpack
 out
+/samples/
+/.idea/
+/package-lock.json

@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
+import installExtension, {REACT_DEVELOPER_TOOLS, REDUX_DEVTOOLS } from 'electron-devtools-installer';
 
 let mainWindow: BrowserWindow | null
 
@@ -55,3 +56,9 @@ app.on('activate', () => {
     createWindow()
   }
 })
+
+app.whenReady().then(() => {
+  installExtension(REACT_DEVELOPER_TOOLS)
+      .then((name) => console.log(`Added Extension:  ${name}`))
+      .catch((err) => console.log('An error occurred: ', err));
+});

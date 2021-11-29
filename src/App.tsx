@@ -1,12 +1,11 @@
-import { GlobalStyle } from './styles/GlobalStyle'
-
-import { Greetings } from './components/Greetings'
+//import Image from "./components/Image";
+//import Tree from "./components/Tree"
+import DicomDropzone from "./components/DicomDropzone";
 
 export function App() {
-  return (
-    <>
-      <GlobalStyle />
-      <Greetings />
-    </>
-  )
+    return (
+        <div>
+            <DicomDropzone/>
+        </div>
+     )
 }
