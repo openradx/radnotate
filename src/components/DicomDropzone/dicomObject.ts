@@ -1,22 +1,57 @@
-import {isBoolean} from "util";
+export type PatientType = {
+    patientID: string
+}
+
+export type StudyType = {
+    studyInstanceUID: string,
+    studyDescription: string,
+    studyDate: string,
+}
+
+export type SeriesType = {
+    seriesInstanceUID: string,
+    seriesDescription: string,
+    modality: string,
+    numberOfSeriesRelatedInstances: string
+}
+
+export type ImageType = {
+    sopInstanceUID: string,
+    imagePath: string,
+    byteArray: Uint8Array
+}
 
 class Series {
     seriesInstanceUID: string;
+    seriesDescription: string;
+    modality: string;
+    numberOfSeriesRelatedInstances: string;
+    images: ImageType[];
 
-    constructor(seriesInstanceUID: string) {
-        this.seriesInstanceUID = seriesInstanceUID
+    constructor(seriesDict: SeriesType, imageDict: ImageType) {
+        this.seriesInstanceUID = seriesDict.seriesInstanceUID
+        this.seriesDescription = seriesDict.seriesDescription
+        this.modality = seriesDict.modality
+        this.numberOfSeriesRelatedInstances = seriesDict.numberOfSeriesRelatedInstances
+        this.images = [imageDict]
     }
 
-    add ()
+    add(images: ImageType[]) {
+        this.images.push(...images)
+    }
 }
 
 class Study {
     studyInstanceUID: string;
+    studyDescription: string;
+    studyDate: string;
     series: Series[];
 
-    constructor(studyInstanceUID: string, seriesInstanceUID: string) {
-        this.studyInstanceUID = studyInstanceUID
-        const series = new Series(seriesInstanceUID)
+    constructor(studyDict: StudyType, seriesDict: SeriesType, imageDict: ImageType) {
+        this.studyInstanceUID = studyDict.studyInstanceUID
+        this.studyDescription = studyDict.studyDescription
+        this.studyDate = studyDict.studyDate
+        const series = new Series(seriesDict, imageDict)
         this.series = []
         this.add(series)
     }
@@ -28,6 +63,7 @@ class Study {
             let isSame: boolean = false
             this.series.forEach((series) => {
                 if (series.seriesInstanceUID === newSeries.seriesInstanceUID && !isSame) {
+                    series.add(newSeries.images)
                     isSame = true
                 }
             })
@@ -43,13 +79,13 @@ class Study {
 }
 
 export class Patient {
-    patiendID: string;
+    patientID: string;
     studies: Study[];
 
-    constructor(patientID: string, studyInstanceUID: string, seriesInstanceUID: string) {
-        this.patiendID = patientID;
+    constructor(patientDict: PatientType, studyDict: StudyType, seriesDict: SeriesType, imageDict: ImageType) {
+        this.patientID = patientDict.patientID;
         this.studies = []
-        const study = new Study(studyInstanceUID, seriesInstanceUID)
+        const study = new Study(studyDict, seriesDict, imageDict)
         this.add(study)
     }
 
@@ -88,7 +124,7 @@ export class Patients {
         } else {
             let isSame: boolean = false
             this.patients.forEach((patient) => {
-                if (patient.patiendID === newPatient.patiendID && !isSame) {
+                if (patient.patientID === newPatient.patientID && !isSame) {
                     patient.add(newPatient.get(0))
                     isSame = true
                 }
