@@ -12,27 +12,22 @@ export type SeriesType = {
     seriesInstanceUID: string,
     seriesDescription: string,
     modality: string,
-    numberOfSeriesRelatedInstances: string
 }
 
 export type ImageType = {
-    sopInstanceUID: string,
-    imagePath: string,
-    byteArray: Uint8Array
+    imagePath: string
 }
 
 class Series {
     seriesInstanceUID: string;
     seriesDescription: string;
     modality: string;
-    numberOfSeriesRelatedInstances: string;
     images: ImageType[];
 
     constructor(seriesDict: SeriesType, imageDict: ImageType) {
         this.seriesInstanceUID = seriesDict.seriesInstanceUID
         this.seriesDescription = seriesDict.seriesDescription
         this.modality = seriesDict.modality
-        this.numberOfSeriesRelatedInstances = seriesDict.numberOfSeriesRelatedInstances
         this.images = [imageDict]
     }
 

@@ -1,10 +1,11 @@
 import React, {Component} from 'react'
-import Dropzone from 'react-dropzone'
+import Dropzone, { DropEvent } from 'react-dropzone'
 import dicomParser, {DataSet} from "dicom-parser";
 import FolderTree from 'react-folder-tree';
 import {Patient, Patients, PatientType, StudyType, SeriesType, ImageType} from "./dicomObject";
 import {usePromiseTracker, trackPromise} from "react-promise-tracker";
 import Loader from "react-loader-spinner"
+import {fromEvent, FileWithPath} from "file-selector";
 
 const LoadingIndicator = () => {
     const {promiseInProgress} = usePromiseTracker();
@@ -65,16 +66,15 @@ class DicomDropzone extends Component<{}, DicomDropzoneState> {
         seriesInstanceUID: dataSet.string('x0020000e'),
         seriesDescription: dataSet.string('x0008103e'),
         modality: dataSet.string('x00080060'),
-        numberOfSeriesRelatedInstances: dataSet.string('x00201209')
     })
 
-    imageDict = (dataSet: typeof DataSet, imagePath: string, byteArray: Uint8Array): ImageType => ({
-        sopInstanceUID: dataSet.string('x00080018'),
+    imageDict = (dataSet: typeof DataSet, imagePath: string): ImageType => ({
         imagePath: imagePath,
-        byteArray: byteArray
     })
 
     patientsToTree = (patients: Patients) => {
+        //ToDo: Refactor this whole method into dicomObjects, so that Patients contains an addiotnal list with tree
+        // nodes for effiency reasons
         const patientsTreeNode: TreeNodeType = {
             name: "Patients",
             checked: 0,
@@ -92,14 +92,14 @@ class DicomDropzone extends Component<{}, DicomDropzoneState> {
                 const studyTreeNode: TreeNodeType = {
                     name: study.studyDescription,
                     checked: 0,
-                    isOpen: true,
+                    isOpen: false,
                     children: []
                 }
                 study.series.forEach((series) => {
                     const seriesTreeNode: TreeNodeType = {
                         name: series.seriesDescription,
                         checked: 0,
-                        isOpen: true,
+                        isOpen: false,
                         children: []
                     }
                     studyTreeNode.children.push(seriesTreeNode)
@@ -124,7 +124,7 @@ class DicomDropzone extends Component<{}, DicomDropzoneState> {
                             const byteArray = new Uint8Array(reader.result)
                             const dataSet = dicomParser.parseDicom(byteArray)
                             patient = new Patient(this.patientDict(dataSet), this.studyDict(dataSet), this.seriesDict(dataSet),
-                                this.imageDict(dataSet, imagePath, byteArray))
+                                this.imageDict(dataSet, imagePath))
                             patients.add(patient)
                             resolve()
                         }
@@ -133,21 +133,29 @@ class DicomDropzone extends Component<{}, DicomDropzoneState> {
                 });
             }, Promise.resolve()).then(() => {
                 const tree = this.patientsToTree(patients)
-                console.log(tree)
+                //console.log(tree)
                 this.setState({droppedPatients: patients, treeState: tree})
             })
         );
     }
 
+    getFilesFromEvent = (event: Event|DropEvent) => {
+        return trackPromise(fromEvent(event as Event).then((acceptedFiles => {
+            console.log(acceptedFiles)
+            return new Promise<(FileWithPath | DataTransferItem)[]> ((resolve => {resolve(acceptedFiles)}))
+        })))
+    }
+
     onTreeStateChange = (state: any, event: any) => {
         //console.log(state, event)
-    };
+    }
 
     render() {
         return (
             <div>
                 <Dropzone
-                    onDrop={acceptedFiles => this.processAcceptedFiles(acceptedFiles)}>
+                    onDrop={async acceptedFiles => this.processAcceptedFiles(acceptedFiles)}
+                    getFilesFromEvent={async event => this.getFilesFromEvent(event)}>
                     {({getRootProps, getInputProps}) => (
                         <section>
                             <div {...getRootProps()}>
@@ -161,6 +169,7 @@ class DicomDropzone extends Component<{}, DicomDropzoneState> {
                 <FolderTree
                     data={this.state.treeState}
                     onChange={this.onTreeStateChange}
+                    indentPixels={60}
                     readOnly
                 />
             </div>
