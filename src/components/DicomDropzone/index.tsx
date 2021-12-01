@@ -1,11 +1,26 @@
-import React, {Component, useCallback} from 'react'
+import React, {Component} from 'react'
 import Dropzone from 'react-dropzone'
 import dicomParser, {DataSet} from "dicom-parser";
-import FolderTree, {testData} from 'react-folder-tree';
+import FolderTree from 'react-folder-tree';
 import {Patient, Patients, PatientType, StudyType, SeriesType, ImageType} from "./dicomObject";
-import Tree from "./DicomTree";
-import {SiTruenas} from "react-icons/all";
-import {readFile} from "fs";
+import {usePromiseTracker, trackPromise} from "react-promise-tracker";
+import Loader from "react-loader-spinner"
+
+const LoadingIndicator = () => {
+    const {promiseInProgress} = usePromiseTracker();
+    return(
+        promiseInProgress &&
+        <div style={{
+            width: "100%",
+            height: "100",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center"
+        }}>
+            <Loader type="ThreeDots" color="#2BAD60" height="100" width="100"/>
+        </div>
+    )
+}
 
 type TreeNodeType = {
     name: string,
@@ -19,7 +34,7 @@ type DicomDropzoneState = {
     treeState: TreeNodeType,
 }
 
-class DicomDropzone extends React.Component<{}, DicomDropzoneState> {
+class DicomDropzone extends Component<{}, DicomDropzoneState> {
 
     initialTreeState: any;
 
@@ -99,27 +114,29 @@ class DicomDropzone extends React.Component<{}, DicomDropzoneState> {
     processAcceptedFiles = (acceptedFiles: Blob[]) => {
         const patients = new Patients()
         let patient: Patient
-        acceptedFiles.reduce((previousPromise: Promise<void>, file: Blob) => {
-            return previousPromise.then(() => {
-                return new Promise<void>((resolve => {
-                    const reader = new FileReader()
-                    const imagePath: string = file.path
-                    reader.onload = () => {
-                        const byteArray = new Uint8Array(reader.result)
-                        const dataSet = dicomParser.parseDicom(byteArray)
-                        patient = new Patient(this.patientDict(dataSet), this.studyDict(dataSet), this.seriesDict(dataSet),
-                            this.imageDict(dataSet, imagePath, byteArray))
-                        patients.add(patient)
-                        resolve()
-                    }
-                    reader.readAsArrayBuffer(file)
-                }))
-            });
-        }, Promise.resolve()).then(() => {
-            const tree = this.patientsToTree(patients)
-            console.log(tree)
-            this.setState({droppedPatients: patients, treeState: tree})
-        });
+        trackPromise(
+            acceptedFiles.reduce((previousPromise: Promise<void>, file: Blob) => {
+                return previousPromise.then(() => {
+                    return new Promise<void>((resolve => {
+                        const reader = new FileReader()
+                        const imagePath: string = file.path
+                        reader.onload = () => {
+                            const byteArray = new Uint8Array(reader.result)
+                            const dataSet = dicomParser.parseDicom(byteArray)
+                            patient = new Patient(this.patientDict(dataSet), this.studyDict(dataSet), this.seriesDict(dataSet),
+                                this.imageDict(dataSet, imagePath, byteArray))
+                            patients.add(patient)
+                            resolve()
+                        }
+                        reader.readAsArrayBuffer(file)
+                    }))
+                });
+            }, Promise.resolve()).then(() => {
+                const tree = this.patientsToTree(patients)
+                console.log(tree)
+                this.setState({droppedPatients: patients, treeState: tree})
+            })
+        );
     }
 
     onTreeStateChange = (state: any, event: any) => {
@@ -140,6 +157,7 @@ class DicomDropzone extends React.Component<{}, DicomDropzoneState> {
                         </section>
                     )}
                 </Dropzone>
+                <LoadingIndicator/>
                 <FolderTree
                     data={this.state.treeState}
                     onChange={this.onTreeStateChange}
