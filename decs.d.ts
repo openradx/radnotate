@@ -7,3 +7,4 @@ declare module "cornerstone-wado-image-loader";
 declare module "react-folder-tree";
 declare module "dicom-parser";
 declare module "react-promise-tracker";
+declare module "nifti-reader-js";
