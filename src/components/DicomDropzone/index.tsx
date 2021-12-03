@@ -6,7 +6,7 @@ import {usePromiseTracker, trackPromise} from "react-promise-tracker";
 import Loader from "react-loader-spinner"
 import {fromEvent, FileWithPath} from "file-selector";
 import {loadFile} from "./loaders";
-import {Container} from './styles';
+import {Style} from './styles';
 import {Button} from "@mui/material";
 
 const LoadingIndicator = () => {
@@ -77,7 +77,7 @@ class DicomDropzone extends Component<{}, DicomDropzoneState> {
 
     render() {
         return (
-            <Container>
+            <Style>
                 <Dropzone
                     onDrop={async acceptedFiles => this.processAcceptedFiles(acceptedFiles)}
                     getFilesFromEvent={async event => this.getFilesFromEvent(event)}>
@@ -101,7 +101,7 @@ class DicomDropzone extends Component<{}, DicomDropzoneState> {
                             style={{font:"Roboto"}}
                             readOnly/>}
                 </div>
-            </Container>
+            </Style>
         )
     }
 
