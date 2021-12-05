@@ -37,7 +37,7 @@ class AnnotationForm extends Component<{}, AnnotationStateType> {
             variables: [new Variable(0)],
             nameError: false,
             typeError: false,
-            countError: false
+            countError: false,
         }
     }
 
@@ -45,15 +45,15 @@ class AnnotationForm extends Component<{}, AnnotationStateType> {
         let variables = this.state.variables
         const variable = variables.pop()
         let nameError = false
-        if (variable.name === undefined) {
+        if (variable.name === "") {
             nameError = true
         }
         let typeError = false
-        if (variable.type === undefined) {
+        if (variable.type === "") {
             typeError = true
         }
         let countError = false
-        if (variable.count === undefined) {
+        if (variable.count === "") {
             countError = true
         }
         variables.push(variable)
@@ -118,35 +118,36 @@ class AnnotationForm extends Component<{}, AnnotationStateType> {
                 <Stack direction="row" divider={<Divider orientation="vertical" flexItem/>} spacing={2}>
                     <TextField disabled={!isActiveRow} error={this.state.nameError && isActiveRow} color="primary"
                                id="filled-basic" label="Variable name" variant="filled"
-                               onChange={(event) => this.addVariableName(event, id)} placeholder={id}/>
+                               onChange={(event) => this.addVariableName(event, id)}
+                               value={this.state.variables[id].name}/>
                     <FormControl disabled={!isActiveRow} error={this.state.typeError && isActiveRow} variant="filled"
                                  sx={{m: 1, minWidth: 120}}>
                         <InputLabel id="demo-simple-select-filled-label">Type</InputLabel>
                         <Select
-                            labelId="demo-simple-select-filled-label"
-                            id="demo-simple-select-filled"
-                            onChange={(event) => this.addVariableType(event, id)}>
+                            labelId="demo-simple-select-filled-label" id="demo-simple-select-filled"
+                            onChange={(event) => this.addVariableType(event, id)} value={this.state.variables[id].type}>
                             <MenuItem value={VariableType.boolean}>boolean</MenuItem>
                             <MenuItem value={VariableType.integer}>integer number</MenuItem>
                             <MenuItem value={VariableType.decimal}>decimal number</MenuItem>
                             <MenuItem value={VariableType.text}>text</MenuItem>
-                            <MenuItem value={VariableType.seed}>text</MenuItem>
+                            <MenuItem value={VariableType.seed}>seed</MenuItem>
                         </Select>
                     </FormControl>
                     <FormControl disabled={!isActiveRow} error={this.state.countError && isActiveRow} variant="filled"
                                  sx={{m: 1, minWidth: 120}}>
                         <InputLabel id="demo-simple-select-filled-label">Count</InputLabel>
                         <Select
-                            labelId="demo-simple-select-filled-label"
-                            id="demo-simple-select-filled"
-                            onChange={(event) => this.addVariableCount(event, id)}>
+                            labelId="demo-simple-select-filled-label" id="demo-simple-select-filled"
+                            onChange={(event) => this.addVariableCount(event, id)}
+                            value={this.state.variables[id].count}>
                             <MenuItem value={VariableCount.static}>static</MenuItem>
                             <MenuItem value={VariableCount.dynamic}>dynamic</MenuItem>
                         </Select>
                     </FormControl>
                     <IconButton color="primary">
                         {isActiveRow ?
-                            <AddIcon disabled={isErrorRow} variant="contained" onClick={() => this.addVariable(id+1)}/>
+                            <AddIcon value="Hello" disabled={isErrorRow} variant="contained"
+                                     onClick={() => this.addVariable(id + 1)}/>
                             :
                             <RemoveIcon variant="contained" onClick={() => this.removeVariable(id)}/>
                         }
