@@ -18,73 +18,114 @@ import SaveIcon from '@mui/icons-material/Save';
 import Variable, {VariableCount, VariableType} from "./variable";
 
 
+type RowErrorType = {}
+
 type AnnotationStateType = {
     variables: Variable[]
-    counter: number
+    nameError: boolean
+    typeError: boolean
+    countError: boolean
 }
 
 
 class AnnotationForm extends Component<{}, AnnotationStateType> {
+    private textFieldInput: string;
 
     constructor() {
         super();
         this.state = {
             variables: [new Variable(0)],
-            counter: 0
+            nameError: false,
+            typeError: false,
+            countError: false
         }
     }
 
     addVariable = (id: number) => {
         let variables = this.state.variables
-        let counter = this.state.counter
-        variables.push(new Variable(id))
-        counter = counter + 1
-        this.setState({variables: variables, counter: counter})
+        const variable = variables.pop()
+        let nameError = false
+        if (variable.name === undefined) {
+            nameError = true
+        }
+        let typeError = false
+        if (variable.type === undefined) {
+            typeError = true
+        }
+        let countError = false
+        if (variable.count === undefined) {
+            countError = true
+        }
+        variables.push(variable)
+        if (!nameError && !typeError && !countError) {
+            variables.push(new Variable(id))
+        }
+        this.setState({
+            variables: variables, nameError: nameError, typeError: typeError, countError: countError
+        })
     }
 
     removeVariable = (id: number) => {
-        let variables: Variable[]
-        this.state.variables.forEach((variable) => {
-            if (variable.id !== id) {
-                if (variables === undefined) {
-                    variables = [variable]
-                } else {
-                    variables.push(variable)
-                }
-            }
+        const variables: Variable[] = this.state.variables
+        variables.splice(id, 1)
+        variables.forEach((variable, index) => {
+            variable.id = index
         })
         this.setState({variables: variables})
     }
 
-    addVariableName = (event) => {
+    addVariableName = (event, id) => {
         const value = event.target.value
+        this.state.variables.forEach((variable) => {
+            if (variable.id === id) {
+                variable.name = value
+                this.setState({nameError: false})
+            }
+        })
     }
 
-    addVariableType = (event) => {
+    addVariableType = (event, id) => {
         const value = event.target.value
+        this.state.variables.forEach((variable) => {
+            if (variable.id === id) {
+                variable.type = value
+                this.setState({typeError: false})
+            }
+        })
     }
 
-    addVariableType = (event) => {
+    addVariableCount = (event, id) => {
         const value = event.target.value
+        this.state.variables.forEach((variable) => {
+            if (variable.id === id) {
+                variable.count = value
+                this.setState({countError: false})
+            }
+        })
     }
 
-    renderRow(id:number) {
-        let showPlus = true
-        if (id) {
-            showPlus = false
+    renderRow(id: number) {
+        let isActiveRow = false
+        if (id === this.state.variables.length - 1) {
+            isActiveRow = true
+        }
+        let isErrorRow = false
+        if (this.state.nameError || this.state.typeError || this.state.countError) {
+            isErrorRow = true
         }
         return (
             <div id={String(id)}>
-                <Stack direction="row" divider={<Divider orientation="vertical" flexItem/>}
-                       spacing={2}>
-                    <TextField color="primary" id="filled-basic" label="Variable name" variant="filled"
-                               onChange={(event) => this.addVariableName(event)}/>
-                    <FormControl variant="filled" sx={{m: 1, minWidth: 120}}>
+                <Stack direction="row" divider={<Divider orientation="vertical" flexItem/>} spacing={2}>
+                    <TextField disabled={!isActiveRow} error={this.state.nameError && isActiveRow} color="primary"
+                               id="filled-basic" label="Variable name" variant="filled"
+                               onChange={(event) => this.addVariableName(event, id)} placeholder={id}/>
+                    <FormControl disabled={!isActiveRow} error={this.state.typeError && isActiveRow} variant="filled"
+                                 sx={{m: 1, minWidth: 120}}>
                         <InputLabel id="demo-simple-select-filled-label">Type</InputLabel>
                         <Select
                             labelId="demo-simple-select-filled-label"
                             id="demo-simple-select-filled"
-                            onChange={(event) => this.addVariableType(event)}>
+                            onChange={(event) => this.addVariableType(event, id)}>
                             <MenuItem value={VariableType.boolean}>boolean</MenuItem>
                             <MenuItem value={VariableType.integer}>integer number</MenuItem>
                             <MenuItem value={VariableType.decimal}>decimal number</MenuItem>
@@ -92,19 +133,20 @@ class AnnotationForm extends Component<{}, AnnotationStateType> {
                             <MenuItem value={VariableType.seed}>text</MenuItem>
                         </Select>
                     </FormControl>
-                    <FormControl variant="filled" sx={{m: 1, minWidth: 120}}>
+                    <FormControl disabled={!isActiveRow} error={this.state.countError && isActiveRow} variant="filled"
+                                 sx={{m: 1, minWidth: 120}}>
                         <InputLabel id="demo-simple-select-filled-label">Count</InputLabel>
                         <Select
                             labelId="demo-simple-select-filled-label"
                             id="demo-simple-select-filled"
-                            onChange={(event) => this.addVariableType(event)}>
+                            onChange={(event) => this.addVariableCount(event, id)}>
                             <MenuItem value={VariableCount.static}>static</MenuItem>
                             <MenuItem value={VariableCount.dynamic}>dynamic</MenuItem>
                         </Select>
                     </FormControl>
                     <IconButton color="primary">
-                        {showPlus ?
-                            <AddIcon variant="contained" onClick={() => this.addVariable(id+1)}/>
+                        {isActiveRow ?
+                            <AddIcon disabled={isErrorRow} variant="contained" onClick={() => this.addVariable(id+1)}/>
                             :
                             <RemoveIcon variant="contained" onClick={() => this.removeVariable(id)}/>
                         }
@@ -125,11 +167,14 @@ class AnnotationForm extends Component<{}, AnnotationStateType> {
                         variant="contained">
                         Save
                     </LoadingButton>
-                    {
-                        this.state.variables?.map((value, index) => {
-                            return this.renderRow(index)
-                        })
-                    }
+                    <Stack direction="column" divider={<Divider orientation="horizontal" flexItem/>}
+                           spacing={2}>
+                        {
+                            this.state.variables?.map((value, index) => {
+                                return this.renderRow(index)
+                            })
+                        }
+                    </Stack>
                 </Container>
             </Style>
         );

@@ -13,12 +13,16 @@ export enum VariableCount {
 
 class Variable {
     private _id: number
-    private _name: string
-    private _type: VariableType
-    private _count: VariableCount
+    private _name: string | undefined
+    private _type: VariableType | undefined
+    private _count: VariableCount | undefined
 
     constructor(id: number) {
         this._id = id
+    }
+
+    set id(value: number) {
+        this._id = value;
     }
 
     set name(value: string) {
@@ -37,15 +41,15 @@ class Variable {
         return this._id;
     }
 
-    get name(): string {
+    get name(): string | undefined {
         return this._name;
     }
 
-    get type(): VariableType {
+    get type(): VariableType | undefined {
         return this._type;
     }
 
-    get count(): VariableCount {
+    get count(): VariableCount | undefined {
         return this._count;
     }
 }
