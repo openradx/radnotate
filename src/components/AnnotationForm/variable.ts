@@ -44,15 +44,15 @@ class Variable {
         return this._id;
     }
 
-    get name(): string | undefined {
+    get name(): string {
         return this._name;
     }
 
-    get type(): VariableType | undefined {
+    get type(): VariableType | string {
         return this._type;
     }
 
-    get count(): VariableCount | undefined {
+    get count(): VariableCount | string {
         return this._count;
     }
 }

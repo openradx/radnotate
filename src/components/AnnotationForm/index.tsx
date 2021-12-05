@@ -18,8 +18,6 @@ import SaveIcon from '@mui/icons-material/Save';
 import Variable, {VariableCount, VariableType} from "./variable";
 
 
-type RowErrorType = {}
-
 type AnnotationStateType = {
     variables: Variable[]
     nameError: boolean
@@ -29,7 +27,6 @@ type AnnotationStateType = {
 
 
 class AnnotationForm extends Component<{}, AnnotationStateType> {
-    private textFieldInput: string;
 
     constructor() {
         super();
