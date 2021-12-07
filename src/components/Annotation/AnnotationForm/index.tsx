@@ -8,7 +8,7 @@ import {
     Select,
     Stack,
     InputLabel,
-    TextField
+    TextField, FormControlLabel, FormLabel, RadioGroup, Radio
 } from "@mui/material";
 import {Style} from "./styles";
 import AddIcon from '@mui/icons-material/Add';
@@ -17,16 +17,24 @@ import LoadingButton from '@mui/lab/LoadingButton';
 import SaveIcon from '@mui/icons-material/Save';
 import Variable, {VariableCount, VariableType} from "./variable";
 
+enum AnnotationLevelType {
+    patient,
+    study
+}
 
-type AnnotationStateType = {
+type AnnotationFormStateType = {
     variables: Variable[]
     nameError: boolean
     typeError: boolean
     countError: boolean
+    annotationLevel: AnnotationLevelType
 }
 
+type AnnotationFormPropsType = {
+    saveAnnotationForm: Function
+}
 
-class AnnotationForm extends Component<{}, AnnotationStateType> {
+class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormStateType> {
 
     constructor() {
         super();
@@ -35,6 +43,7 @@ class AnnotationForm extends Component<{}, AnnotationStateType> {
             nameError: false,
             typeError: false,
             countError: false,
+            annotationLevel: AnnotationLevelType.patient
         }
     }
 
@@ -101,23 +110,30 @@ class AnnotationForm extends Component<{}, AnnotationStateType> {
         })
     }
 
-    renderRow(id: number) {
-        let isActiveRow = false
+    setAnnotationLevel = (event) => {
+        const annotationLevel = event.target.value
+        this.setState({annotationLevel: annotationLevel})
+    }
+
+    renderVariableInput(id: number) {
+        let isActiveVariable = false
         if (id === this.state.variables.length - 1) {
-            isActiveRow = true
+            isActiveVariable = true
         }
-        let isErrorRow = false
+        let isErrorVariable = false
         if (this.state.nameError || this.state.typeError || this.state.countError) {
-            isErrorRow = true
+            isErrorVariable = true
         }
         return (
             <div id={String(id)}>
                 <Stack direction="row" divider={<Divider orientation="vertical" flexItem/>} spacing={2}>
-                    <TextField disabled={!isActiveRow} error={this.state.nameError && isActiveRow} color="primary"
+                    <TextField disabled={!isActiveVariable} error={this.state.nameError && isActiveVariable}
+                               color="primary"
                                id="filled-basic" label="Variable name" variant="filled"
                                onChange={(event) => this.addVariableName(event, id)}
                                value={this.state.variables[id].name}/>
-                    <FormControl disabled={!isActiveRow} error={this.state.typeError && isActiveRow} variant="filled"
+                    <FormControl disabled={!isActiveVariable} error={this.state.typeError && isActiveVariable}
+                                 variant="filled"
                                  sx={{m: 1, minWidth: 120}}>
                         <InputLabel id="demo-simple-select-filled-label">Type</InputLabel>
                         <Select
@@ -130,7 +146,8 @@ class AnnotationForm extends Component<{}, AnnotationStateType> {
                             <MenuItem value={VariableType.seed}>seed</MenuItem>
                         </Select>
                     </FormControl>
-                    <FormControl disabled={!isActiveRow} error={this.state.countError && isActiveRow} variant="filled"
+                    <FormControl disabled={!isActiveVariable} error={this.state.countError && isActiveVariable}
+                                 variant="filled"
                                  sx={{m: 1, minWidth: 120}}>
                         <InputLabel id="demo-simple-select-filled-label">Count</InputLabel>
                         <Select
@@ -142,8 +159,8 @@ class AnnotationForm extends Component<{}, AnnotationStateType> {
                         </Select>
                     </FormControl>
                     <IconButton color="primary">
-                        {isActiveRow ?
-                            <AddIcon value="Hello" disabled={isErrorRow} variant="contained"
+                        {isActiveVariable ?
+                            <AddIcon value="Hello" disabled={isErrorVariable} variant="contained"
                                      onClick={() => this.addVariable(id + 1)}/>
                             :
                             <RemoveIcon variant="contained" onClick={() => this.removeVariable(id)}/>
@@ -155,23 +172,43 @@ class AnnotationForm extends Component<{}, AnnotationStateType> {
     }
 
     render() {
+        let saveFormDisabeled = true
+        if (this.state.variables.length - 1) {
+            saveFormDisabeled = false
+        }
         return (
             <Style>
                 <Container>
-                    <LoadingButton
-                        color="secondary"
-                        loadingPosition="start"
-                        startIcon={<SaveIcon/>}
-                        variant="contained">
-                        Save
-                    </LoadingButton>
                     <Stack direction="column" divider={<Divider orientation="horizontal" flexItem/>}
                            spacing={2}>
-                        {
-                            this.state.variables?.map((value, index) => {
-                                return this.renderRow(index)
-                            })
-                        }
+                        <Stack direction="row" divider={<Divider orientation="horizontal" flexItem/>}
+                               spacing={2}>
+                            <LoadingButton
+                                disabled={saveFormDisabeled} color="secondary" loadingPosition="start"
+                                startIcon={<SaveIcon/>} variant="contained"
+                                onClick={() => this.props.saveAnnotationForm(this.state.variables)}>
+                                Save
+                            </LoadingButton>
+                            <FormControl component="fieldset">
+                                <FormLabel component="legend">Annotation level</FormLabel>
+                                <RadioGroup row aria-label="annotationLevel" name="row-radio-buttons-group"
+                                            defaultValue={this.state.annotationLevel}
+                                            onChange={event => this.setAnnotationLevel}>
+                                    <FormControlLabel value={AnnotationLevelType.patient} control={<Radio/>}
+                                                      label="patient"/>
+                                    <FormControlLabel value={AnnotationLevelType.study} control={<Radio/>}
+                                                      label="study"/>
+                                </RadioGroup>
+                            </FormControl>
+                        </Stack>
+                        <Stack direction="column" divider={<Divider orientation="horizontal" flexItem/>}
+                               spacing={2}>
+                            {
+                                this.state.variables?.map((value, index) => {
+                                    return this.renderVariableInput(index)
+                                })
+                            }
+                        </Stack>
                     </Stack>
                 </Container>
             </Style>

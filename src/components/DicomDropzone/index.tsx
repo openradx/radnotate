@@ -30,7 +30,11 @@ type DicomDropzoneState = {
     loading: boolean
 }
 
-class DicomDropzone extends Component<{}, DicomDropzoneState> {
+type DicomDropzoneProps = {
+    savePatients: Function
+}
+
+class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
 
     constructor() {
         super();
@@ -58,6 +62,7 @@ class DicomDropzone extends Component<{}, DicomDropzoneState> {
                 });
             }, Promise.resolve()).then(() => {
                 console.log(patients)
+                this.props.savePatients(patients)
                 this.setState({patients: patients, loading: false})
             })
         );
