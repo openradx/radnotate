@@ -3,6 +3,8 @@ import DicomDropzone from "./components/DicomDropzone";
 import Annotation from "./components/Annotation";
 import {Component} from "react";
 import {Patients} from "./components/DicomDropzone/dicomObject";
+import {ThemeProvider} from "@mui/material";
+import {theme} from "./styles";
 
 
 type AppState = {
@@ -11,8 +13,8 @@ type AppState = {
 
 class App extends Component<any, AppState> {
 
-    constructor() {
-        super();
+    constructor(props: AppState) {
+        super(props);
         this.state = {
             patients: null
         }
@@ -24,10 +26,10 @@ class App extends Component<any, AppState> {
 
     render() {
         return(
-            <div>
+            <ThemeProvider theme={theme}>
                 <DicomDropzone savePatients={this.savePatients}/>
                 <Annotation patients={this.state.patients}/>
-            </div>
+            </ThemeProvider>
         )
     }
 }

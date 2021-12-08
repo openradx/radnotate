@@ -36,8 +36,8 @@ type DicomDropzoneProps = {
 
 class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
 
-    constructor() {
-        super();
+    constructor(props: DicomDropzoneProps) {
+        super(props);
         this.state = {
             patients: new Patients(),
             loading: false
@@ -48,7 +48,7 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
         const patients = new Patients()
         this.setState({loading: true})
         trackPromise(
-            acceptedFiles.reduce((previousPromise: Promise<void>, file: Blob) => {
+            acceptedFiles.reduce((previousPromise: Promise<void>, file) => {
                 return previousPromise.then(() => {
                     return new Promise<void>((resolve => {
                         const reader = new FileReader()
@@ -87,7 +87,7 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
                     onDrop={async acceptedFiles => this.processAcceptedFiles(acceptedFiles)}
                     getFilesFromEvent={async event => this.getFilesFromEvent(event)}>
                     {({getRootProps, getInputProps}) => (
-                        <div style={{display: "flex", "justify-content": "center", font:"Roboto"}}>
+                        <div style={{display: "flex", "justifyContent": "center", font:"Roboto"}}>
                             <div {...getRootProps()}>
                                 <input {...getInputProps()} />
                                 <Button variant="outlined" sx={{fontSize: 14}}>Select or drop<br/>folders or files</Button>

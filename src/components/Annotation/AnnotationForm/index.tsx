@@ -17,7 +17,7 @@ import LoadingButton from '@mui/lab/LoadingButton';
 import SaveIcon from '@mui/icons-material/Save';
 import Variable, {VariableCount, VariableType} from "./variable";
 
-enum AnnotationLevelType {
+export enum AnnotationLevel {
     patient,
     study
 }
@@ -27,7 +27,7 @@ type AnnotationFormStateType = {
     nameError: boolean
     typeError: boolean
     countError: boolean
-    annotationLevel: AnnotationLevelType
+    annotationLevel: AnnotationLevel
 }
 
 type AnnotationFormPropsType = {
@@ -43,7 +43,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
             nameError: false,
             typeError: false,
             countError: false,
-            annotationLevel: AnnotationLevelType.patient
+            annotationLevel: AnnotationLevel.patient
         }
     }
 
@@ -186,17 +186,17 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                             <LoadingButton
                                 disabled={saveFormDisabeled} color="secondary" loadingPosition="start"
                                 startIcon={<SaveIcon/>} variant="contained"
-                                onClick={() => this.props.saveAnnotationForm(this.state.variables)}>
+                                onClick={() => this.props.saveAnnotationForm(this.state.variables, this.state.annotationLevel)}>
                                 Save
                             </LoadingButton>
                             <FormControl component="fieldset">
                                 <FormLabel component="legend">Annotation level</FormLabel>
                                 <RadioGroup row aria-label="annotationLevel" name="row-radio-buttons-group"
                                             defaultValue={this.state.annotationLevel}
-                                            onChange={event => this.setAnnotationLevel}>
-                                    <FormControlLabel value={AnnotationLevelType.patient} control={<Radio/>}
+                                            onChange={event => this.setAnnotationLevel(event)}>
+                                    <FormControlLabel value={AnnotationLevel.patient} control={<Radio/>}
                                                       label="patient"/>
-                                    <FormControlLabel value={AnnotationLevelType.study} control={<Radio/>}
+                                    <FormControlLabel value={AnnotationLevel.study} control={<Radio/>}
                                                       label="study"/>
                                 </RadioGroup>
                             </FormControl>
