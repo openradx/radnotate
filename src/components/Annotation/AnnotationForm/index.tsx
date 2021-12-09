@@ -32,12 +32,13 @@ type AnnotationFormStateType = {
 
 type AnnotationFormPropsType = {
     saveAnnotationForm: Function
+    patientsAreLoaded: boolean
 }
 
 class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormStateType> {
 
-    constructor() {
-        super();
+    constructor(props: AnnotationFormPropsType) {
+        super(props);
         this.state = {
             variables: [new Variable(0)],
             nameError: false,
@@ -173,7 +174,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
 
     render() {
         let saveFormDisabeled = true
-        if (this.state.variables.length - 1) {
+        if (this.state.variables.length - 1 && this.props.patientsAreLoaded) {
             saveFormDisabeled = false
         }
         return (

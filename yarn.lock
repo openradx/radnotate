@@ -3615,6 +3615,13 @@
   "resolved" "https://registry.npmjs.org/cornerstone-core/-/cornerstone-core-2.6.1.tgz"
   "version" "2.6.1"
 
+"cornerstone-file-image-loader@^0.3.0":
+  "integrity" "sha512-q6Qd1TvXT3JiXQaU9Yy0LsfKZFBlrHCLdzqC82yn+qfrwws/OYXSeTZDUfhpmb4B3T9QSq8YQGDHM1IlgJ14jg=="
+  "resolved" "https://registry.npmjs.org/cornerstone-file-image-loader/-/cornerstone-file-image-loader-0.3.0.tgz"
+  "version" "0.3.0"
+  dependencies:
+    "serialize-javascript" "^2.1.2"
+
 "cornerstone-math@^0.1.9", "cornerstone-math@0.1.9":
   "integrity" "sha512-NxdooV73asEQgav1S+0e+a4K+W3CXJdLXyFkVN24qqCtmIpzZzwtw3F9KWPCekzSAJmbhtQ3HicOQj3d4vRtuw=="
   "resolved" "https://registry.npmjs.org/cornerstone-math/-/cornerstone-math-0.1.9.tgz"
@@ -8265,10 +8272,10 @@
   "resolved" "https://registry.npmjs.org/rcedit/-/rcedit-2.3.0.tgz"
   "version" "2.3.0"
 
-"react-cornerstone-viewport@^4.1.2":
-  "integrity" "sha512-ys9UHiVjLoDT/RQMvSs/4pgr/vCS+b56pA92RxzzJO30yZA2jvISm5gRO1cbuqlBPlfRHddJTgXHDErI4FAcSQ=="
-  "resolved" "https://registry.npmjs.org/react-cornerstone-viewport/-/react-cornerstone-viewport-4.1.2.tgz"
-  "version" "4.1.2"
+"react-cornerstone-viewport@^4.1.4":
+  "integrity" "sha512-saM9+Nax7wVTZdZV778U04keg86iYXtvc4TPCBIZqyF+t8vsgi9Fw740Ib9zHSMAOQsBuye0PGoZzZ1HUin2Fw=="
+  "resolved" "https://registry.npmjs.org/react-cornerstone-viewport/-/react-cornerstone-viewport-4.1.4.tgz"
+  "version" "4.1.4"
   dependencies:
     "classnames" "^2.3.1"
     "date-fns" "^2.23.0"
@@ -9021,6 +9028,11 @@
   "version" "7.0.1"
   dependencies:
     "type-fest" "^0.13.1"
+
+"serialize-javascript@^2.1.2":
+  "integrity" "sha512-rs9OggEUF0V4jUSecXazOYsLfu7OGK2qIn3c7IPBiffz32XniEp/TX9Xmc9LQfK2nQ2QKHvZ2oygKUGU0lG4jQ=="
+  "resolved" "https://registry.npmjs.org/serialize-javascript/-/serialize-javascript-2.1.2.tgz"
+  "version" "2.1.2"
 
 "serialize-javascript@^6.0.0":
   "integrity" "sha512-Qr3TosvguFt8ePWqsvRfrKyQXIiW+nGbYpy8XK24NQHE83caxWt+mIymTT19DGFbNWNLfEwsrkSmN64lVWB9ag=="

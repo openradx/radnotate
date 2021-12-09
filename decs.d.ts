@@ -8,3 +8,4 @@ declare module "react-folder-tree";
 declare module "dicom-parser";
 declare module "react-promise-tracker";
 declare module "nifti-reader-js";
+declare module "cornerstone-file-image-loader";

@@ -15,7 +15,8 @@ export type SeriesType = {
 }
 
 export type ImageType = {
-    imagePath: string
+    imagePath: string,
+    imageID: string
 }
 
 export type TreeNodeType = {
@@ -169,5 +170,9 @@ export class Patients {
                 this.treeNode.children?.push(newPatient.treeNode)
             }
         }
+    }
+
+    getPatient(index: number) {
+        return this.patients[index]
     }
 }

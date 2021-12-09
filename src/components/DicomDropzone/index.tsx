@@ -8,9 +8,16 @@ import {fromEvent, FileWithPath} from "file-selector";
 import {loadFile} from "./loaders";
 import {Style} from './styles';
 import {Button} from "@mui/material";
+import cornerstoneWADOImageLoader from "cornerstone-wado-image-loader";
+import cornerstone from "cornerstone-core";
+import dicomParser from "dicom-parser";
+
+cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
+cornerstoneWADOImageLoader.external.dicomParser = dicomParser;
 
 const LoadingIndicator = () => {
     const {promiseInProgress} = usePromiseTracker();
+
     return (
         promiseInProgress &&
         <div style={{
@@ -49,19 +56,19 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
         this.setState({loading: true})
         trackPromise(
             acceptedFiles.reduce((previousPromise: Promise<void>, file) => {
+                const imageID: string = cornerstoneWADOImageLoader.wadouri.fileManager.add(file);
                 return previousPromise.then(() => {
                     return new Promise<void>((resolve => {
                         const reader = new FileReader()
                         const imagePath: string = file.path
                         reader.onload = () => {
-                            loadFile(patients, reader, imagePath)
+                            loadFile(patients, reader, imagePath, imageID)
                             resolve()
                         }
                         reader.readAsArrayBuffer(file)
                     }))
                 });
             }, Promise.resolve()).then(() => {
-                console.log(patients)
                 this.props.savePatients(patients)
                 this.setState({patients: patients, loading: false})
             })
