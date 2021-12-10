@@ -15,7 +15,7 @@ export type SeriesType = {
 }
 
 export type ImageType = {
-    imagePath: string,
+    instanceNumber: number,
     imageID: string
 }
 
@@ -137,6 +137,16 @@ export class Patient {
     getStudy(index: number) {
         return this.studies[index]
     }
+
+    keepStudy(index: number) {
+        const studies: Study[] = []
+        this.studies.forEach((study, counter) => {
+            if (counter === index) {
+                studies.push(study)
+            }
+        })
+        this.studies = studies
+    }
 }
 
 export class Patients {
@@ -174,5 +184,11 @@ export class Patients {
 
     getPatient(index: number) {
         return this.patients[index]
+    }
+
+    getPatientStudy(patientIndex: number, studyIndex: number) {
+        const patient = this.patients[patientIndex]
+        patient.keepStudy(studyIndex)
+        return patient
     }
 }

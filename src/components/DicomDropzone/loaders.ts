@@ -19,7 +19,7 @@ const seriesDict = (dataSet: typeof DataSet): SeriesType => ({
 })
 
 const imageDict = (dataSet: typeof DataSet, imagePath: string, imageID: string): ImageType => ({
-    imagePath: imagePath,
+    instanceNumber: parseInt(dataSet.string('x00200013')),
     imageID: imageID
 })
 
@@ -36,7 +36,7 @@ export const loadFile = (patients: Patients, reader: FileReader, imagePath: stri
     let patient: Patient
     if (imagePath.endsWith(".nii.gz") || imagePath.endsWith(".nii")) {
         // ToDo implement
-    } else if (imagePath.endsWith(".dcm") || !isNaN(Number(imagePath.slice(imagePath.length -1)))) {
+    } else if (imagePath.endsWith(".dcm") || !isNaN(Number(imagePath.slice(imagePath.length - 1)))) {
         patient = loadDicom(byteArray, imagePath, imageID)
     } else {
         // ToDo handle
