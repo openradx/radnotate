@@ -6,7 +6,7 @@ export enum VariableType {
     seed
 }
 
-export enum VariableCount {
+export enum VariableCountType {
     static,
     dynamic
 }
@@ -15,7 +15,8 @@ class Variable {
     private _id: number
     private _name: string
     private _type: VariableType | string
-    private _count: VariableCount | string
+    private _countType: VariableCountType | string
+    private _count: number
 
     constructor(id: number) {
         this._id = id
@@ -36,7 +37,11 @@ class Variable {
         this._type = value;
     }
 
-    set count(value: VariableCount) {
+    set countType(value: VariableCountType) {
+        this._countType = value;
+    }
+
+    set count(value: number) {
         this._count = value;
     }
 
@@ -52,7 +57,11 @@ class Variable {
         return this._type;
     }
 
-    get count(): VariableCount | string {
+    get countType(): VariableCountType | string {
+        return this._countType;
+    }
+    
+    get count(): number {
         return this._count;
     }
 }

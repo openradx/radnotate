@@ -34,6 +34,7 @@ type ImageStateType = {
     isPlaying: boolean,
     frameRate: number,
     imageIds: string[],
+    instanceNumbers: Map<string, number>,
     cornerstoneElement: any
 }
 
@@ -78,32 +79,48 @@ class Image extends Component<ImagePropsType, ImageStateType> {
 
     }
 
+    processSeed = (data, instanceNumber: number) => {
+        const coordinates = data["cachedStats"]
+        const x = coordinates["x"]
+        const y = coordinates["y"]
+        console.log(x)
+        console.log(y)
+        console.log(instanceNumber)
+    }
+
     updateVariable = () => {
         const existingToolState = toolStateManager.saveToolState();
         const keys = Object.keys(existingToolState);
         keys.forEach(imageId => {
-            const annotation = existingToolState[imageId]
-            const data = annotation[this.state.activeTool]["data"][0]
-            if (this.props.activeVariable.type === VariableType.seed) {
-                //ToDo save data into variable, connection to the right image slice need to be implemented
-                console.log(data)
+            const annotations = existingToolState[imageId][this.state.activeTool]["data"]
+            const annotationsCount = annotations.length
+            let instanceNumber: number
+            if (this.state.instanceNumbers.has(imageId)) {
+                instanceNumber = this.state.instanceNumbers.get(imageId)
             }
+            annotations.forEach((data) => {
+                if (this.props.activeVariable.type === VariableType.seed) {
+                //ToDo save data into variable, maybe also connection to series number or serisuid needed?
+                    this.processSeed(data, instanceNumber)
+                }
+            })
         })
     }
 
     updatePatient = () => {
         let imageIds: string[] = []
+        let instanceNumbers: Map<string, number> = new Map<string, number>()
         this.props.activePatient.studies.forEach((study) => {
             study.series.forEach((series) => {
-                let arr = new Array<string>(series.images.length)
+                let imageIdsTemp = new Array<string>(series.images.length)
                 series.images.forEach((image) => {
-                    arr[image.instanceNumber - 1] = image.imageID
+                    imageIdsTemp[image.instanceNumber - 1] = image.imageID
+                    instanceNumbers.set(image.imageID, image.instanceNumber);
                 })
-                imageIds = [...imageIds, ...arr]
+                imageIds = [...imageIds, ...imageIdsTemp]
             })
-
         })
-        this.setState({imageIds: imageIds})
+        this.setState({imageIds: imageIds, instanceNumbers: instanceNumbers})
     }
 
     componentWillMount = () => this.updatePatient()

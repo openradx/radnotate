@@ -15,7 +15,7 @@ import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import LoadingButton from '@mui/lab/LoadingButton';
 import SaveIcon from '@mui/icons-material/Save';
-import Variable, {VariableCount, VariableType} from "./variable";
+import Variable, {VariableCountType, VariableType} from "./variable";
 
 export enum AnnotationLevel {
     patient,
@@ -155,8 +155,8 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                             labelId="demo-simple-select-filled-label" id="demo-simple-select-filled"
                             onChange={(event) => this.addVariableCount(event, id)}
                             value={this.state.variables[id].count}>
-                            <MenuItem value={VariableCount.static}>static</MenuItem>
-                            <MenuItem value={VariableCount.dynamic}>dynamic</MenuItem>
+                            <MenuItem value={VariableCountType.static}>static</MenuItem>
+                            <MenuItem value={VariableCountType.dynamic}>dynamic</MenuItem>
                         </Select>
                     </FormControl>
                     <IconButton color="primary">
