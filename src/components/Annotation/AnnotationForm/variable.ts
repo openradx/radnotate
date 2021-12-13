@@ -22,7 +22,8 @@ class Variable {
         this._id = id
         this._name = ""
         this._type = ""
-        this._count = ""
+        this._countType = ""
+        this._count = 1
     }
 
     set id(value: number) {

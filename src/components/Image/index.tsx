@@ -5,7 +5,7 @@ import Hammer from "hammerjs";
 import CornerstoneViewport from "react-cornerstone-viewport";
 import {Patient} from "../DicomDropzone/dicomObject";
 import cornerstone from "cornerstone-core";
-import Variable, {VariableType} from "../Annotation/AnnotationForm/variable";
+import Variable, {VariableCountType, VariableType} from "../Annotation/AnnotationForm/variable";
 
 
 cornerstoneTools.external.cornerstone = cornerstone;
@@ -21,8 +21,13 @@ cornerstoneTools.init({
 });
 
 type ImagePropsType = {
-    activePatient: Patient
-    activeVariable: Variable
+    activePatient: Patient,
+    activeVariable: Variable,
+    nextVariable: Function,
+    imageIds: string[],
+    instanceNumbers: Map<string, number>,
+    updateAnnotationsCount: Function,
+    annotationsCount: 0,
 }
 
 type ImageStateType = {
@@ -33,9 +38,7 @@ type ImageStateType = {
     imageIdIndex: number,
     isPlaying: boolean,
     frameRate: number,
-    imageIds: string[],
-    instanceNumbers: Map<string, number>,
-    cornerstoneElement: any
+    cornerstoneElement: any,
 }
 
 class Image extends Component<ImagePropsType, ImageStateType> {
@@ -74,67 +77,66 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             activeTool: tool,
             imageIdIndex: 0,
             isPlaying: false,
-            frameRate: 22
+            frameRate: 22,
+            annotationsCount: 0
         };
 
     }
 
     processSeed = (data, instanceNumber: number) => {
-        const coordinates = data["cachedStats"]
-        const x = coordinates["x"]
-        const y = coordinates["y"]
-        console.log(x)
-        console.log(y)
-        console.log(instanceNumber)
+        const coordinates = data.cachedStats
+        const x = coordinates.x
+        const y = coordinates.y
+        const seed = new Map<string, number>()
+        seed.set("x", x)
+        seed.set("y", y)
+        seed.set("z", instanceNumber)
+        return seed
     }
 
     updateVariable = () => {
         const existingToolState = toolStateManager.saveToolState();
-        const keys = Object.keys(existingToolState);
-        keys.forEach(imageId => {
-            const annotations = existingToolState[imageId][this.state.activeTool]["data"]
-            const annotationsCount = annotations.length
-            let instanceNumber: number
-            if (this.state.instanceNumbers.has(imageId)) {
-                instanceNumber = this.state.instanceNumbers.get(imageId)
-            }
-            annotations.forEach((data) => {
-                if (this.props.activeVariable.type === VariableType.seed) {
-                //ToDo save data into variable, maybe also connection to series number or serisuid needed?
-                    this.processSeed(data, instanceNumber)
+        const keys = Object.keys(existingToolState)
+        let annotationsCount = 0
+        const currentValues = []
+        this.props.imageIds.forEach(imageId => {
+            if (keys.includes(imageId)) {
+                const annotations = existingToolState[imageId][this.state.activeTool].data
+                annotationsCount += annotations.length
+                let instanceNumber: number
+                if (this.props.instanceNumbers.has(imageId)) {
+                    instanceNumber = this.props.instanceNumbers.get(imageId)
                 }
-            })
-        })
-    }
-
-    updatePatient = () => {
-        let imageIds: string[] = []
-        let instanceNumbers: Map<string, number> = new Map<string, number>()
-        this.props.activePatient.studies.forEach((study) => {
-            study.series.forEach((series) => {
-                let imageIdsTemp = new Array<string>(series.images.length)
-                series.images.forEach((image) => {
-                    imageIdsTemp[image.instanceNumber - 1] = image.imageID
-                    instanceNumbers.set(image.imageID, image.instanceNumber);
+                annotations.forEach((data) => {
+                    if (this.props.activeVariable.type === VariableType.seed) {
+                        //ToDo save data into variable, maybe also connection to series number or serisuid needed?
+                        currentValues.push(this.processSeed(data, instanceNumber))
+                    }
                 })
-                imageIds = [...imageIds, ...imageIdsTemp]
-            })
+            }
         })
-        this.setState({imageIds: imageIds, instanceNumbers: instanceNumbers})
+        if (this.props.activeVariable.countType === VariableCountType.static) {
+            if (this.props.activeVariable.count + this.props.annotationsCount === annotationsCount) {
+                this.props.updateAnnotationsCount(annotationsCount)
+                this.props.nextVariable(currentValues)
+            }
+        }
     }
 
-    componentWillMount = () => this.updatePatient()
+
+    keyPressHandler = (event) => {
+    }
+
 
     render() {
-
         return (
-            <div style={{display: 'flex', flexWrap: 'wrap'}}>
+            <div style={{display: 'flex', flexWrap: 'wrap'}} onKeyPress={event => this.keyPressHandler(event)}>
                 {this.state.viewports.map(viewportIndex => (
                     <CornerstoneViewport
                         key={viewportIndex}
                         style={{minWidth: '50%', height: '256px', flex: '1'}}
                         tools={this.state.tools}
-                        imageIds={this.state.imageIds}
+                        imageIds={this.props.imageIds}
                         imageIdIndex={this.state.imageIdIndex}
                         isPlaying={this.state.isPlaying}
                         frameRate={this.state.frameRate}
@@ -149,8 +151,10 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                             const cornerstoneElement = elementEnabledEvt.detail.element;
                             this.setState({cornerstoneElement: cornerstoneElement});
                             cornerstoneElement.addEventListener(
-                                'cornerstoneimagerendered',
-                                () => this.updateVariable()
+                                "cornerstonetoolsmeasurementcompleted",
+                                () => {
+                                    this.updateVariable()
+                                }
                             );
                         }}
                     />

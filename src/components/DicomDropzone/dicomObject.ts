@@ -41,7 +41,7 @@ class Series {
         this.treeNode = {
             name: this.seriesDescription,
             checked: 0,
-            isOpen: true,
+            isOpen: false,
             children: []
         }
     }
@@ -67,7 +67,7 @@ class Study {
         this.treeNode = {
             name: this.studyDescription,
             checked: 0,
-            isOpen: true,
+            isOpen: false,
             children: []
         }
         this.addSeries(series)
@@ -109,7 +109,7 @@ export class Patient {
         this.treeNode = {
             name: this.patientID,
             checked: 0,
-            isOpen: true,
+            isOpen: false,
             children: []
         }
         this.addStudy(study)
@@ -158,7 +158,7 @@ export class Patients {
         this.treeNode = {
             name: "Patients",
             checked: 0,
-            isOpen: true,
+            isOpen: false,
             children: []
         }
     }

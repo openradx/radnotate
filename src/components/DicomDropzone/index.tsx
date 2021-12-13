@@ -106,12 +106,14 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
                     {this.state.loading ?
                         <LoadingIndicator/>
                         :
-                        <FolderTree
-                            data={this.state.patients?.treeNode}
-                            onChange={this.onTreeStateChange}
-                            indentPixels={30}
-                            style={{font:"Roboto"}}
-                            readOnly/>}
+                        <div></div>
+                        // <FolderTree
+                        //     data={this.state.patients?.treeNode}
+                        //     onChange={this.onTreeStateChange}
+                        //     indentPixels={30}
+                        //     style={{font:"Roboto"}}
+                        //     readOnly/>
+                    }
                 </div>
             </Style>
         )

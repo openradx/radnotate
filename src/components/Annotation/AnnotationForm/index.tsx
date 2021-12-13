@@ -60,7 +60,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
             typeError = true
         }
         let countError = false
-        if (variable.count === "") {
+        if (variable.countType === "") {
             countError = true
         }
         variables.push(variable)
@@ -101,11 +101,11 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
         })
     }
 
-    addVariableCount = (event, id) => {
+    addVariableCountType = (event, id) => {
         const value = event.target.value
         this.state.variables.forEach((variable) => {
             if (variable.id === id) {
-                variable.count = value
+                variable.countType = value
                 this.setState({countError: false})
             }
         })
@@ -153,8 +153,8 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                         <InputLabel id="demo-simple-select-filled-label">Count</InputLabel>
                         <Select
                             labelId="demo-simple-select-filled-label" id="demo-simple-select-filled"
-                            onChange={(event) => this.addVariableCount(event, id)}
-                            value={this.state.variables[id].count}>
+                            onChange={(event) => this.addVariableCountType(event, id)}
+                            value={this.state.variables[id].countType}>
                             <MenuItem value={VariableCountType.static}>static</MenuItem>
                             <MenuItem value={VariableCountType.dynamic}>dynamic</MenuItem>
                         </Select>
