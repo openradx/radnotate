@@ -1,14 +1,18 @@
 import {Component} from "react";
-import {Patients} from "../../DicomDropzone/dicomObject";
+import {Patient, Patients} from "../../DicomDropzone/dicomObject";
 import Variable from "../AnnotationForm/variable";
-import {DataGrid, GridColDef, GridRowsProp} from "@mui/x-data-grid";
+import {DataGrid, GridCellParams, GridColDef, GridRowsProp} from "@mui/x-data-grid";
 import {AnnotationLevel} from "../AnnotationForm";
+import {Box} from "@mui/material";
+import clsx from 'clsx';
 
 
 type AnnotationDataPropsType = {
     patients: Patients | null,
     variables: Variable[] | undefined,
-    annotationLevel: AnnotationLevel
+    annotationLevel: AnnotationLevel,
+    activePatient: Patient,
+    activeVariable: Variable
 }
 
 type AnnotationDataStateType = {
@@ -40,7 +44,16 @@ class AnnotationData extends Component<AnnotationDataPropsType, AnnotationDataSt
             columns.push({field: "Study", headerName: "Study", width: 150})
         }
         variables?.forEach((variable) => {
-            columns.push({field: variable.name, headerName: variable.name, width: 150})
+            columns.push({
+                field: variable.name,
+                headerName: variable.name,
+                width: 150,
+                cellClassName: (params: GridCellParams) => {
+                    return (clsx('cell', {
+                        isActive: (params.row.PatientID === this.props.activePatient.patientID && params.field === this.props.activeVariable.name),
+                    }))
+                }
+            })
         })
         return columns
     }
@@ -71,7 +84,7 @@ class AnnotationData extends Component<AnnotationDataPropsType, AnnotationDataSt
         }
         rowNames.forEach((rowName, index) => {
             const row = {}
-            columns.forEach((column : GridColDef) => {
+            columns.forEach((column: GridColDef) => {
                 if (column.field === idCol) {
                     row[column.field] = rowName
                 } else {
@@ -86,9 +99,19 @@ class AnnotationData extends Component<AnnotationDataPropsType, AnnotationDataSt
 
     render() {
         return (
-            <div style={{height: 400, width: '100%'}}>
-                <DataGrid columns={this.state.columns} rows={this.state.rows}/>
-            </div>
+            <Box style={{height: 400}}
+                 sx={{
+                     height: 300,
+                     width: '100%',
+                     '& .cell.isActive': {
+                         backgroundColor: 'green',
+                         color: '#1a3e72',
+                         fontWeight: '600',
+                     },
+                 }}
+            >
+                <DataGrid columns={this.defineColumns()} rows={this.state.rows}/>
+            </Box>
         )
     }
 }
