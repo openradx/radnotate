@@ -94,7 +94,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         return seed
     }
 
-    updateVariable = () => {
+    updateVariable = (keyPressed: string | undefined) => {
         const existingToolState = toolStateManager.saveToolState();
         const keys = Object.keys(existingToolState)
         let annotationsCount = 0
@@ -120,17 +120,25 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                 this.props.updateAnnotationsCount(annotationsCount)
                 this.props.nextVariable(currentValues)
             }
+        } else {
+            if (keyPressed === "Enter") {
+                this.props.updateAnnotationsCount(annotationsCount)
+                this.props.nextVariable(currentValues)
+            }
         }
     }
 
-
-    keyPressHandler = (event) => {
+    handleKeyPress = (event) => {
+        this.updateVariable(event.key)
     }
 
+    componentDidMount = () => {
+        document.addEventListener("keydown", this.handleKeyPress, false);
+    }
 
     render() {
         return (
-            <div style={{display: 'flex', flexWrap: 'wrap'}} onKeyPress={event => this.keyPressHandler(event)}>
+            <div style={{display: 'flex', flexWrap: 'wrap'}}>
                 {this.state.viewports.map(viewportIndex => (
                     <CornerstoneViewport
                         key={viewportIndex}
