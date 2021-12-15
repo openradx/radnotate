@@ -6,7 +6,7 @@ import CornerstoneViewport from "react-cornerstone-viewport";
 import {Patient} from "../DicomDropzone/dicomObject";
 import cornerstone from "cornerstone-core";
 import Variable, {VariableCountType, VariableType} from "../Annotation/AnnotationForm/variable";
-
+import {TSMap} from "typescript-map"
 
 cornerstoneTools.external.cornerstone = cornerstone;
 cornerstoneTools.external.Hammer = Hammer;
@@ -27,7 +27,7 @@ type ImagePropsType = {
     imageIds: string[],
     instanceNumbers: Map<string, number>,
     updateAnnotationsCount: Function,
-    annotationsCount: 0,
+    annotationsCount: number,
 }
 
 type ImageStateType = {
@@ -42,7 +42,6 @@ type ImageStateType = {
 }
 
 class Image extends Component<ImagePropsType, ImageStateType> {
-
 
     constructor(props: ImagePropsType) {
         super(props);
@@ -87,7 +86,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         const coordinates = data.cachedStats
         const x = coordinates.x
         const y = coordinates.y
-        const seed = new Map<string, number>()
+        const seed = new TSMap<string, number>()
         seed.set("x", x)
         seed.set("y", y)
         seed.set("z", instanceNumber)
@@ -115,26 +114,23 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                 })
             }
         })
+        const previousAnnotationCount = this.props.annotationsCount
         if (this.props.activeVariable.countType === VariableCountType.static) {
             if (this.props.activeVariable.count + this.props.annotationsCount === annotationsCount) {
                 this.props.updateAnnotationsCount(annotationsCount)
-                this.props.nextVariable(currentValues)
+                this.props.nextVariable(currentValues.slice(previousAnnotationCount, currentValues.length))
             }
         } else {
             if (keyPressed === "Enter") {
                 this.props.updateAnnotationsCount(annotationsCount)
-                this.props.nextVariable(currentValues)
+                this.props.nextVariable(currentValues.slice(previousAnnotationCount, currentValues.length))
             }
         }
     }
 
-    handleKeyPress = (event) => {
-        this.updateVariable(event.key)
-    }
+    handleKeyPress = (event) => this.updateVariable(event.key)
 
-    componentDidMount = () => {
-        document.addEventListener("keydown", this.handleKeyPress, false);
-    }
+    componentDidMount = () => document.addEventListener("keydown", this.handleKeyPress, false);
 
     render() {
         return (

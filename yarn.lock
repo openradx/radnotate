@@ -9894,6 +9894,11 @@
   "resolved" "https://registry.npmjs.org/typedarray/-/typedarray-0.0.6.tgz"
   "version" "0.0.6"
 
+"typescript-map@^0.1.0":
+  "integrity" "sha512-py1csqjGZR7LoENWvr5aqN4jYFDkthQZ1sCuMBr0/NuRJ5sSs5RqopqZhE2gFbLesKDec+RE0sraYV2ebrDexQ=="
+  "resolved" "https://registry.npmjs.org/typescript-map/-/typescript-map-0.1.0.tgz"
+  "version" "0.1.0"
+
 "typescript@^4.3.4", "typescript@>=2.8.0 || >= 3.2.0-dev || >= 3.3.0-dev || >= 3.4.0-dev || >= 3.5.0-dev || >= 3.6.0-dev || >= 3.6.0-beta || >= 3.7.0-dev || >= 3.7.0-beta", "typescript@>=3.8 <5.0":
   "integrity" "sha512-uauPG7XZn9F/mo+7MrsRjyvbxFpzemRjKEZXS4AK83oP2KKOJPvb+9cO/gmnv8arWZvhnjVOXz7B49m1l0e9Ew=="
   "resolved" "https://registry.npmjs.org/typescript/-/typescript-4.3.4.tgz"
