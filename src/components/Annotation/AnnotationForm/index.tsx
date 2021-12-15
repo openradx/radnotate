@@ -63,11 +63,10 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
             typeError = true
         }
         let countTypeError = false
+        let countError = false
         if (variable.countType === "") {
             countTypeError = true
-        }
-        let countError = false
-        if (variable.count <= 0) {
+        } else if (variable.countType === VariableCountType.static && variable.count <= 0) {
             countError = true
         }
         variables.push(variable)
@@ -143,7 +142,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
             isActiveVariable = true
         }
         let isErrorVariable = false
-        if (this.state.nameError || this.state.typeError || this.state.counTypetError) {
+        if (this.state.nameError || this.state.typeError || this.state.counTypeError || (this.state.countError && this.s)) {
             isErrorVariable = true
         }
         return (
@@ -183,6 +182,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                     {
                         this.state.variables[id].countType === VariableCountType.static ?
                             <TextField
+                                disabled={!isActiveVariable}
                                 color="primary"
                                 id="filled-number"
                                 label="Annotation count"

@@ -22,7 +22,9 @@ type AnnotationStateType = {
     annotationsCount: number,
     columns: GridColDef[],
     rowNames: String[],
-    rows: GridRowsProp
+    rows: GridRowsProp,
+    jumpBackToVariableIndex: number,
+    jumpBackToPatientIndex: number
 }
 
 type AnnotationStateProps = {
@@ -39,7 +41,8 @@ class Annotation extends Component<AnnotationStateProps, AnnotationStateType> {
             activeVariableIndex: 0,
             activePatientIndex: 0,
             activeStudyIndex: 0,
-            annotationsCount: 0,
+            jumpBackToVariableIndex: -1,
+            jumpBackToPatientIndex: -1
         }
     }
 
@@ -120,8 +123,16 @@ class Annotation extends Component<AnnotationStateProps, AnnotationStateType> {
     nextVariable = (currentValues: TSMap<string, number>[]) => {
         const rows = this._updateRows(currentValues)
         let activeVariableIndex = this.state.activeVariableIndex
-        activeVariableIndex++
-        if (activeVariableIndex === this.state.variables.length) {
+        let jumpBackToVariableIndex = this.state.jumpBackToVariableIndex
+        if (jumpBackToVariableIndex >= 0) {
+            activeVariableIndex = jumpBackToVariableIndex
+            jumpBackToVariableIndex = -1
+        } else {
+            activeVariableIndex++
+        }
+        if (this.state.jumpBackToPatientIndex >= 0) {
+            this._nextPatient()
+        } else if (activeVariableIndex === this.state.variables.length) {
             activeVariableIndex = 0
             this._nextPatient()
         }
@@ -131,13 +142,20 @@ class Annotation extends Component<AnnotationStateProps, AnnotationStateType> {
             activeVariableIndex: activeVariableIndex,
             activeVariable: activeVariable,
             columns: columns,
-            rows: rows
+            rows: rows,
+            jumpBackToVariableIndex: jumpBackToVariableIndex
         })
     }
 
     _nextPatient = () => {
         let activePatientIndex = this.state.activePatientIndex
-        activePatientIndex++
+        let jumpBackToPatientIndex = this.state.jumpBackToPatientIndex
+        if (jumpBackToPatientIndex >= 0) {
+            activePatientIndex = jumpBackToPatientIndex
+            jumpBackToPatientIndex = -1
+        } else {
+            activePatientIndex++
+        }
         let activePatient: Patient
         if (this.state.annotationLevel === AnnotationLevel.patient) {
             activePatient = this.props.patients.getPatient(activePatientIndex)
@@ -150,7 +168,7 @@ class Annotation extends Component<AnnotationStateProps, AnnotationStateType> {
             activePatientIndex: activePatientIndex,
             imageIds: imageIds,
             instanceNumbers: instanceNumbers,
-            annotationsCount: 0
+            jumpBackToPatientIndex: jumpBackToPatientIndex,
         })
     }
 
@@ -170,8 +188,35 @@ class Annotation extends Component<AnnotationStateProps, AnnotationStateType> {
         return {imageIds, instanceNumbers}
     }
 
-    updateAnnotationsCount = (annotationsCount: number) => {
-        this.setState({annotationsCount: annotationsCount})
+    _handleCellClick = (params: GridCellParams) => {
+        const activePatientIndex = Number(params.id)
+        let activePatient: Patient
+        if (this.state.annotationLevel === AnnotationLevel.patient) {
+            activePatient = this.props.patients.getPatient(activePatientIndex)
+        } else {
+            activePatient = this.props.patients.getPatientStudy(activePatientIndex, this.state.activeStudyIndex)
+        }
+
+        let activeVariableIndex: number
+        this.state.variables.forEach((variable, index) => {
+            if (variable.name === params.field)
+                activeVariableIndex = index
+        })
+        const activeVariable = this.state.variables[activeVariableIndex]
+        const columns = this._variablesToColumns(activePatientIndex, activeVariable.name, this.state.variables);
+        const {imageIds, instanceNumbers} = this._updateImageIds(activePatient)
+        this.setState({
+            activeVariableIndex: activeVariableIndex,
+            activeVariable: activeVariable,
+            activePatientIndex: activePatientIndex,
+            activePatient: activePatient,
+            columns: columns,
+            imageIds: imageIds,
+            instanceNumbers: instanceNumbers,
+            jumpBackToVariableIndex: this.state.activeVariableIndex,
+            jumpBackToPatientIndex: this.state.activePatientIndex,
+        })
+
     }
 
     _updateRows = (currentValues: TSMap<string, number>[]) => {
@@ -209,15 +254,15 @@ class Annotation extends Component<AnnotationStateProps, AnnotationStateType> {
                                      fontWeight: '600',
                                  },
                              }}>
-                            <DataGrid columns={this.state.columns} rows={this.state.rows}/>
+                            <DataGrid columns={this.state.columns} rows={this.state.rows}
+                                      onCellDoubleClick={(params) => this._handleCellClick(params)
+                                      }/>
                         </Box>
                         <Image activePatient={this.state.activePatient}
                                activeVariable={this.state.activeVariable}
                                nextVariable={this.nextVariable}
                                imageIds={this.state.imageIds}
-                               instanceNumbers={this.state.instanceNumbers}
-                               annotationsCount={this.state.annotationsCount}
-                               updateAnnotationsCount={this.updateAnnotationsCount}/>
+                               instanceNumbers={this.state.instanceNumbers}/>
                     </div>
                     :
                     <AnnotationForm saveAnnotationForm={this.saveAnnotationForm} patientsAreLoaded={patientsAreLoaded}/>

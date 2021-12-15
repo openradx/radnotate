@@ -7,6 +7,7 @@ import {Patient} from "../DicomDropzone/dicomObject";
 import cornerstone from "cornerstone-core";
 import Variable, {VariableCountType, VariableType} from "../Annotation/AnnotationForm/variable";
 import {TSMap} from "typescript-map"
+import annotation from "../Annotation";
 
 cornerstoneTools.external.cornerstone = cornerstone;
 cornerstoneTools.external.Hammer = Hammer;
@@ -25,9 +26,7 @@ type ImagePropsType = {
     activeVariable: Variable,
     nextVariable: Function,
     imageIds: string[],
-    instanceNumbers: Map<string, number>,
-    updateAnnotationsCount: Function,
-    annotationsCount: number,
+    instanceNumbers: Map<string, number>
 }
 
 type ImageStateType = {
@@ -82,7 +81,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
 
     }
 
-    processSeed = (data, instanceNumber: number) => {
+    _processSeed = (data, instanceNumber: number) => {
         const coordinates = data.cachedStats
         const x = coordinates.x
         const y = coordinates.y
@@ -93,7 +92,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         return seed
     }
 
-    updateVariable = (keyPressed: string | undefined) => {
+    _updateVariable = (keyPressed: string | undefined) => {
         const existingToolState = toolStateManager.saveToolState();
         const keys = Object.keys(existingToolState)
         let annotationsCount = 0
@@ -109,28 +108,46 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                 annotations.forEach((data) => {
                     if (this.props.activeVariable.type === VariableType.seed) {
                         //ToDo save data into variable, maybe also connection to series number or serisuid needed?
-                        currentValues.push(this.processSeed(data, instanceNumber))
+                        currentValues.push(this._processSeed(data, instanceNumber))
                     }
                 })
             }
         })
         const previousAnnotationCount = this.props.annotationsCount
         if (this.props.activeVariable.countType === VariableCountType.static) {
-            if (this.props.activeVariable.count + this.props.annotationsCount === annotationsCount) {
-                this.props.updateAnnotationsCount(annotationsCount)
+            if (this.props.activeVariable.count === annotationsCount) {
                 this.props.nextVariable(currentValues.slice(previousAnnotationCount, currentValues.length))
+                this._deleteAnnotations()
             }
         } else {
             if (keyPressed === "Enter") {
-                this.props.updateAnnotationsCount(annotationsCount)
                 this.props.nextVariable(currentValues.slice(previousAnnotationCount, currentValues.length))
+                this._deleteAnnotations()
             }
         }
+
     }
 
-    handleKeyPress = (event) => this.updateVariable(event.key)
+    _deleteAnnotations = () => {
+        const existingToolState = toolStateManager.saveToolState();
+        const keys = Object.keys(existingToolState)
+        this.props.imageIds.forEach(imageId => {
+            if (keys.includes(imageId)) {
+                const annotations = existingToolState[imageId][this.state.activeTool].data
+                let annotationsCount = annotations.length
+                while (annotationsCount > 0) {
+                    annotations.pop()
+                    annotationsCount = annotations.length
+                }
+            }
+        })
+        cornerstoneTools.clearToolState(this.state.cornerstoneElement, this.state.activeTool);
+        cornerstone.updateImage(this.state.cornerstoneElement);
+    }
 
-    componentDidMount = () => document.addEventListener("keydown", this.handleKeyPress, false);
+    _handleKeyPress = (event) => this._updateVariable(event.key)
+
+    componentDidMount = () => document.addEventListener("keydown", this._handleKeyPress, false);
 
     render() {
         return (
@@ -157,7 +174,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                             cornerstoneElement.addEventListener(
                                 "cornerstonetoolsmeasurementcompleted",
                                 () => {
-                                    this.updateVariable()
+                                    this._updateVariable()
                                 }
                             );
                         }}
