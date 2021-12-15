@@ -16,6 +16,7 @@ import RemoveIcon from '@mui/icons-material/Remove';
 import LoadingButton from '@mui/lab/LoadingButton';
 import SaveIcon from '@mui/icons-material/Save';
 import Variable, {VariableCountType, VariableType} from "./variable";
+import {isNumber} from "util";
 
 export enum AnnotationLevel {
     patient,
@@ -26,6 +27,7 @@ type AnnotationFormStateType = {
     variables: Variable[]
     nameError: boolean
     typeError: boolean
+    countTypeError: boolean
     countError: boolean
     annotationLevel: AnnotationLevel
 }
@@ -43,6 +45,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
             variables: [new Variable(0)],
             nameError: false,
             typeError: false,
+            countTypeError: false,
             countError: false,
             annotationLevel: AnnotationLevel.patient
         }
@@ -59,16 +62,24 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
         if (variable.type === "") {
             typeError = true
         }
-        let countError = false
+        let countTypeError = false
         if (variable.countType === "") {
+            countTypeError = true
+        }
+        let countError = false
+        if (variable.count <= 0) {
             countError = true
         }
         variables.push(variable)
-        if (!nameError && !typeError && !countError) {
+        if (!nameError && !typeError && !countTypeError && !countError) {
             variables.push(new Variable(id))
         }
         this.setState({
-            variables: variables, nameError: nameError, typeError: typeError, countError: countError
+            variables: variables,
+            nameError: nameError,
+            typeError: typeError,
+            countTypeError: countTypeError,
+            countError: countError
         })
     }
 
@@ -106,6 +117,16 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
         this.state.variables.forEach((variable) => {
             if (variable.id === id) {
                 variable.countType = value
+                this.setState({countTypeError: false})
+            }
+        })
+    }
+
+    addVariableCount = (event, id) => {
+        const value = event.target.value
+        this.state.variables.forEach((variable) => {
+            if (variable.id === id) {
+                variable.count = Number(value)
                 this.setState({countError: false})
             }
         })
@@ -122,7 +143,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
             isActiveVariable = true
         }
         let isErrorVariable = false
-        if (this.state.nameError || this.state.typeError || this.state.countError) {
+        if (this.state.nameError || this.state.typeError || this.state.counTypetError) {
             isErrorVariable = true
         }
         return (
@@ -147,7 +168,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                             <MenuItem value={VariableType.seed}>seed</MenuItem>
                         </Select>
                     </FormControl>
-                    <FormControl disabled={!isActiveVariable} error={this.state.countError && isActiveVariable}
+                    <FormControl disabled={!isActiveVariable} error={this.state.countTypeError && isActiveVariable}
                                  variant="filled"
                                  sx={{m: 1, minWidth: 120}}>
                         <InputLabel id="demo-simple-select-filled-label">Count</InputLabel>
@@ -159,6 +180,21 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                             <MenuItem value={VariableCountType.dynamic}>dynamic</MenuItem>
                         </Select>
                     </FormControl>
+                    {
+                        this.state.variables[id].countType === VariableCountType.static ?
+                            <TextField
+                                color="primary"
+                                id="filled-number"
+                                label="Annotation count"
+                                type="number"
+                                variant="filled"
+                                onChange={(event) => {
+                                    this.addVariableCount(event, id)
+                                }}
+                                error={this.state.countError && isActiveVariable}/>
+                            :
+                            <div></div>
+                    }
                     <IconButton color="primary">
                         {isActiveVariable ?
                             <AddIcon value="Hello" disabled={isErrorVariable} variant="contained"
