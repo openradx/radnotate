@@ -183,6 +183,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                     {
                         this.state.variables[id].countType === VariableCountType.static ?
                             <TextField
+                                disabled={!isActiveVariable}
                                 color="primary"
                                 id="filled-number"
                                 label="Annotation count"
