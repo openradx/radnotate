@@ -224,11 +224,15 @@ class Annotation extends Component<AnnotationStateProps, AnnotationStateType> {
         rows.forEach(row => {
             if (row.id === this.state.activePatientIndex) {
                 let json = "["
-                currentValues.forEach(value => {
-                    json += JSON.stringify(value.toJSON())
-                    json += ","
-                })
-                json = json.slice(0, json.length - 1) + "]"
+                if (currentValues.length) {
+                    currentValues.forEach(value => {
+                        json += JSON.stringify(value.toJSON())
+                        json += ","
+                    })
+                    json = json.slice(0, json.length - 1) + "]"
+                } else {
+                    json += "]"
+                }
                 row[this.state.activeVariable.name] = json
             }
         })
