@@ -3,7 +3,7 @@ import DicomDropzone from "./components/DicomDropzone";
 import Annotation from "./components/Annotation";
 import {Component} from "react";
 import {Patients} from "./components/DicomDropzone/dicomObject";
-import {ThemeProvider} from "@mui/material";
+import {Divider, Stack, ThemeProvider} from "@mui/material";
 import {theme} from "./styles";
 
 
@@ -27,8 +27,10 @@ class App extends Component<any, AppState> {
     render() {
         return(
             <ThemeProvider theme={theme}>
-                <DicomDropzone savePatients={this.savePatients}/>
-                <Annotation patients={this.state.patients}/>
+                <Stack direction="row" divider={<Divider orientation="vertical" flexItem/>} spacing={2}>
+                    <DicomDropzone savePatients={this.savePatients}/>
+                    <Annotation patients={this.state.patients}/>
+                </Stack>
             </ThemeProvider>
         )
     }

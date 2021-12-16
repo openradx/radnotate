@@ -14,7 +14,7 @@ import {Style} from "./styles";
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import LoadingButton from '@mui/lab/LoadingButton';
-import SaveIcon from '@mui/icons-material/Save';
+import SendIcon from '@mui/icons-material/Send';
 import Variable, {VariableCountType, VariableType} from "./variable";
 import {isNumber} from "util";
 
@@ -160,10 +160,10 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                         <Select
                             labelId="demo-simple-select-filled-label" id="demo-simple-select-filled"
                             onChange={(event) => this.addVariableType(event, id)} value={this.state.variables[id].type}>
-                            <MenuItem value={VariableType.boolean}>boolean</MenuItem>
-                            <MenuItem value={VariableType.integer}>integer number</MenuItem>
-                            <MenuItem value={VariableType.decimal}>decimal number</MenuItem>
-                            <MenuItem value={VariableType.text}>text</MenuItem>
+                            {/*<MenuItem value={VariableType.boolean}>boolean</MenuItem>*/}
+                            {/*<MenuItem value={VariableType.integer}>integer number</MenuItem>*/}
+                            {/*<MenuItem value={VariableType.decimal}>decimal number</MenuItem>*/}
+                            {/*<MenuItem value={VariableType.text}>text</MenuItem>*/}
                             <MenuItem value={VariableType.seed}>seed</MenuItem>
                         </Select>
                     </FormControl>
@@ -209,9 +209,9 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
     }
 
     render() {
-        let saveFormDisabeled = true
+        let saveFormDisabled = true
         if (this.state.variables.length - 1 && this.props.patientsAreLoaded) {
-            saveFormDisabeled = false
+            saveFormDisabled = false
         }
         return (
             <Style>
@@ -221,10 +221,10 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                         <Stack direction="row" divider={<Divider orientation="horizontal" flexItem/>}
                                spacing={2}>
                             <LoadingButton
-                                disabled={saveFormDisabeled} color="secondary" loadingPosition="start"
-                                startIcon={<SaveIcon/>} variant="contained"
+                                disabled={saveFormDisabled} color="secondary" loadingPosition="start"
+                                startIcon={<SendIcon/>} variant="contained"
                                 onClick={() => this.props.saveAnnotationForm(this.state.variables, this.state.annotationLevel)}>
-                                Save
+                                Start
                             </LoadingButton>
                             <FormControl component="fieldset">
                                 <FormLabel component="legend">Annotation level</FormLabel>
@@ -234,7 +234,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                                     <FormControlLabel value={AnnotationLevel.patient} control={<Radio/>}
                                                       label="patient"/>
                                     <FormControlLabel value={AnnotationLevel.study} control={<Radio/>}
-                                                      label="study"/>
+                                                      label="study" disabled={true}/>
                                 </RadioGroup>
                             </FormControl>
                         </Stack>
