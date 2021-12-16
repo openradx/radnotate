@@ -219,6 +219,31 @@ class Annotation extends Component<AnnotationStateProps, AnnotationStateType> {
 
     }
 
+    _handleCellClick = (params: GridCellParams) => {
+        const activePatientIndex = Number(params.id)
+        let activePatient: Patient
+        if (this.state.annotationLevel === AnnotationLevel.patient) {
+            activePatient = this.props.patients.getPatient(activePatientIndex)
+        } else {
+            activePatient = this.props.patients.getPatientStudy(activePatientIndex, this.state.activeStudyIndex)
+        }
+
+        let activeVariableIndex: number
+        this.state.variables.forEach((variable, index) => {
+            if (variable.name === params.field)
+                activeVariableIndex = index
+        })
+        const activeVariable = this.state.variables[activeVariableIndex]
+        const columns = this._variablesToColumns(activePatientIndex, activeVariable.name, this.state.variables);
+        this.setState({
+            activeVariableIndex: activeVariableIndex,
+            activeVariable: activeVariable,
+            activePatientIndex: activePatientIndex,
+            activePatient: activePatient,
+            columns: columns
+        })
+    }
+
     _updateRows = (currentValues: TSMap<string, number>[]) => {
         let rows = this.state.rows
         rows.forEach(row => {
