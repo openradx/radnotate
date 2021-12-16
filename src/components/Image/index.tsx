@@ -61,14 +61,13 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             {name: 'ZoomTouchPinch', mode: 'active'},
             {name: 'StackScrollMultiTouch', mode: 'active'}
         ]
-        let tool: string
+        let tool: string = ""
         if (this.props.activeVariable.type === VariableType.seed) {
             toolsList.push({name: "Probe", mode: "active", modeOptions: {mouseButtonMask: 1}})
             tool = "Probe"
         }
 
         this.state = {
-            imageIds: [],
             activeViewportIndex: 0,
             viewports: [0],
             tools: toolsList,
@@ -76,7 +75,6 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             imageIdIndex: 0,
             isPlaying: false,
             frameRate: 22,
-            annotationsCount: 0
         };
 
     }
@@ -149,6 +147,11 @@ class Image extends Component<ImagePropsType, ImageStateType> {
 
     componentDidMount = () => document.addEventListener("keydown", this._handleKeyPress, false);
 
+    componentWillUnmount = () => {
+        document.removeEventListener("keydown", this._handleKeyPress, false)
+        this.state.cornerstoneElement.removeEventListener("cornerstonetoolsmeasurementcompleted", this._updateVariable);
+    }
+
     render() {
         return (
             <div style={{display: 'flex', flexWrap: 'wrap'}}>
@@ -171,12 +174,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                         onElementEnabled={elementEnabledEvt => {
                             const cornerstoneElement = elementEnabledEvt.detail.element;
                             this.setState({cornerstoneElement: cornerstoneElement});
-                            cornerstoneElement.addEventListener(
-                                "cornerstonetoolsmeasurementcompleted",
-                                () => {
-                                    this._updateVariable()
-                                }
-                            );
+                            cornerstoneElement.addEventListener("cornerstonetoolsmeasurementcompleted", this._updateVariable);
                         }}
                     />
                 ))}

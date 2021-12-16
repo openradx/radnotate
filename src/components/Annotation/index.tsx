@@ -3,9 +3,16 @@ import AnnotationForm, {AnnotationLevel} from "./AnnotationForm";
 import Variable from "./AnnotationForm/variable";
 import {Patient, Patients} from "../DicomDropzone/dicomObject";
 import Image from "../Image"
-import {DataGrid, GridCellParams, GridColDef, GridRowsProp} from "@mui/x-data-grid";
+import {
+    DataGrid,
+    GridCellParams,
+    GridColDef,
+    GridRowsProp,
+    GridToolbarContainer,
+    GridToolbarExport
+} from "@mui/x-data-grid";
 import clsx from "clsx";
-import {Box} from "@mui/material";
+import {Box, Button, gridClasses} from "@mui/material";
 import {TSMap} from "typescript-map"
 
 type AnnotationStateType = {
@@ -172,9 +179,12 @@ class Annotation extends Component<AnnotationStateProps, AnnotationStateType> {
         })
     }
 
-    _updateImageIds = (activePatient: Patient) => {
+    _updateImageIds = (activePatient: Patient | undefined) => {
         let imageIds: string[] = []
         const instanceNumbers: Map<string, number> = new Map<string, number>()
+        if (activePatient === undefined) {
+            return {imageIds, instanceNumbers}
+        }
         activePatient.studies.forEach((study) => {
             study.series.forEach((series) => {
                 const imageIdsTemp = new Array<string>(series.images.length)
@@ -239,6 +249,14 @@ class Annotation extends Component<AnnotationStateProps, AnnotationStateType> {
         return rows
     }
 
+    exportAnnotationsToolbar = () => {
+        return (
+            <GridToolbarContainer className={gridClasses.toolbarContainer}>
+                <GridToolbarExport printOptions={{disableToolbarButton: true}}/>
+            </GridToolbarContainer>
+        );
+    }
+
     render() {
         let patientsAreLoaded = true
         if (this.props.patients === null) {
@@ -258,7 +276,8 @@ class Annotation extends Component<AnnotationStateProps, AnnotationStateType> {
                                      fontWeight: '600',
                                  },
                              }}>
-                            <DataGrid columns={this.state.columns} rows={this.state.rows}
+                            <DataGrid components={{Toolbar: this.exportAnnotationsToolbar}} columns={this.state.columns}
+                                      rows={this.state.rows}
                                       onCellDoubleClick={(params) => this._handleCellClick(params)
                                       }/>
                         </Box>
