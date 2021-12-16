@@ -12,10 +12,11 @@ import {
     GridToolbarExport
 } from "@mui/x-data-grid";
 import clsx from "clsx";
-import {Box, Button, gridClasses} from "@mui/material";
+import {Box, Button, Grid, gridClasses} from "@mui/material";
 import {TSMap} from "typescript-map"
 
 type AnnotationStateType = {
+    patients: Patients,
     variables: Variable[],
     annotationMode: boolean,
     annotationLevel: AnnotationLevel,
@@ -34,17 +35,12 @@ type AnnotationStateType = {
     jumpBackToPatientIndex: number
 }
 
-type AnnotationStateProps = {
-    patients: Patients
-}
+class Annotation extends Component<any, AnnotationStateType> {
 
-class Annotation extends Component<AnnotationStateProps, AnnotationStateType> {
-
-    constructor(props: AnnotationStateProps) {
+    constructor(props: any) {
         super(props);
         this.state = {
             annotationMode: false,
-            annotationLevel: AnnotationLevel.patient,
             activeVariableIndex: 0,
             activePatientIndex: 0,
             activeStudyIndex: 0,
@@ -53,9 +49,9 @@ class Annotation extends Component<AnnotationStateProps, AnnotationStateType> {
         }
     }
 
-    _variablesToColumns = (activePatientIndex: number, activeVariableName: string, variables: Variable[]) => {
+    _variablesToColumns = (activePatientIndex: number, activeVariableName: string, variables: Variable[], annotationLevel: AnnotationLevel) => {
         const columns: GridColDef[] = []
-        if (this.state.annotationLevel === AnnotationLevel.patient) {
+        if (annotationLevel === AnnotationLevel.patient) {
             columns.push({field: "PatientID", headerName: "PatientID", width: 150})
         } else {
             columns.push({field: "Study", headerName: "Study", width: 150})
@@ -75,9 +71,7 @@ class Annotation extends Component<AnnotationStateProps, AnnotationStateType> {
         return columns
     }
 
-    _defineRowNames = () => {
-        const patients = this.props.patients
-        const annotationLevel = this.state.annotationLevel
+    _defineRowNames = (patients: Patients, annotationLevel: AnnotationLevel) => {
         const rowNames: String[] = []
         if (annotationLevel === AnnotationLevel.patient) {
             patients?.patients.forEach((patient) => {
@@ -93,20 +87,19 @@ class Annotation extends Component<AnnotationStateProps, AnnotationStateType> {
         return rowNames
     }
 
-    saveAnnotationForm = (variables: Variable[], annotationLevel: AnnotationLevel) => {
+    saveAnnotationForm = (patients: Patients, variables: Variable[], annotationLevel: AnnotationLevel) => {
         let activePatient: Patient
         if (annotationLevel === AnnotationLevel.patient) {
-            activePatient = this.props.patients.getPatient(this.state.activePatientIndex)
+            activePatient = patients.getPatient(this.state.activePatientIndex)
         } else {
-            activePatient = this.props.patients.getPatientStudy(this.state.activePatientIndex, this.state.activeStudyIndex)
+            activePatient = patients.getPatientStudy(this.state.activePatientIndex, this.state.activeStudyIndex)
         }
         const {imageIds, instanceNumbers} = this._updateImageIds(activePatient)
-        const rowNames = this._defineRowNames()
+        const rowNames = this._defineRowNames(patients, annotationLevel)
 
         variables = variables.slice(0, variables.length - 1)
         const activeVariable = variables.slice(0, 1).pop()
-        const columns = this._variablesToColumns(0, activeVariable.name, variables);
-
+        const columns = this._variablesToColumns(0, activeVariable.name, variables, annotationLevel);
         let initialRows = []
         rowNames.forEach((rowName, index) => {
             let row = {}
@@ -115,8 +108,10 @@ class Annotation extends Component<AnnotationStateProps, AnnotationStateType> {
             initialRows.push(row)
         })
         this.setState({
+            patients: patients,
             activePatient: activePatient,
             variables: variables,
+            patients: patients,
             annotationLevel: annotationLevel,
             annotationMode: true,
             activeVariable: activeVariable,
@@ -144,7 +139,7 @@ class Annotation extends Component<AnnotationStateProps, AnnotationStateType> {
             this._nextPatient()
         }
         const activeVariable = this.state.variables[activeVariableIndex]
-        const columns = this._variablesToColumns(this.state.activePatientIndex, activeVariable.name, this.state.variables)
+        const columns = this._variablesToColumns(this.state.activePatientIndex, activeVariable.name, this.state.variables, this.state.annotationLevel)
         this.setState({
             activeVariableIndex: activeVariableIndex,
             activeVariable: activeVariable,
@@ -165,9 +160,9 @@ class Annotation extends Component<AnnotationStateProps, AnnotationStateType> {
         }
         let activePatient: Patient
         if (this.state.annotationLevel === AnnotationLevel.patient) {
-            activePatient = this.props.patients.getPatient(activePatientIndex)
+            activePatient = this.state.patients.getPatient(activePatientIndex)
         } else {
-            activePatient = this.props.patients.getPatientStudy(activePatientIndex, this.state.activeStudyIndex)
+            activePatient = this.state.patients.getPatientStudy(activePatientIndex, this.state.activeStudyIndex)
         }
         const {imageIds, instanceNumbers} = this._updateImageIds(activePatient)
         this.setState({
@@ -202,9 +197,9 @@ class Annotation extends Component<AnnotationStateProps, AnnotationStateType> {
         const activePatientIndex = Number(params.id)
         let activePatient: Patient
         if (this.state.annotationLevel === AnnotationLevel.patient) {
-            activePatient = this.props.patients.getPatient(activePatientIndex)
+            activePatient = this.state.patients.getPatient(activePatientIndex)
         } else {
-            activePatient = this.props.patients.getPatientStudy(activePatientIndex, this.state.activeStudyIndex)
+            activePatient = this.state.patients.getPatientStudy(activePatientIndex, this.state.activeStudyIndex)
         }
 
         let activeVariableIndex: number
@@ -213,7 +208,7 @@ class Annotation extends Component<AnnotationStateProps, AnnotationStateType> {
                 activeVariableIndex = index
         })
         const activeVariable = this.state.variables[activeVariableIndex]
-        const columns = this._variablesToColumns(activePatientIndex, activeVariable.name, this.state.variables);
+        const columns = this._variablesToColumns(activePatientIndex, activeVariable.name, this.state.variables, this.state.annotationLevel);
         const {imageIds, instanceNumbers} = this._updateImageIds(activePatient)
         this.setState({
             activeVariableIndex: activeVariableIndex,
@@ -258,37 +253,36 @@ class Annotation extends Component<AnnotationStateProps, AnnotationStateType> {
     }
 
     render() {
-        let patientsAreLoaded = true
-        if (this.props.patients === null) {
-            patientsAreLoaded = false
-        }
         return (
             <div>
                 {this.state.annotationMode ?
-                    <div>
-                        <Box style={{height: 400}}
-                             sx={{
-                                 height: 300,
-                                 width: '100%',
-                                 '& .cell.isActive': {
-                                     backgroundColor: 'green',
-                                     color: '#1a3e72',
-                                     fontWeight: '600',
-                                 },
-                             }}>
-                            <DataGrid components={{Toolbar: this.exportAnnotationsToolbar}} columns={this.state.columns}
-                                      rows={this.state.rows}
-                                      onCellDoubleClick={(params) => this._handleCellClick(params)
-                                      }/>
-                        </Box>
-                        <Image activePatient={this.state.activePatient}
-                               activeVariable={this.state.activeVariable}
-                               nextVariable={this.nextVariable}
-                               imageIds={this.state.imageIds}
-                               instanceNumbers={this.state.instanceNumbers}/>
+                    <div style={{width: "100%"}}>
+                        <Grid container
+                               direction="row">
+                            <Box style={{height: 400, width: "20%"}}
+                                 sx={{
+                                     height: 300,
+                                     width: '100%',
+                                     '& .cell.isActive': {
+                                         backgroundColor: 'green',
+                                         color: '#1a3e72',
+                                         fontWeight: '600',
+                                     },
+                                 }}>
+                                <DataGrid components={{Toolbar: this.exportAnnotationsToolbar}} columns={this.state.columns}
+                                          rows={this.state.rows}
+                                          onCellDoubleClick={(params) => this._handleCellClick(params)
+                                          }/>
+                            </Box>
+                            <Image activePatient={this.state.activePatient}
+                                   activeVariable={this.state.activeVariable}
+                                   nextVariable={this.nextVariable}
+                                   imageIds={this.state.imageIds}
+                                   instanceNumbers={this.state.instanceNumbers}/>
+                        </Grid>
                     </div>
                     :
-                    <AnnotationForm saveAnnotationForm={this.saveAnnotationForm} patientsAreLoaded={patientsAreLoaded}/>
+                    <AnnotationForm saveAnnotationForm={this.saveAnnotationForm}/>
                 }
             </div>
         )

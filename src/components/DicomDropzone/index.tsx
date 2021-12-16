@@ -11,6 +11,7 @@ import {Button} from "@mui/material";
 import cornerstoneWADOImageLoader from "cornerstone-wado-image-loader";
 import cornerstone from "cornerstone-core";
 import dicomParser from "dicom-parser";
+import {LoadingButton} from '@mui/lab';
 
 cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
 cornerstoneWADOImageLoader.external.dicomParser = dicomParser;
@@ -34,7 +35,7 @@ const LoadingIndicator = () => {
 
 type DicomDropzoneState = {
     patients: Patients | null,
-    loading: boolean
+    loadingPatients: boolean
 }
 
 type DicomDropzoneProps = {
@@ -47,13 +48,12 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
         super(props);
         this.state = {
             patients: new Patients(),
-            loading: false
+            loadingPatients: false
         }
     }
 
     processAcceptedFiles = (acceptedFiles: Blob[]) => {
         const patients = new Patients()
-        this.setState({loading: true})
         trackPromise(
             acceptedFiles.reduce((previousPromise: Promise<void>, file) => {
                 const imageID: string = cornerstoneWADOImageLoader.wadouri.fileManager.add(file);
@@ -70,12 +70,13 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
                 });
             }, Promise.resolve()).then(() => {
                 this.props.savePatients(patients)
-                this.setState({patients: patients, loading: false})
+                this.setState({patients: patients, loadingPatients: false})
             })
         );
     }
 
     getFilesFromEvent = (event: Event | DropEvent) => {
+        this.setState({loadingPatients: true})
         return trackPromise(fromEvent(event as Event).then((acceptedFiles => {
             return new Promise<(FileWithPath | DataTransferItem)[]>((resolve => {
                 resolve(acceptedFiles)
@@ -89,33 +90,29 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
 
     render() {
         return (
-            <Style>
+            <div>
                 <Dropzone
                     onDrop={async acceptedFiles => this.processAcceptedFiles(acceptedFiles)}
                     getFilesFromEvent={async event => this.getFilesFromEvent(event)}>
                     {({getRootProps, getInputProps}) => (
-                        <div style={{display: "flex", "justifyContent": "center", font:"Roboto"}}>
-                            <div {...getRootProps()}>
-                                <input {...getInputProps()} />
-                                <Button variant="outlined" sx={{fontSize: 14}}>Select or drop<br/>folders or files</Button>
-                            </div>
+                        <div style={{
+                            display: "flex",
+                            "justifyContent": "center",
+                            font: "Roboto",
+                            width: 175
+                        }} {...getRootProps()}>
+                            <input {...getInputProps()} />
+                            <LoadingButton
+                                variant="outlined"
+                                sx={{fontSize: 14}}
+                                loading={this.state.loadingPatients}>
+                                Select or drop folders or files
+                            </LoadingButton>
+                            {/*<Button variant="outlined" sx={{fontSize: 14}}>Select or drop<br/>folders or files</Button>*/}
                         </div>
                     )}
                 </Dropzone>
-                <div style={{fontFamily: "Roboto", color: "white"}}>
-                    {this.state.loading ?
-                        <LoadingIndicator/>
-                        :
-                        <div></div>
-                        // <FolderTree
-                        //     data={this.state.patients?.treeNode}
-                        //     onChange={this.onTreeStateChange}
-                        //     indentPixels={30}
-                        //     style={{font:"Roboto"}}
-                        //     readOnly/>
-                    }
-                </div>
-            </Style>
+            </div>
         )
     }
 

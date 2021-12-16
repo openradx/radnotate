@@ -28,7 +28,6 @@ class App extends Component<any, AppState> {
         return(
             <ThemeProvider theme={theme}>
                 <Stack direction="row" divider={<Divider orientation="vertical" flexItem/>} spacing={2}>
-                    <DicomDropzone savePatients={this.savePatients}/>
                     <Annotation patients={this.state.patients}/>
                 </Stack>
             </ThemeProvider>

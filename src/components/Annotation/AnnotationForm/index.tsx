@@ -8,7 +8,7 @@ import {
     Select,
     Stack,
     InputLabel,
-    TextField, FormControlLabel, FormLabel, RadioGroup, Radio
+    TextField, FormControlLabel, FormLabel, RadioGroup, Radio, Button
 } from "@mui/material";
 import {Style} from "./styles";
 import AddIcon from '@mui/icons-material/Add';
@@ -17,6 +17,8 @@ import LoadingButton from '@mui/lab/LoadingButton';
 import SendIcon from '@mui/icons-material/Send';
 import Variable, {VariableCountType, VariableType} from "./variable";
 import {isNumber} from "util";
+import DicomDropzone from "../../DicomDropzone";
+import {Patients} from "../../DicomDropzone/dicomObject";
 
 export enum AnnotationLevel {
     patient,
@@ -24,6 +26,7 @@ export enum AnnotationLevel {
 }
 
 type AnnotationFormStateType = {
+    patients: Patients
     variables: Variable[]
     nameError: boolean
     typeError: boolean
@@ -34,7 +37,6 @@ type AnnotationFormStateType = {
 
 type AnnotationFormPropsType = {
     saveAnnotationForm: Function
-    patientsAreLoaded: boolean
 }
 
 class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormStateType> {
@@ -136,13 +138,45 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
         this.setState({annotationLevel: annotationLevel})
     }
 
+    savePatients = (patients: Patients) => {
+        this.setState({patients: patients})
+    }
+
+    renderButton = () => {
+        if (this.state.patients === undefined) {
+            return (<DicomDropzone savePatients={this.savePatients}/>)
+        } else {
+            return (
+                <Button variant="contained" startIcon={<SendIcon/>}>
+                    Start
+                </Button>
+            )
+        }
+    }
+
+    renderAnnotationsCountField = (id: number, isActiveVariable: boolean) => {
+        if (this.state.variables[id].countType === VariableCountType.static) {
+            return (<TextField
+                disabled={!isActiveVariable}
+                color="primary"
+                id="filled-number"
+                label="Annotation count"
+                type="number"
+                variant="filled"
+                onChange={(event) => {
+                    this.addVariableCount(event, id)
+                }}
+                error={this.state.countError && isActiveVariable}/>)
+        }
+    }
+
     renderVariableInput(id: number) {
         let isActiveVariable = false
         if (id === this.state.variables.length - 1) {
             isActiveVariable = true
         }
         let isErrorVariable = false
-        if (this.state.nameError || this.state.typeError || this.state.counTypeError || (this.state.countError && this.s)) {
+        if (this.state.nameError || this.state.typeError || this.state.counTypeError || (this.state.countError && this.state.variables[id].type === VariableCountType.static)) {
             isErrorVariable = true
         }
         return (
@@ -180,20 +214,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                         </Select>
                     </FormControl>
                     {
-                        this.state.variables[id].countType === VariableCountType.static ?
-                            <TextField
-                                disabled={!isActiveVariable}
-                                color="primary"
-                                id="filled-number"
-                                label="Annotation count"
-                                type="number"
-                                variant="filled"
-                                onChange={(event) => {
-                                    this.addVariableCount(event, id)
-                                }}
-                                error={this.state.countError && isActiveVariable}/>
-                            :
-                            <div></div>
+                        this.renderAnnotationsCountField(id, isActiveVariable)
                     }
                     <IconButton color="primary">
                         {isActiveVariable ?
@@ -209,23 +230,18 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
     }
 
     render() {
-        let saveFormDisabled = true
-        if (this.state.variables.length - 1 && this.props.patientsAreLoaded) {
-            saveFormDisabled = false
+        let saveAnnotationButtonDisabled = true
+        if (this.state.patients !== undefined && this.state.variables.length > 1 ) {
+            saveAnnotationButtonDisabled = false
         }
         return (
             <Style>
                 <Container>
                     <Stack direction="column" divider={<Divider orientation="horizontal" flexItem/>}
                            spacing={2}>
-                        <Stack direction="row" divider={<Divider orientation="horizontal" flexItem/>}
+                        <Stack direction="row" divider={<Divider orientation="vertical" flexItem/>}
                                spacing={2}>
-                            <LoadingButton
-                                disabled={saveFormDisabled} color="secondary" loadingPosition="start"
-                                startIcon={<SendIcon/>} variant="contained"
-                                onClick={() => this.props.saveAnnotationForm(this.state.variables, this.state.annotationLevel)}>
-                                Start
-                            </LoadingButton>
+                            <DicomDropzone savePatients={this.savePatients}/>
                             <FormControl component="fieldset">
                                 <FormLabel component="legend">Annotation level</FormLabel>
                                 <RadioGroup row aria-label="annotationLevel" name="row-radio-buttons-group"
@@ -237,6 +253,11 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                                                       label="study" disabled={true}/>
                                 </RadioGroup>
                             </FormControl>
+                            <Button color="primary" variant="outlined" startIcon={<SendIcon/>}
+                                    onClick={() => this.props.saveAnnotationForm(this.state.patients, this.state.variables, this.state.annotationLevel)}
+                                    disabled={saveAnnotationButtonDisabled}>
+                                Start annotation
+                            </Button>
                         </Stack>
                         <Stack direction="column" divider={<Divider orientation="horizontal" flexItem/>}
                                spacing={2}>
