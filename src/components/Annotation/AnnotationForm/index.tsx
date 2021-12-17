@@ -142,18 +142,6 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
         this.setState({patients: patients})
     }
 
-    renderButton = () => {
-        if (this.state.patients === undefined) {
-            return (<DicomDropzone savePatients={this.savePatients}/>)
-        } else {
-            return (
-                <Button variant="contained" startIcon={<SendIcon/>}>
-                    Start
-                </Button>
-            )
-        }
-    }
-
     renderAnnotationsCountField = (id: number, isActiveVariable: boolean) => {
         if (this.state.variables[id].countType === VariableCountType.static) {
             return (<TextField
