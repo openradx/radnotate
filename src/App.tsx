@@ -7,29 +7,18 @@ import {Divider, Stack, ThemeProvider} from "@mui/material";
 import {theme} from "./styles";
 
 
-type AppState = {
-    patients: Patients | null
-}
 
-class App extends Component<any, AppState> {
 
-    constructor(props: AppState) {
+class App extends Component<any, any> {
+
+    constructor(props: any) {
         super(props);
-        this.state = {
-            patients: null
-        }
-    }
-
-    savePatients = (patients: Patients) => {
-        this.setState({patients: patients})
     }
 
     render() {
         return(
             <ThemeProvider theme={theme}>
-                <Stack direction="row" divider={<Divider orientation="vertical" flexItem/>} spacing={2}>
-                    <Annotation patients={this.state.patients}/>
-                </Stack>
+                <Annotation/>
             </ThemeProvider>
         )
     }

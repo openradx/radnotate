@@ -13,7 +13,7 @@ export const theme = createTheme({
         text: {
             primary: "#ffffff",
             secondary: "#ffffff",
-            disabled: "#ffffff",
+            disabled: "#424242",
         }
     }
 });

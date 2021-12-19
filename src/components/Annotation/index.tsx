@@ -9,10 +9,10 @@ import {
     GridColDef,
     GridRowsProp,
     GridToolbarContainer,
-    GridToolbarExport
+    GridToolbarExport, useGridApiRef
 } from "@mui/x-data-grid";
 import clsx from "clsx";
-import {Box, Button, Grid, gridClasses} from "@mui/material";
+import {Box, Button, Grid, gridClasses, Slider, Stack} from "@mui/material";
 import {TSMap} from "typescript-map"
 
 type AnnotationStateType = {
@@ -32,7 +32,8 @@ type AnnotationStateType = {
     rowNames: String[],
     rows: GridRowsProp,
     jumpBackToVariableIndex: number,
-    jumpBackToPatientIndex: number
+    jumpBackToPatientIndex: number,
+    width: number,
 }
 
 class Annotation extends Component<any, AnnotationStateType> {
@@ -45,7 +46,8 @@ class Annotation extends Component<any, AnnotationStateType> {
             activePatientIndex: 0,
             activeStudyIndex: 0,
             jumpBackToVariableIndex: -1,
-            jumpBackToPatientIndex: -1
+            jumpBackToPatientIndex: -1,
+            width: 30
         }
     }
 
@@ -147,6 +149,14 @@ class Annotation extends Component<any, AnnotationStateType> {
             rows: rows,
             jumpBackToVariableIndex: jumpBackToVariableIndex
         })
+
+        const apiRef = useGridApiRef();
+        const scrolled = apiRef.current.scrollToIndexes({
+            rowIndex: this.state.activePatientIndex,
+            colIndex: activeVariableIndex
+        });
+        console.log(scrolled)
+        //apiRef.current.setCellFocus(this.state.activePatientIndex, activeVariable.name);
     }
 
     _nextPatient = () => {
@@ -244,6 +254,10 @@ class Annotation extends Component<any, AnnotationStateType> {
         return rows
     }
 
+    _setWidth = (width: number) => {
+        this.setState({width: width})
+    }
+
     exportAnnotationsToolbar = () => {
         return (
             <GridToolbarContainer className={gridClasses.toolbarContainer}>
@@ -256,31 +270,41 @@ class Annotation extends Component<any, AnnotationStateType> {
         return (
             <div>
                 {this.state.annotationMode ?
-                    <div style={{width: "100%"}}>
-                        <Grid container
-                               direction="row">
-                            <Box style={{height: 400, width: "20%"}}
-                                 sx={{
-                                     height: 300,
-                                     width: '100%',
-                                     '& .cell.isActive': {
-                                         backgroundColor: 'green',
-                                         color: '#1a3e72',
-                                         fontWeight: '600',
-                                     },
-                                 }}>
-                                <DataGrid components={{Toolbar: this.exportAnnotationsToolbar}} columns={this.state.columns}
-                                          rows={this.state.rows}
-                                          onCellDoubleClick={(params) => this._handleCellClick(params)
-                                          }/>
-                            </Box>
+                    <Stack direction={"row"}
+                           justifyContent="space-evently"
+                           spacing={0}
+                           alignItems="stretch">
+                        <Box sx={{
+                            height: "95vh",
+                            maxHeight: "100%",
+                            width: String(this.state.width) + "%",
+                            overflow: "auto",
+                            '& .cell.isActive': {
+                                backgroundColor: 'green'
+                            },
+                        }}>
+                            <DataGrid components={{Toolbar: this.exportAnnotationsToolbar}} columns={this.state.columns}
+                                      rows={this.state.rows}
+                                      onCellDoubleClick={(params) => this._handleCellClick(params)}
+                            />
+                        </Box>
+                        <Box sx={{height: "95vh"}}>
+                            <Slider
+                                track={false}
+                                orientation="vertical"
+                                defaultValue={this.state.width}
+                                onChange={(_, value) => this._setWidth(value as number)}
+                            />
+                        </Box>
+                        <Box sx={{ width:String(100-this.state.width)+"%"}}>
                             <Image activePatient={this.state.activePatient}
                                    activeVariable={this.state.activeVariable}
                                    nextVariable={this.nextVariable}
                                    imageIds={this.state.imageIds}
-                                   instanceNumbers={this.state.instanceNumbers}/>
-                        </Grid>
-                    </div>
+                                   instanceNumbers={this.state.instanceNumbers}
+                                   width={String(100-this.state.width)+"%"}/>
+                        </Box>
+                    </Stack>
                     :
                     <AnnotationForm saveAnnotationForm={this.saveAnnotationForm}/>
                 }

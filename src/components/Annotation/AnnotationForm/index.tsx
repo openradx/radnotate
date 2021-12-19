@@ -13,10 +13,8 @@ import {
 import {Style} from "./styles";
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
-import LoadingButton from '@mui/lab/LoadingButton';
 import SendIcon from '@mui/icons-material/Send';
 import Variable, {VariableCountType, VariableType} from "./variable";
-import {isNumber} from "util";
 import DicomDropzone from "../../DicomDropzone";
 import {Patients} from "../../DicomDropzone/dicomObject";
 
@@ -170,7 +168,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
         return (
             <div id={String(id)}>
                 <Stack direction="row" divider={<Divider orientation="vertical" flexItem/>} spacing={2}>
-                    <TextField disabled={!isActiveVariable} error={this.state.nameError && isActiveVariable}
+                    <TextField sx={{minWidth:200}} disabled={!isActiveVariable} error={this.state.nameError && isActiveVariable}
                                color="primary"
                                id="filled-basic" label="Variable name" variant="filled"
                                onChange={(event) => this.addVariableName(event, id)}
@@ -219,44 +217,42 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
 
     render() {
         let saveAnnotationButtonDisabled = true
-        if (this.state.patients !== undefined && this.state.variables.length > 1 ) {
+        if (this.state.patients !== undefined && this.state.variables.length > 1) {
             saveAnnotationButtonDisabled = false
         }
         return (
             <Style>
-                <Container>
+                <Stack direction="column" divider={<Divider orientation="horizontal" flexItem/>}
+                       spacing={2}>
+                    <Stack direction="row" divider={<Divider orientation="vertical" flexItem/>}
+                           spacing={2}>
+                        <DicomDropzone savePatients={this.savePatients}/>
+                        <FormControl sx={{minWidth: 150}} component="fieldset">
+                            <FormLabel component="legend">Annotation level</FormLabel>
+                            <RadioGroup row aria-label="annotationLevel" name="row-radio-buttons-group"
+                                        defaultValue={this.state.annotationLevel}
+                                        onChange={event => this.setAnnotationLevel(event)}>
+                                <FormControlLabel value={AnnotationLevel.patient} control={<Radio/>}
+                                                  label="patient"/>
+                                <FormControlLabel value={AnnotationLevel.study} control={<Radio/>}
+                                                  label="study" disabled={true}/>
+                            </RadioGroup>
+                        </FormControl>
+                        <Button sx={{minWidth: 200}} color="primary" variant="outlined" startIcon={<SendIcon/>}
+                                onClick={() => this.props.saveAnnotationForm(this.state.patients, this.state.variables, this.state.annotationLevel)}
+                                disabled={saveAnnotationButtonDisabled}>
+                            Start annotation
+                        </Button>
+                    </Stack>
                     <Stack direction="column" divider={<Divider orientation="horizontal" flexItem/>}
                            spacing={2}>
-                        <Stack direction="row" divider={<Divider orientation="vertical" flexItem/>}
-                               spacing={2}>
-                            <DicomDropzone savePatients={this.savePatients}/>
-                            <FormControl component="fieldset">
-                                <FormLabel component="legend">Annotation level</FormLabel>
-                                <RadioGroup row aria-label="annotationLevel" name="row-radio-buttons-group"
-                                            defaultValue={this.state.annotationLevel}
-                                            onChange={event => this.setAnnotationLevel(event)}>
-                                    <FormControlLabel value={AnnotationLevel.patient} control={<Radio/>}
-                                                      label="patient"/>
-                                    <FormControlLabel value={AnnotationLevel.study} control={<Radio/>}
-                                                      label="study" disabled={true}/>
-                                </RadioGroup>
-                            </FormControl>
-                            <Button color="primary" variant="outlined" startIcon={<SendIcon/>}
-                                    onClick={() => this.props.saveAnnotationForm(this.state.patients, this.state.variables, this.state.annotationLevel)}
-                                    disabled={saveAnnotationButtonDisabled}>
-                                Start annotation
-                            </Button>
-                        </Stack>
-                        <Stack direction="column" divider={<Divider orientation="horizontal" flexItem/>}
-                               spacing={2}>
-                            {
-                                this.state.variables?.map((value, index) => {
-                                    return this.renderVariableInput(index)
-                                })
-                            }
-                        </Stack>
+                        {
+                            this.state.variables?.map((value, index) => {
+                                return this.renderVariableInput(index)
+                            })
+                        }
                     </Stack>
-                </Container>
+                </Stack>
             </Style>
         );
     }

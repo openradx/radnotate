@@ -20,9 +20,9 @@ cornerstoneWADOImageLoader.external.dicomParser = dicomParser;
 function CircularProgressWithLabel(props: CircularProgressProps & { value: number }) {
     return (
         <Box sx={{
-            top: 16,
-            left: 100,
             position: 'absolute',
+            marginLeft: 8.5,
+            marginTop: -6.3
         }}>
             <CircularProgress variant="determinate" {...props} />
             <Box
@@ -49,6 +49,7 @@ function CircularProgressWithLabel(props: CircularProgressProps & { value: numbe
 type DicomDropzoneState = {
     patients: Patients | null,
     loadingPatients: boolean,
+    loadingAcceptedFiles: boolean,
     progress: number
 }
 
@@ -63,6 +64,7 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
         this.state = {
             patients: new Patients(),
             loadingPatients: false,
+            loadingAcceptedFiles: false,
             progress: 0
         }
     }
@@ -72,6 +74,7 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
         const percentCount = parseInt(acceptedFiles.length / 100)
         let percentage = percentCount
         let fileCounter = 0
+        this.setState({loadingAcceptedFiles: false, loadingPatients: true})
         trackPromise(
             acceptedFiles.reduce((previousPromise: Promise<void>, file) => {
                 const imageID: string = cornerstoneWADOImageLoader.wadouri.fileManager.add(file);
@@ -103,7 +106,7 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
     }
 
     getFilesFromEvent = (event: Event | DropEvent) => {
-        this.setState({loadingPatients: true, progress: 0})
+        this.setState({loadingAcceptedFiles: true, progress: 0})
         return trackPromise(fromEvent(event as Event).then((acceptedFiles => {
             return new Promise<(FileWithPath | DataTransferItem)[]>((resolve => {
                 resolve(acceptedFiles)
@@ -115,9 +118,29 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
         //console.log(state, event)
     }
 
+    renderProgress = () => {
+        if (this.state.loadingPatients){
+            return (
+                <Box sx={{positon: "absolute"}}>
+                    <CircularProgressWithLabel value={this.state.progress}/>
+                </Box>
+            )
+        } else if (this.state.loadingAcceptedFiles) {
+            return (
+                <Box sx={{
+                    position: 'absolute',
+                    marginLeft: 8.5,
+                    marginTop: -6.3
+                }}>
+                    <CircularProgress/>
+                </Box>
+            )
+        }
+    }
+
     render() {
         let buttonSx = {}
-        if (this.state.loadingPatients) {
+        if (this.state.loadingPatients || this.state.loadingAcceptedFiles) {
             buttonSx = {
                 color:"#424242"
             }
@@ -138,11 +161,9 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
                                     Select or drop folders or files
                                 </Button>
                             </Box>
-                            <Box sx={{positon: "absolute"}}>
-                                {this.state.loadingPatients && (
-                                    <CircularProgressWithLabel value={this.state.progress}/>
-                                )}
-                            </Box>
+                            {
+                                this.renderProgress()
+                            }
                         </div>
                     )}
                 </Dropzone>

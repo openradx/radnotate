@@ -26,7 +26,8 @@ type ImagePropsType = {
     activeVariable: Variable,
     nextVariable: Function,
     imageIds: string[],
-    instanceNumbers: Map<string, number>
+    instanceNumbers: Map<string, number>,
+    width: number
 }
 
 type ImageStateType = {
@@ -154,11 +155,11 @@ class Image extends Component<ImagePropsType, ImageStateType> {
 
     render() {
         return (
-            <div style={{display: 'flex', flexWrap: 'wrap'}}>
+            <div>
                 {this.state.viewports.map(viewportIndex => (
                     <CornerstoneViewport
                         key={viewportIndex}
-                        style={{minWidth: '50%', height: '256px', flex: '1'}}
+                        style={{height: '95vh'}}
                         tools={this.state.tools}
                         imageIds={this.props.imageIds}
                         imageIdIndex={this.state.imageIdIndex}
