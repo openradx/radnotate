@@ -1,18 +1,13 @@
 import React, {Component} from 'react'
 import Dropzone, {DropEvent} from 'react-dropzone'
-import FolderTree from 'react-folder-tree';
 import {Patients} from "./dicomObject";
-import {usePromiseTracker, trackPromise} from "react-promise-tracker";
-import Loader from "react-loader-spinner"
+import {trackPromise} from "react-promise-tracker";
 import {fromEvent, FileWithPath} from "file-selector";
 import {loadFile} from "./loaders";
-import {Style} from './styles';
 import {Box, Button, CircularProgress, CircularProgressProps, Typography} from "@mui/material";
 import cornerstoneWADOImageLoader from "cornerstone-wado-image-loader";
 import cornerstone from "cornerstone-core";
 import dicomParser from "dicom-parser";
-import {LoadingButton} from '@mui/lab';
-import {green} from "@mui/material/colors";
 
 cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
 cornerstoneWADOImageLoader.external.dicomParser = dicomParser;
@@ -106,6 +101,7 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
     }
 
     getFilesFromEvent = (event: Event | DropEvent) => {
+        this.props.savePatients(undefined)
         this.setState({loadingAcceptedFiles: true, progress: 0})
         return trackPromise(fromEvent(event as Event).then((acceptedFiles => {
             return new Promise<(FileWithPath | DataTransferItem)[]>((resolve => {

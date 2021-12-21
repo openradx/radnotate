@@ -4,16 +4,16 @@ import Variable from "./AnnotationForm/variable";
 import {Patient, Patients} from "../DicomDropzone/dicomObject";
 import Image from "../Image"
 import {
-    DataGrid,
     GridCellParams,
     GridColDef,
     GridRowsProp,
     GridToolbarContainer,
-    GridToolbarExport, useGridApiRef
+    GridToolbarExport
 } from "@mui/x-data-grid";
 import clsx from "clsx";
-import {Box, Button, Grid, gridClasses, Slider, Stack} from "@mui/material";
+import {Box, gridClasses, Slider, Stack} from "@mui/material";
 import {TSMap} from "typescript-map"
+import AnnotationData from "./AnnotationData";
 
 type AnnotationStateType = {
     patients: Patients,
@@ -149,14 +149,6 @@ class Annotation extends Component<any, AnnotationStateType> {
             rows: rows,
             jumpBackToVariableIndex: jumpBackToVariableIndex
         })
-
-        const apiRef = useGridApiRef();
-        const scrolled = apiRef.current.scrollToIndexes({
-            rowIndex: this.state.activePatientIndex,
-            colIndex: activeVariableIndex
-        });
-        console.log(scrolled)
-        //apiRef.current.setCellFocus(this.state.activePatientIndex, activeVariable.name);
     }
 
     _nextPatient = () => {
@@ -258,14 +250,6 @@ class Annotation extends Component<any, AnnotationStateType> {
         this.setState({width: width})
     }
 
-    exportAnnotationsToolbar = () => {
-        return (
-            <GridToolbarContainer className={gridClasses.toolbarContainer}>
-                <GridToolbarExport printOptions={{disableToolbarButton: true}}/>
-            </GridToolbarContainer>
-        );
-    }
-
     render() {
         return (
             <div>
@@ -274,35 +258,27 @@ class Annotation extends Component<any, AnnotationStateType> {
                            justifyContent="space-evently"
                            spacing={0}
                            alignItems="stretch">
-                        <Box sx={{
-                            height: "95vh",
-                            maxHeight: "100%",
-                            width: String(this.state.width) + "%",
-                            overflow: "auto",
-                            '& .cell.isActive': {
-                                backgroundColor: 'green'
-                            },
-                        }}>
-                            <DataGrid components={{Toolbar: this.exportAnnotationsToolbar}} columns={this.state.columns}
-                                      rows={this.state.rows}
-                                      onCellDoubleClick={(params) => this._handleCellClick(params)}
-                            />
-                        </Box>
+                        <AnnotationData width={this.state.width}
+                                        rows={this.state.rows}
+                                        columns={this.state.columns}
+                                        handleCellClick={this._handleCellClick}
+                                        activePatientIndex={this.state.activePatientIndex}
+                                        activeVariableIndex={this.state.activeVariableIndex}/>
                         <Box sx={{height: "95vh"}}>
                             <Slider
                                 track={false}
                                 orientation="vertical"
-                                defaultValue={this.state.width}
+                                value={this.state.width}
                                 onChange={(_, value) => this._setWidth(value as number)}
                             />
                         </Box>
-                        <Box sx={{ width:String(100-this.state.width)+"%"}}>
+                        <Box sx={{width: String(100 - this.state.width) + "%"}}>
                             <Image activePatient={this.state.activePatient}
                                    activeVariable={this.state.activeVariable}
                                    nextVariable={this.nextVariable}
                                    imageIds={this.state.imageIds}
                                    instanceNumbers={this.state.instanceNumbers}
-                                   width={String(100-this.state.width)+"%"}/>
+                                   width={String(100 - this.state.width) + "%"}/>
                         </Box>
                     </Stack>
                     :

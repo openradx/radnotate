@@ -156,6 +156,14 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
         }
     }
 
+    _handleButtonClick = (id: number, isActiveVariable: boolean) => {
+        if (isActiveVariable) {
+            this.addVariable(id + 1)
+        } else {
+            this.removeVariable(id)
+        }
+    }
+
     renderVariableInput(id: number) {
         let isActiveVariable = false
         if (id === this.state.variables.length - 1) {
@@ -166,9 +174,10 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
             isErrorVariable = true
         }
         return (
-            <div id={String(id)}>
+            <div key={String(id)} id={String(id)}>
                 <Stack direction="row" divider={<Divider orientation="vertical" flexItem/>} spacing={2}>
-                    <TextField sx={{minWidth:200}} disabled={!isActiveVariable} error={this.state.nameError && isActiveVariable}
+                    <TextField sx={{minWidth: 200}} disabled={!isActiveVariable}
+                               error={this.state.nameError && isActiveVariable}
                                color="primary"
                                id="filled-basic" label="Variable name" variant="filled"
                                onChange={(event) => this.addVariableName(event, id)}
@@ -202,12 +211,11 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                     {
                         this.renderAnnotationsCountField(id, isActiveVariable)
                     }
-                    <IconButton color="primary">
+                    <IconButton color="primary" onClick={() => this._handleButtonClick(id, isActiveVariable)}>
                         {isActiveVariable ?
-                            <AddIcon value="Hello" disabled={isErrorVariable} variant="contained"
-                                     onClick={() => this.addVariable(id + 1)}/>
+                            <AddIcon value="Hello" disabled={isErrorVariable} variant="contained"/>
                             :
-                            <RemoveIcon variant="contained" onClick={() => this.removeVariable(id)}/>
+                            <RemoveIcon variant="contained"/>
                         }
                     </IconButton>
                 </Stack>
