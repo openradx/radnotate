@@ -143,10 +143,11 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
     renderAnnotationsCountField = (id: number, isActiveVariable: boolean) => {
         if (this.state.variables[id].countType === VariableCountType.static) {
             return (<TextField
+                sx={{width:120}}
                 disabled={!isActiveVariable}
                 color="primary"
                 id="filled-number"
-                label="Annotation count"
+                label="Count"
                 type="number"
                 variant="filled"
                 onChange={(event) => {
@@ -199,7 +200,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                     <FormControl disabled={!isActiveVariable} error={this.state.countTypeError && isActiveVariable}
                                  variant="filled"
                                  sx={{m: 1, minWidth: 120}}>
-                        <InputLabel id="demo-simple-select-filled-label">Count</InputLabel>
+                        <InputLabel id="demo-simple-select-filled-label">Count type</InputLabel>
                         <Select
                             labelId="demo-simple-select-filled-label" id="demo-simple-select-filled"
                             onChange={(event) => this.addVariableCountType(event, id)}
@@ -211,7 +212,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                     {
                         this.renderAnnotationsCountField(id, isActiveVariable)
                     }
-                    <IconButton color="primary" onClick={() => this._handleButtonClick(id, isActiveVariable)}>
+                    <IconButton color={"primary"} onClick={() => this._handleButtonClick(id, isActiveVariable)}>
                         {isActiveVariable ?
                             <AddIcon value="Hello" disabled={isErrorVariable} variant="contained"/>
                             :

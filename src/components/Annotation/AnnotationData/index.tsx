@@ -55,7 +55,7 @@ const AnnotationData = (props: AnnotationDataProps) => {
             width: String(props.width) + "%",
             overflow: "auto",
             '& .cell.isActive': {
-                backgroundColor: 'green'
+                backgroundColor: "#de751a"
             },
         }}>
             <DataGridPro apiRef={apiRef}

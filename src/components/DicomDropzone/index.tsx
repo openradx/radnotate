@@ -19,7 +19,9 @@ function CircularProgressWithLabel(props: CircularProgressProps & { value: numbe
             marginLeft: 8.5,
             marginTop: -6.3
         }}>
-            <CircularProgress variant="determinate" {...props} />
+            <CircularProgress sx={{
+                color: "secondary.main"
+            }} variant="determinate" {...props} />
             <Box
                 sx={{
                     top: 0,
@@ -34,7 +36,7 @@ function CircularProgressWithLabel(props: CircularProgressProps & { value: numbe
                 <Typography
                     variant="caption"
                     component="div"
-                    color="text.secondary"
+                    color="text.primary"
                 >{`${Math.round(props.value)}%`}</Typography>
             </Box>
         </Box>
@@ -115,7 +117,7 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
     }
 
     renderProgress = () => {
-        if (this.state.loadingPatients){
+        if (this.state.loadingPatients) {
             return (
                 <Box sx={{positon: "absolute"}}>
                     <CircularProgressWithLabel value={this.state.progress}/>
@@ -128,7 +130,7 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
                     marginLeft: 8.5,
                     marginTop: -6.3
                 }}>
-                    <CircularProgress/>
+                    <CircularProgress sx={{color: "secondary.main"}}/>
                 </Box>
             )
         }
@@ -138,7 +140,7 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
         let buttonSx = {}
         if (this.state.loadingPatients || this.state.loadingAcceptedFiles) {
             buttonSx = {
-                color:"#424242"
+                color: "rgba(0, 0, 0, 0.30)"
             }
         }
         return (
@@ -148,7 +150,6 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
                     getFilesFromEvent={async event => this.getFilesFromEvent(event)}>
                     {({getRootProps, getInputProps}) => (
                         <div style={{
-                            font: "Roboto",
                             width: 175
                         }} {...getRootProps()}>
                             <input {...getInputProps()} />
