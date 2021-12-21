@@ -220,9 +220,13 @@ class Annotation extends Component<any, AnnotationStateType> {
             columns: columns,
             imageIds: imageIds,
             instanceNumbers: instanceNumbers,
-            jumpBackToVariableIndex: this.state.activeVariableIndex,
-            jumpBackToPatientIndex: this.state.activePatientIndex,
         })
+        if (this.state.jumpBackToVariableIndex === -1 && this.state.jumpBackToPatientIndex === -1) {
+            this.setState({
+                jumpBackToVariableIndex: this.state.activeVariableIndex,
+                jumpBackToPatientIndex: this.state.activePatientIndex,
+            })
+        }
 
     }
 
