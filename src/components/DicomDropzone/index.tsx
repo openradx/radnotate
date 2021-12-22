@@ -103,13 +103,16 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
     }
 
     getFilesFromEvent = (event: Event | DropEvent) => {
-        this.props.savePatients(undefined)
-        this.setState({loadingAcceptedFiles: true, progress: 0})
-        return trackPromise(fromEvent(event as Event).then((acceptedFiles => {
-            return new Promise<(FileWithPath | DataTransferItem)[]>((resolve => {
-                resolve(acceptedFiles)
-            }))
-        })))
+        if (event._reactName === "onDrop") {
+            this.props.savePatients(undefined)
+            this.setState({loadingAcceptedFiles: true, progress: 0})
+            return trackPromise(fromEvent(event as Event).then((acceptedFiles => {
+                return new Promise<(FileWithPath | DataTransferItem)[]>((resolve => {
+                    resolve(acceptedFiles)
+                }))
+            })))
+        }
+        return new Promise((() => {}))
     }
 
     onTreeStateChange = (state: any, event: any) => {
