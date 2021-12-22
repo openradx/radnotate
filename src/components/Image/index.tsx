@@ -7,7 +7,6 @@ import {Patient} from "../DicomDropzone/dicomObject";
 import cornerstone from "cornerstone-core";
 import Variable, {VariableCountType, VariableType} from "../Annotation/AnnotationForm/variable";
 import {TSMap} from "typescript-map"
-import annotation from "../Annotation";
 
 cornerstoneTools.external.cornerstone = cornerstone;
 cornerstoneTools.external.Hammer = Hammer;
@@ -34,7 +33,6 @@ type ImageStateType = {
     activeViewportIndex: number,
     viewports: number[],
     tools: object[],
-    activeTool: string,
     imageIdIndex: number,
     isPlaying: boolean,
     frameRate: number,
@@ -57,22 +55,22 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                 mode: 'active',
                 modeOptions: {mouseButtonMask: 2},
             },
+            {name: "Probe", mode: "active", modeOptions: {mouseButtonMask: 1}},
+            {name: "RectangleRoi", mode: "active", modeOptions: {mouseButtonMask: 1}},
             {name: 'StackScrollMouseWheel', mode: 'active'},
             {name: 'PanMultiTouch', mode: 'active'},
             {name: 'ZoomTouchPinch', mode: 'active'},
             {name: 'StackScrollMultiTouch', mode: 'active'}
         ]
-        let tool: string = ""
-        if (this.props.activeVariable.type === VariableType.seed) {
-            toolsList.push({name: "Probe", mode: "active", modeOptions: {mouseButtonMask: 1}})
-            tool = "Probe"
-        }
-
+        // toolsList.forEach(tool => {
+        //     if (tool.name === this.props.activeVariable.tool) {
+        //         tool.mode = "active"
+        //     }
+        // })
         this.state = {
             activeViewportIndex: 0,
             viewports: [0],
             tools: toolsList,
-            activeTool: tool,
             imageIdIndex: 0,
             isPlaying: false,
             frameRate: 22,
@@ -91,23 +89,40 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         return seed
     }
 
+    _processRoi = (data, instanceNumber: number) => {
+        const coordinates = data.handles
+        const seed = new TSMap<string, number>()
+        seed.set("x1", parseInt(coordinates.start.x))
+        seed.set("y1", parseInt(coordinates.start.y))
+        seed.set("x2", parseInt(coordinates.end.x))
+        seed.set("y2", parseInt(coordinates.end.y))
+        seed.set("z", instanceNumber)
+        return seed
+    }
+
     _updateVariable = (keyPressed: string | undefined) => {
         const existingToolState = toolStateManager.saveToolState();
         const keys = Object.keys(existingToolState)
         let annotationsCount = 0
         const currentValues = []
         this.props.imageIds.forEach(imageId => {
-            if (keys.includes(imageId)) {
-                const annotations = existingToolState[imageId][this.state.activeTool].data
+            if (keys.includes(imageId) && this.props.activeVariable.tool in existingToolState[imageId]) {
+                console.log(existingToolState[imageId])
+                const annotations = existingToolState[imageId][this.props.activeVariable.tool].data
                 annotationsCount += annotations.length
                 let instanceNumber: number
                 if (this.props.instanceNumbers.has(imageId)) {
                     instanceNumber = this.props.instanceNumbers.get(imageId)
                 }
                 annotations.forEach((data) => {
-                    if (this.props.activeVariable.type === VariableType.seed) {
-                        //ToDo save data into variable, maybe also connection to series number or serisuid needed?
-                        currentValues.push(this._processSeed(data, instanceNumber))
+                    //ToDo save data into variable, maybe also connection to series number or serisuid needed?
+                    switch (this.props.activeVariable.type) {
+                        case VariableType.seed:
+                            currentValues.push(this._processSeed(data, instanceNumber))
+                            break;
+                        case VariableType.roi:
+                            currentValues.push(this._processRoi(data, instanceNumber))
+                            break;
                     }
                 })
             }
@@ -115,13 +130,13 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         const previousAnnotationCount = this.props.annotationsCount
         if (this.props.activeVariable.countType === VariableCountType.static) {
             if (this.props.activeVariable.count === annotationsCount) {
-                this.props.nextVariable(currentValues.slice(previousAnnotationCount, currentValues.length))
                 this._deleteAnnotations()
+                this.props.nextVariable(currentValues.slice(previousAnnotationCount, currentValues.length))
             }
         } else {
             if (keyPressed === "Enter") {
-                this.props.nextVariable(currentValues.slice(previousAnnotationCount, currentValues.length))
                 this._deleteAnnotations()
+                this.props.nextVariable(currentValues.slice(previousAnnotationCount, currentValues.length))
             }
         }
 
@@ -131,8 +146,8 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         const existingToolState = toolStateManager.saveToolState();
         const keys = Object.keys(existingToolState)
         this.props.imageIds.forEach(imageId => {
-            if (keys.includes(imageId)) {
-                const annotations = existingToolState[imageId][this.state.activeTool].data
+            if (keys.includes(imageId) && this.props.activeVariable.tool in existingToolState[imageId]) {
+                const annotations = existingToolState[imageId][this.props.activeVariable.tool].data
                 let annotationsCount = annotations.length
                 while (annotationsCount > 0) {
                     annotations.pop()
@@ -140,7 +155,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                 }
             }
         })
-        cornerstoneTools.clearToolState(this.state.cornerstoneElement, this.state.activeTool);
+        cornerstoneTools.clearToolState(this.state.cornerstoneElement, this.props.activeVariable.tool);
         cornerstone.updateImage(this.state.cornerstoneElement);
     }
 
@@ -166,7 +181,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                         isPlaying={this.state.isPlaying}
                         frameRate={this.state.frameRate}
                         className={this.state.activeViewportIndex === viewportIndex ? 'active' : ''}
-                        activeTool={this.state.activeTool}
+                        activeTool={this.props.activeVariable.tool}
                         setViewportActive={() => {
                             this.setState({
                                 activeViewportIndex: viewportIndex,

@@ -2,9 +2,14 @@ export enum VariableType {
     boolean,
     integer,
     decimal,
-    text,
-    seed
+    seed,
+    roi
 }
+
+const ToolType = new Map<VariableType, string>([
+    [VariableType.seed, "Probe"],
+    [VariableType.roi, "RectangleRoi"]
+])
 
 export enum VariableCountType {
     static,
@@ -17,6 +22,7 @@ class Variable {
     private _type: VariableType | string
     private _countType: VariableCountType | string
     private _count: number
+    private _tool: string
 
     constructor(id: number) {
         this._id = id
@@ -24,6 +30,7 @@ class Variable {
         this._type = ""
         this._countType = ""
         this._count = 0
+        this._tool = ""
     }
 
     set id(value: number) {
@@ -36,6 +43,7 @@ class Variable {
 
     set type(value: VariableType) {
         this._type = value;
+        this._tool = ToolType.get(value)
     }
 
     set countType(value: VariableCountType) {
@@ -64,6 +72,11 @@ class Variable {
     
     get count(): number {
         return this._count;
+    }
+
+
+    get tool(): string {
+        return this._tool;
     }
 }
 
