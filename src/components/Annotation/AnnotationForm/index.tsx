@@ -8,7 +8,7 @@ import {
     Select,
     Stack,
     InputLabel,
-    TextField, FormControlLabel, FormLabel, RadioGroup, Radio, Button
+    TextField, FormControlLabel, FormLabel, RadioGroup, Radio, Button, Tooltip
 } from "@mui/material";
 import {Style} from "./styles";
 import AddIcon from '@mui/icons-material/Add';
@@ -143,7 +143,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
     renderAnnotationsCountField = (id: number, isActiveVariable: boolean) => {
         if (this.state.variables[id].countType === VariableCountType.static) {
             return (<TextField
-                sx={{width:120, minWidth: 120}}
+                sx={{width: 120, minWidth: 120}}
                 disabled={!isActiveVariable}
                 color="primary"
                 id="filled-number"
@@ -167,8 +167,10 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
 
     renderVariableInput(id: number) {
         let isActiveVariable = false
+        let toolTitle = "Remove variable"
         if (id === this.state.variables.length - 1) {
             isActiveVariable = true
+            toolTitle = "Add variable"
         }
         let isErrorVariable = false
         if (this.state.nameError || this.state.typeError || this.state.counTypeError || (this.state.countError && this.state.variables[id].type === VariableCountType.static)) {
@@ -212,13 +214,16 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                     {
                         this.renderAnnotationsCountField(id, isActiveVariable)
                     }
-                    <IconButton color={"primary"} onClick={() => this._handleButtonClick(id, isActiveVariable)}>
-                        {isActiveVariable ?
-                            <AddIcon value="Hello" disabled={isErrorVariable} variant="contained"/>
-                            :
-                            <RemoveIcon variant="contained"/>
-                        }
-                    </IconButton>
+
+                    <Tooltip title={toolTitle}>
+                        <IconButton color={"primary"} onClick={() => this._handleButtonClick(id, isActiveVariable)}>
+                            {isActiveVariable ?
+                                <AddIcon disabled={isErrorVariable} variant="contained"/>
+                                :
+                                <RemoveIcon variant="contained"/>
+                            }
+                        </IconButton>
+                    </Tooltip>
                 </Stack>
             </div>
         )

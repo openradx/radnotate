@@ -280,12 +280,14 @@ class Annotation extends Component<any, AnnotationStateType> {
                                         activePatientIndex={this.state.activePatientIndex}
                                         activeVariableIndex={this.state.activeVariableIndex}/>
                         <Box sx={{height: "95vh"}}>
-                            <Slider
-                                track={false}
-                                orientation="vertical"
-                                value={this.state.width}
-                                onChange={(_, value) => this._setWidth(value as number)}
-                            />
+                            <Tooltip title={"Set width of windows"} followCursor={true}>
+                                <Slider
+                                    track={false}
+                                    orientation="vertical"
+                                    value={this.state.width}
+                                    onChange={(_, value) => this._setWidth(value as number)}
+                                />
+                            </Tooltip>
                         </Box>
                         <Box sx={{width: String(100 - this.state.width) + "%"}}>
                             <Image activePatient={this.state.activePatient}
