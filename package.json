@@ -1,8 +1,8 @@
 {
-  "name": "electron-react-typescript",
-  "author": "Diego Fernandes <diego.schell.f@gmail.com>",
-  "version": "2.0.0",
-  "description": "An Electron boilerplate including TypeScript, React, Jest and ESLint.",
+  "name": "Radnnotate",
+  "author": "Manuel Debic <manuel.debic@med.uni-heidelberg.de>",
+  "version": "0.0.1",
+  "description": "A radiological annotation tool with a focus on a fast and convenient annotation workflow.",
   "main": "./.webpack/main/index.js",
   "scripts": {
     "start": "electron-forge start",
@@ -109,8 +109,8 @@
   "config": {
     "forge": {
       "packagerConfig": {
-        "name": "Electron starter",
-        "executableName": "electron-starter",
+        "name": "Radnnotate",
+        "executableName": "Radnnotate",
         "icon": "assets/icon",
         "extraResource": [
           "assets"
@@ -141,7 +141,7 @@
         {
           "name": "@electron-forge/maker-squirrel",
           "config": {
-            "name": "Electron Starter"
+            "name": "Radnnotate"
           }
         },
         {

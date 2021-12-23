@@ -74,7 +74,7 @@ class Annotation extends Component<any, AnnotationStateType> {
                     if (value === undefined) {
                         value = ""
                     }
-                    return (<Tooltip title={value}>
+                    return (<Tooltip title={value} followCursor={true}>
                             <span className="table-cell-trucate">{params.value}</span>
                         </Tooltip>
                     )
