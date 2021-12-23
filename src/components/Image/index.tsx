@@ -107,7 +107,6 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         const currentValues = []
         this.props.imageIds.forEach(imageId => {
             if (keys.includes(imageId) && this.props.activeVariable.tool in existingToolState[imageId]) {
-                console.log(existingToolState[imageId])
                 const annotations = existingToolState[imageId][this.props.activeVariable.tool].data
                 annotationsCount += annotations.length
                 let instanceNumber: number

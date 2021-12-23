@@ -11,9 +11,10 @@ import {
     GridToolbarExport
 } from "@mui/x-data-grid";
 import clsx from "clsx";
-import {Box, gridClasses, Slider, Stack} from "@mui/material";
+import {Box, gridClasses, Slider, Stack, Tooltip} from "@mui/material";
 import {TSMap} from "typescript-map"
 import AnnotationData from "./AnnotationData";
+import {GridRenderCellParams} from "@mui/x-data-grid-pro";
 
 type AnnotationStateType = {
     patients: Patients,
@@ -67,6 +68,16 @@ class Annotation extends Component<any, AnnotationStateType> {
                     return (clsx('cell', {
                         isActive: (params.row.id === activePatientIndex && params.field === activeVariableName),
                     }))
+                },
+                renderCell: (params: GridRenderCellParams) => {
+                    let value = params.value
+                    if (value === undefined) {
+                        value = ""
+                    }
+                    return (<Tooltip title={value}>
+                            <span className="table-cell-trucate">{params.value}</span>
+                        </Tooltip>
+                    )
                 }
             })
         })

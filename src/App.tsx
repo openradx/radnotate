@@ -2,11 +2,8 @@
 import DicomDropzone from "./components/DicomDropzone";
 import Annotation from "./components/Annotation";
 import {Component} from "react";
-import {Patients} from "./components/DicomDropzone/dicomObject";
-import {CssBaseline, Divider, Stack, ThemeProvider} from "@mui/material";
+import {Box, CssBaseline, ThemeProvider} from "@mui/material";
 import {theme} from "./styles";
-
-
 
 
 class App extends Component<any, any> {
@@ -16,10 +13,12 @@ class App extends Component<any, any> {
     }
 
     render() {
-        return(
+        return (
             <ThemeProvider theme={theme}>
-                <CssBaseline/>
-                <Annotation/>
+                <Box sx={{marginLeft: "10px", marginTop: "10px", marginRight: "10px"}}>
+                    <CssBaseline/>
+                    <Annotation/>
+                </Box>
             </ThemeProvider>
         )
     }
