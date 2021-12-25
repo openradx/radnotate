@@ -7,14 +7,17 @@ import {
     GridCellParams,
     GridColDef,
     GridRowsProp,
-    GridToolbarContainer,
-    GridToolbarExport
-} from "@mui/x-data-grid";
+}
+    from "@mui/x-data-grid";
 import clsx from "clsx";
-import {Box, gridClasses, Slider, Stack, Tooltip} from "@mui/material";
+import {Box, Slider, Stack, Tooltip} from "@mui/material";
 import {TSMap} from "typescript-map"
 import AnnotationData from "./AnnotationData";
 import {GridRenderCellParams} from "@mui/x-data-grid-pro";
+
+type AnnotationPropsType = {
+    handleStartAnnotation: Function
+}
 
 type AnnotationStateType = {
     patients: Patients,
@@ -37,9 +40,9 @@ type AnnotationStateType = {
     width: number,
 }
 
-class Annotation extends Component<any, AnnotationStateType> {
+class Annotation extends Component<AnnotationPropsType, AnnotationStateType> {
 
-    constructor(props: any) {
+    constructor(props: AnnotationPropsType) {
         super(props);
         this.state = {
             annotationMode: false,
@@ -120,6 +123,7 @@ class Annotation extends Component<any, AnnotationStateType> {
             row.id = index
             initialRows.push(row)
         })
+        this.props.handleStartAnnotation()
         this.setState({
             patients: patients,
             activePatient: activePatient,

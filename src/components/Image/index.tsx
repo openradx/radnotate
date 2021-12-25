@@ -173,7 +173,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                 {this.state.viewports.map(viewportIndex => (
                     <CornerstoneViewport
                         key={viewportIndex}
-                        style={{height: '95vh'}}
+                        style={{height: '98vh'}}
                         tools={this.state.tools}
                         imageIds={this.props.imageIds}
                         imageIdIndex={this.state.imageIdIndex}

@@ -1,16 +1,32 @@
-import {createTheme, ThemeOptions} from "@mui/material";
+import {PaletteMode} from "@mui/material";
 
-export const themeOptions: ThemeOptions = {
+
+export const getTheme = (mode: PaletteMode) => ({
     palette: {
-        type: 'light',
-        primary: {
-            main: '#00376d',
-        },
-        secondary: {
-            main: '#de751a',
-        },
+        mode,
+        ...(mode === 'light'
+            ? {
+                primary: {
+                    main: '#00376d',
+                },
+                secondary: {
+                    main: '#de751a',
+                },
+            }
+            : {
+                primary: {
+                    main: '#de751a',
+                },
+                secondary: {
+                    main: '#de751a',
+                },
+            }),
     },
-};
-
-export const theme = createTheme(themeOptions);
-
+    components: {
+        MuiSpeedDial: {
+            defaultProps: {
+                transitionDuration: 0
+            }
+        }
+    }
+});

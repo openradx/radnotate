@@ -1,13 +1,9 @@
-import React, {Component, useState} from "react";
+import React from "react";
 import {Box, gridClasses} from "@mui/material";
 import {
-    DataGridPro,
-    GridCellParams, GridColDef, GridRowsProp, GridToolbarContainer, GridToolbarExport, gridVisibleRowCountSelector,
-    gridVisibleSortedRowIdsSelector, useGridApiRef, visibleGridColumnsLengthSelector,
-    visibleGridColumnsSelector
+    DataGridPro, GridColDef, GridRowsProp, GridToolbarContainer, GridToolbarExport,
+    gridVisibleSortedRowIdsSelector, useGridApiRef, visibleGridColumnsSelector
 } from '@mui/x-data-grid-pro';
-import _ from "lodash";
-
 
 type AnnotationDataProps = {
     columns: GridColDef[],
@@ -35,7 +31,7 @@ const AnnotationData = (props: AnnotationDataProps) => {
             try {
                 const coordinates = {
                     rowIndex: props.activePatientIndex,
-                    colIndex: props.activeVariableIndex+1
+                    colIndex: props.activeVariableIndex + 1
                 };
                 apiRef.current.scrollToIndexes(coordinates);
                 const id = gridVisibleSortedRowIdsSelector(apiRef.current.state)[coordinates.rowIndex];
@@ -50,7 +46,7 @@ const AnnotationData = (props: AnnotationDataProps) => {
 
     return (
         <Box sx={{
-            height: "95vh",
+            height: "98vh",
             maxHeight: "100%",
             width: String(props.width) + "%",
             overflow: "auto",
