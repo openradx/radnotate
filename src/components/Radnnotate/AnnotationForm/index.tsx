@@ -1,6 +1,5 @@
 import {Component} from "react";
 import {
-    Container,
     Divider,
     FormControl,
     IconButton,
@@ -10,7 +9,6 @@ import {
     InputLabel,
     TextField, FormControlLabel, FormLabel, RadioGroup, Radio, Button, Tooltip
 } from "@mui/material";
-import {Style} from "./styles";
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import SendIcon from '@mui/icons-material/Send';
@@ -235,7 +233,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
             saveAnnotationButtonDisabled = false
         }
         return (
-            <Style>
+            <div>
                 <Stack direction="column" divider={<Divider orientation="horizontal" flexItem/>}
                        spacing={2}>
                     <Stack direction="row" divider={<Divider orientation="vertical" flexItem/>}
@@ -267,7 +265,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                         }
                     </Stack>
                 </Stack>
-            </Style>
+            </div>
         );
     }
 
