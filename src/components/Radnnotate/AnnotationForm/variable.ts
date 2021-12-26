@@ -1,3 +1,5 @@
+import {TSMap} from "typescript-map";
+
 export enum VariableType {
     boolean,
     integer,
@@ -24,13 +26,22 @@ class Variable {
     private _count: number
     private _tool: string
 
-    constructor(id: number) {
-        this._id = id
-        this._name = ""
-        this._type = ""
-        this._countType = ""
-        this._count = 0
-        this._tool = ""
+    constructor(value: number|Object) {
+        if (typeof value === "number") {
+            this._id = value
+            this._name = ""
+            this._type = ""
+            this._countType = ""
+            this._count = 0
+            this._tool = ""
+        } else {
+            this._id = value.id
+            this._name = value.name
+            this._type = value.type
+            this._countType = value.countType
+            this._count = value.count
+            this._tool = ToolType.get(value.type)
+        }
     }
 
     set id(value: number) {
@@ -74,9 +85,18 @@ class Variable {
         return this._count;
     }
 
-
     get tool(): string {
         return this._tool;
+    }
+
+    toString() {
+        const map = new TSMap()
+        map.set("id", this._id)
+        map.set("name", this._name)
+        map.set("type", this._type)
+        map.set("countType", this._countType)
+        map.set("count", this._count)
+        return JSON.stringify(map.toJSON())
     }
 }
 

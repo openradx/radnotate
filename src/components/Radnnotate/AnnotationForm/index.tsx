@@ -15,6 +15,7 @@ import SendIcon from '@mui/icons-material/Send';
 import Variable, {VariableCountType, VariableType} from "./variable";
 import DicomDropzone from "./DicomDropzone";
 import {Patients} from "./DicomDropzone/dicomObject";
+import Papa, {ParseResult} from "papaparse";
 
 export enum AnnotationLevel {
     patient,
@@ -163,6 +164,26 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
         }
     }
 
+    _loadFile = (event) => {
+        const loadHeader = new Promise((resolve) => {
+                Papa.parse(event.target.files[0], {
+                    header: true,
+                    complete: results => {
+                        resolve(results.meta.fields?.slice(1,))
+                    }
+                })
+            })
+        loadHeader.then((headers) => {
+            const variables: Variable[] = []
+            headers.forEach((header) => {
+                const headerAsJson = JSON.parse(header)
+                variables.push(new Variable(headerAsJson))
+            })
+            variables.push(new Variable(variables.length))
+            this.setState({variables: variables})
+        })
+    }
+
     renderVariableInput(id: number) {
         let isActiveVariable = false
         let toolTitle = "Remove variable"
@@ -258,6 +279,10 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                                 }}
                                 disabled={saveAnnotationButtonDisabled}>
                             Start annotation
+                        </Button>
+                        <Button sx={{maxWidth: 200, textAlign:"center"}} variant="outlined" component="label">
+                            Load variable definitions
+                            <input type="file" hidden={true} onInput={(event => this._loadFile(event))}/>
                         </Button>
                     </Stack>
                     <Stack direction="column" divider={<Divider orientation="horizontal" flexItem/>}

@@ -77,16 +77,13 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
         }
         variables?.forEach((variable: Variable) => {
             columns.push({
-                field: JSON.stringify(new TSMap([
-                    ["field", variable.name],
-                    ["type", variable.type]
-                ]).toJSON()),
+                field: variable.toString(),
                 filterable: false,
                 resizable: false,
                 disableReorder: true,
                 cellClassName: (params: GridCellParams) => {
                     return (clsx('cell', {
-                        isActive: (params.row.id === activePatientIndex && JSON.parse(params.field).field === activeVariableName),
+                        isActive: (params.row.id === activePatientIndex && JSON.parse(params.field).name === activeVariableName),
                     }))
                 },
                 renderCell: (params: GridRenderCellParams) => {
@@ -102,7 +99,7 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
                 renderHeader: (params: GridColumnHeaderParams) => {
                     const value: Object = JSON.parse(params.field)
                     return (
-                        value.field
+                        value.name
                     )
                 },
             })
@@ -246,7 +243,7 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
 
         let activeVariableIndex: number
         this.state.variables.forEach((variable, index) => {
-            if (variable.name === JSON.parse(params.field).field)
+            if (variable.name === JSON.parse(params.field).name)
                 activeVariableIndex = index
         })
         const activeVariable = this.state.variables[activeVariableIndex]
@@ -284,10 +281,7 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
                 } else {
                     json += "]"
                 }
-                row[JSON.stringify(new TSMap([
-                    ["field", this.state.activeVariable.name],
-                    ["type", this.state.activeVariable.type]
-                ]).toJSON())] = json
+                row[this.state.activeVariable.toString()] = json
             }
         })
         return rows
