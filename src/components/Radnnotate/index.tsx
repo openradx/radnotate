@@ -10,13 +10,18 @@ import {
 }
     from "@mui/x-data-grid";
 import clsx from "clsx";
-import {Box, Slider, Stack, Tooltip} from "@mui/material";
+import {Box, Slider, SpeedDial, SpeedDialAction, Stack, Tooltip} from "@mui/material";
 import {TSMap} from "typescript-map"
 import AnnotationData from "./AnnotationData";
 import {GridRenderCellParams} from "@mui/x-data-grid-pro";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
+import DeleteSweepOutlinedIcon from "@mui/icons-material/DeleteSweepOutlined";
+import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
+import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 
 type RadnnotatePropsType = {
-    handleStartAnnotation: Function
+    colorMode: Function
 }
 
 type RadnnotateStateType = {
@@ -31,13 +36,13 @@ type RadnnotateStateType = {
     activeStudyIndex: number,
     imageIds: string[],
     instanceNumbers: Map<string, number>,
-    annotationsCount: number,
     columns: GridColDef[],
     rowNames: String[],
     rows: GridRowsProp,
     jumpBackToVariableIndex: number,
     jumpBackToPatientIndex: number,
     width: number,
+    actions: Object[],
 }
 
 class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
@@ -51,7 +56,10 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
             activeStudyIndex: 0,
             jumpBackToVariableIndex: -1,
             jumpBackToPatientIndex: -1,
-            width: 30
+            width: 30,
+            actions: [
+                {icon: <DarkModeOutlinedIcon/>, name: 'Dark mode'},
+            ]
         }
     }
 
@@ -123,7 +131,14 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
             row.id = index
             initialRows.push(row)
         })
-        this.props.handleStartAnnotation()
+
+        const actions = this.state.actions
+        const additonalActions = [
+            {icon: <RestartAltOutlinedIcon/>, name: "Restart annotation"},
+            {icon: <DeleteSweepOutlinedIcon/>, name: "Clear table"}
+        ]
+        additonalActions.push(actions.pop())
+
         this.setState({
             patients: patients,
             activePatient: activePatient,
@@ -135,7 +150,8 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
             imageIds: imageIds,
             instanceNumbers: instanceNumbers,
             columns: columns,
-            rows: initialRows
+            rows: initialRows,
+            actions: additonalActions
         })
     }
 
@@ -245,6 +261,34 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
 
     }
 
+    _changeColorModeIcon = () => {
+        const currentActions = this.state.actions
+        const obj = currentActions.pop()
+        if (obj.name === "Light mode") {
+            currentActions.push({icon: <DarkModeOutlinedIcon/>, name: 'Dark mode'})
+        } else {
+            currentActions.push({icon: <LightModeOutlinedIcon/>, name: 'Light mode'})
+        }
+        this.setState({actions: currentActions})
+    }
+
+    _handleSpeedDialClick = (key: string) => {
+        switch (key) {
+            case "Dark mode":
+                this.props.colorMode.toggleColorMode();
+                this._changeColorModeIcon()
+                break;
+            case "Light mode":
+                this.props.colorMode.toggleColorMode();
+                this._changeColorModeIcon()
+                break;
+            case "Restart annotation":
+                break;
+            case "Clear table":
+                break;
+        }
+    }
+
     _updateRows = (currentValues: TSMap<string, number>[]) => {
         let rows = this.state.rows
         rows.forEach(row => {
@@ -305,6 +349,21 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
                     :
                     <AnnotationForm saveAnnotationForm={this.saveAnnotationForm}/>
                 }
+                <SpeedDial
+                    ariaLabel="SpeedDial"
+                    direction={"right"}
+                    sx={{position: 'absolute', bottom: 5, left: 5}}
+                    icon={<SettingsOutlinedIcon/>}
+                >
+                    {this.state.actions.map((action) => (
+                        <SpeedDialAction
+                            key={action.name}
+                            icon={action.icon}
+                            tooltipTitle={action.name}
+                            onClick={() => this._handleSpeedDialClick(action.name)}
+                        />
+                    ))}
+                </SpeedDial>
             </div>
         )
 
