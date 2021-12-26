@@ -114,14 +114,13 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
     saveAnnotationForm = (patients: Patients, variables: Variable[], annotationLevel: AnnotationLevel) => {
         let activePatient: Patient
         if (annotationLevel === AnnotationLevel.patient) {
-            activePatient = patients.getPatient(this.state.activePatientIndex)
+            activePatient = patients.getPatient(0)
         } else {
-            activePatient = patients.getPatientStudy(this.state.activePatientIndex, this.state.activeStudyIndex)
+            activePatient = patients.getPatientStudy(0, 0)
         }
         const {imageIds, instanceNumbers} = this._updateImageIds(activePatient)
         const rowNames = this._defineRowNames(patients, annotationLevel)
 
-        variables = variables.slice(0, variables.length - 1)
         const activeVariable = variables.slice(0, 1).pop()
         const columns = this._variablesToColumns(0, activeVariable.name, variables, annotationLevel);
         let initialRows = []
@@ -134,24 +133,28 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
 
         const actions = this.state.actions
         const additonalActions = [
-            {icon: <RestartAltOutlinedIcon/>, name: "Restart annotation"},
+            {icon: <RestartAltOutlinedIcon/>, name: "Restart workflow"},
             {icon: <DeleteSweepOutlinedIcon/>, name: "Clear table"}
         ]
         additonalActions.push(actions.pop())
 
         this.setState({
-            patients: patients,
+            activePatientIndex: 0,
+            activeVariableIndex: 0,
+            activeStudyIndex: 0,
             activePatient: activePatient,
+            activeVariable: activeVariable,
             variables: variables,
             patients: patients,
             annotationLevel: annotationLevel,
             annotationMode: true,
-            activeVariable: activeVariable,
             imageIds: imageIds,
             instanceNumbers: instanceNumbers,
             columns: columns,
             rows: initialRows,
-            actions: additonalActions
+            actions: additonalActions,
+            jumpBackToPatientIndex: -1,
+            jumpBackToVariableIndex: -1,
         })
     }
 
@@ -282,9 +285,14 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
                 this.props.colorMode.toggleColorMode();
                 this._changeColorModeIcon()
                 break;
-            case "Restart annotation":
+            case "Restart workflow":
+                this.setState({
+                    annotationMode: false,
+                    actions: [this.state.actions.pop()]
+                })
                 break;
             case "Clear table":
+                this.saveAnnotationForm(this.state.patients, this.state.variables, this.state.annotationLevel)
                 break;
         }
     }
@@ -327,7 +335,7 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
                                         handleCellClick={this._handleCellClick}
                                         activePatientIndex={this.state.activePatientIndex}
                                         activeVariableIndex={this.state.activeVariableIndex}/>
-                        <Box sx={{height: "95vh"}}>
+                        <Box sx={{height: "98vh"}}>
                             <Tooltip title={"Set width of windows"} followCursor={true}>
                                 <Slider
                                     track={false}

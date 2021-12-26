@@ -251,7 +251,11 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                             </RadioGroup>
                         </FormControl>
                         <Button sx={{minWidth: 200}} color="primary" variant="outlined" startIcon={<SendIcon/>}
-                                onClick={() => this.props.saveAnnotationForm(this.state.patients, this.state.variables, this.state.annotationLevel)}
+                                onClick={() => {
+                                    let variables = this.state.variables
+                                    variables = variables.slice(0, variables.length - 1)
+                                    this.props.saveAnnotationForm(this.state.patients, variables, this.state.annotationLevel)
+                                }}
                                 disabled={saveAnnotationButtonDisabled}>
                             Start annotation
                         </Button>
