@@ -10,15 +10,14 @@ import {
 }
     from "@mui/x-data-grid";
 import clsx from "clsx";
-import {Box, Slider, SpeedDial, SpeedDialAction, Stack, Tooltip} from "@mui/material";
+import {Box, Slider, Stack, Tooltip} from "@mui/material";
 import {TSMap} from "typescript-map"
 import AnnotationData from "./AnnotationData";
 import {GridColumnHeaderParams, GridRenderCellParams} from "@mui/x-data-grid-pro";
-import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
 import DeleteSweepOutlinedIcon from "@mui/icons-material/DeleteSweepOutlined";
 import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
-import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
+import {Settings} from "./Settings";
 
 type RadnnotatePropsType = {
     colorMode: Function
@@ -42,7 +41,6 @@ type RadnnotateStateType = {
     jumpBackToVariableIndex: number,
     jumpBackToPatientIndex: number,
     width: number,
-    actions: Object[],
 }
 
 class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
@@ -57,9 +55,6 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
             jumpBackToVariableIndex: -1,
             jumpBackToPatientIndex: -1,
             width: 30,
-            actions: [
-                {icon: <DarkModeOutlinedIcon/>, name: 'Dark mode'},
-            ]
         }
     }
 
@@ -150,14 +145,6 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
             row.id = index
             initialRows.push(row)
         })
-
-        const actions = this.state.actions
-        const additonalActions = [
-            {icon: <RestartAltOutlinedIcon/>, name: "Restart workflow"},
-            {icon: <DeleteSweepOutlinedIcon/>, name: "Clear table"}
-        ]
-        additonalActions.push(actions.pop())
-
         this.setState({
             activePatientIndex: 0,
             activeVariableIndex: 0,
@@ -172,7 +159,6 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
             instanceNumbers: instanceNumbers,
             columns: columns,
             rows: initialRows,
-            actions: additonalActions,
             jumpBackToPatientIndex: -1,
             jumpBackToVariableIndex: -1,
         })
@@ -260,7 +246,7 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
 
         let activeVariableIndex: number
         this.state.variables.forEach((variable, index) => {
-            if (variable.name === params.field.split(":")[0])
+            if (variable.name === JSON.parse(params.field).field)
                 activeVariableIndex = index
         })
         const activeVariable = this.state.variables[activeVariableIndex]
@@ -282,39 +268,6 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
             })
         }
 
-    }
-
-    _changeColorModeIcon = () => {
-        const currentActions = this.state.actions
-        const obj = currentActions.pop()
-        if (obj.name === "Light mode") {
-            currentActions.push({icon: <DarkModeOutlinedIcon/>, name: 'Dark mode'})
-        } else {
-            currentActions.push({icon: <LightModeOutlinedIcon/>, name: 'Light mode'})
-        }
-        this.setState({actions: currentActions})
-    }
-
-    _handleSpeedDialClick = (key: string) => {
-        switch (key) {
-            case "Dark mode":
-                this.props.colorMode.toggleColorMode();
-                this._changeColorModeIcon()
-                break;
-            case "Light mode":
-                this.props.colorMode.toggleColorMode();
-                this._changeColorModeIcon()
-                break;
-            case "Restart workflow":
-                this.setState({
-                    annotationMode: false,
-                    actions: [this.state.actions.pop()]
-                })
-                break;
-            case "Clear table":
-                this.saveAnnotationForm(this.state.patients, this.state.variables, this.state.annotationLevel)
-                break;
-        }
     }
 
     _updateRows = (currentValues: TSMap<string, number>[]) => {
@@ -342,6 +295,16 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
 
     _setWidth = (width: number) => {
         this.setState({width: width})
+    }
+
+    clearTable = () => {
+        this.saveAnnotationForm(this.state.patients, this.state.variables, this.state.annotationLevel)
+    }
+
+    restartWorkflow = () => {
+        this.setState({
+            annotationMode: false,
+        })
     }
 
     render() {
@@ -380,21 +343,8 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
                     :
                     <AnnotationForm saveAnnotationForm={this.saveAnnotationForm}/>
                 }
-                <SpeedDial
-                    ariaLabel="SpeedDial"
-                    direction={"right"}
-                    sx={{position: 'absolute', bottom: 5, left: 5}}
-                    icon={<SettingsOutlinedIcon/>}
-                >
-                    {this.state.actions.map((action) => (
-                        <SpeedDialAction
-                            key={action.name}
-                            icon={action.icon}
-                            tooltipTitle={action.name}
-                            onClick={() => this._handleSpeedDialClick(action.name)}
-                        />
-                    ))}
-                </SpeedDial>
+                <Settings clearTable={this.clearTable} colorMode={this.props.colorMode}
+                          restartWorkflow={this.restartWorkflow} annotationMode={this.state.annotationMode}/>
             </div>
         )
 
