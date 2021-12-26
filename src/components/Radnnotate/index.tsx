@@ -13,7 +13,7 @@ import clsx from "clsx";
 import {Box, Slider, SpeedDial, SpeedDialAction, Stack, Tooltip} from "@mui/material";
 import {TSMap} from "typescript-map"
 import AnnotationData from "./AnnotationData";
-import {GridRenderCellParams} from "@mui/x-data-grid-pro";
+import {GridColumnHeaderParams, GridRenderCellParams} from "@mui/x-data-grid-pro";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
 import DeleteSweepOutlinedIcon from "@mui/icons-material/DeleteSweepOutlined";
@@ -66,18 +66,32 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
     _variablesToColumns = (activePatientIndex: number, activeVariableName: string, variables: Variable[], annotationLevel: AnnotationLevel) => {
         const columns: GridColDef[] = []
         if (annotationLevel === AnnotationLevel.patient) {
-            columns.push({field: "PatientID", headerName: "PatientID", width: 150})
+            columns.push({
+                field: "PatientID",
+                filterable: false,
+                resizable: false,
+                disableReorder: true,
+            })
         } else {
-            columns.push({field: "Study", headerName: "Study", width: 150})
+            columns.push({
+                field: "Study",
+                filterable: false,
+                resizable: false,
+                disableReorder: true,
+            })
         }
         variables?.forEach((variable: Variable) => {
             columns.push({
-                field: variable.name,
-                headerName: variable.name,
-                width: 150,
+                field: JSON.stringify(new TSMap([
+                    ["field", variable.name],
+                    ["type", variable.type]
+                ]).toJSON()),
+                filterable: false,
+                resizable: false,
+                disableReorder: true,
                 cellClassName: (params: GridCellParams) => {
                     return (clsx('cell', {
-                        isActive: (params.row.id === activePatientIndex && params.field === activeVariableName),
+                        isActive: (params.row.id === activePatientIndex && JSON.parse(params.field).field === activeVariableName),
                     }))
                 },
                 renderCell: (params: GridRenderCellParams) => {
@@ -89,7 +103,13 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
                             <span className="table-cell-trucate">{params.value}</span>
                         </Tooltip>
                     )
-                }
+                },
+                renderHeader: (params: GridColumnHeaderParams) => {
+                    const value: Object = JSON.parse(params.field)
+                    return (
+                        value.field
+                    )
+                },
             })
         })
         return columns
@@ -240,7 +260,7 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
 
         let activeVariableIndex: number
         this.state.variables.forEach((variable, index) => {
-            if (variable.name === params.field)
+            if (variable.name === params.field.split(":")[0])
                 activeVariableIndex = index
         })
         const activeVariable = this.state.variables[activeVariableIndex]
@@ -311,7 +331,10 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
                 } else {
                     json += "]"
                 }
-                row[this.state.activeVariable.name] = json
+                row[JSON.stringify(new TSMap([
+                    ["field", this.state.activeVariable.name],
+                    ["type", this.state.activeVariable.type]
+                ]).toJSON())] = json
             }
         })
         return rows

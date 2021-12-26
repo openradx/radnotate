@@ -193,7 +193,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                             {/*<MenuItem value={VariableType.boolean}>boolean</MenuItem>*/}
                             {/*<MenuItem value={VariableType.integer}>integer number</MenuItem>*/}
                             {/*<MenuItem value={VariableType.decimal}>decimal number</MenuItem>*/}
-                            <MenuItem value={VariableType.roi}>ROI</MenuItem>
+                            <MenuItem value={VariableType.rectangleRoi}>rectangle ROI</MenuItem>
                             <MenuItem value={VariableType.seed}>seed</MenuItem>
                         </Select>
                     </FormControl>

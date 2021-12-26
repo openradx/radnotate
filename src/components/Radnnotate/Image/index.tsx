@@ -119,7 +119,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                         case VariableType.seed:
                             currentValues.push(this._processSeed(data, instanceNumber))
                             break;
-                        case VariableType.roi:
+                        case VariableType.rectangleRoi:
                             currentValues.push(this._processRoi(data, instanceNumber))
                             break;
                     }
