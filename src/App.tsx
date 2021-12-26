@@ -4,22 +4,17 @@ import {
     createTheme,
     CssBaseline,
     PaletteMode,
-    SpeedDial,
-    SpeedDialAction,
-    ThemeProvider
+    ThemeProvider, useMediaQuery
 } from "@mui/material";
-import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
-import RestartAltOutlinedIcon from '@mui/icons-material/RestartAltOutlined';
-import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
-import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
-import DeleteSweepOutlinedIcon from '@mui/icons-material/DeleteSweepOutlined';
 import {useMemo, useState} from "react";
 import {getTheme} from "./components/Radnnotate/styles";
 
 const App = () => {
-    const [mode, setMode] = useState<PaletteMode>('light');
+    const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
+    const [mode, setMode] = useState<PaletteMode>(prefersDarkMode? "dark" : "light");
 
     const theme = useMemo(() => createTheme(getTheme(mode)), [mode]);
+
     const colorMode = useMemo(
         () => ({
             toggleColorMode: () => {
