@@ -15,8 +15,8 @@ import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import SendIcon from '@mui/icons-material/Send';
 import Variable, {VariableCountType, VariableType} from "./variable";
-import DicomDropzone from "../../DicomDropzone";
-import {Patients} from "../../DicomDropzone/dicomObject";
+import DicomDropzone from "./DicomDropzone";
+import {Patients} from "./DicomDropzone/dicomObject";
 
 export enum AnnotationLevel {
     patient,

@@ -1,8 +1,8 @@
 import {Component} from "react";
 import AnnotationForm, {AnnotationLevel} from "./AnnotationForm";
 import Variable from "./AnnotationForm/variable";
-import {Patient, Patients} from "../DicomDropzone/dicomObject";
-import Image from "../Image"
+import {Patient, Patients} from "./AnnotationForm/DicomDropzone/dicomObject";
+import Image from "./Image"
 import {
     GridCellParams,
     GridColDef,
@@ -15,11 +15,11 @@ import {TSMap} from "typescript-map"
 import AnnotationData from "./AnnotationData";
 import {GridRenderCellParams} from "@mui/x-data-grid-pro";
 
-type AnnotationPropsType = {
+type RadnnotatePropsType = {
     handleStartAnnotation: Function
 }
 
-type AnnotationStateType = {
+type RadnnotateStateType = {
     patients: Patients,
     variables: Variable[],
     annotationMode: boolean,
@@ -40,9 +40,9 @@ type AnnotationStateType = {
     width: number,
 }
 
-class Annotation extends Component<AnnotationPropsType, AnnotationStateType> {
+class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
 
-    constructor(props: AnnotationPropsType) {
+    constructor(props: RadnnotatePropsType) {
         super(props);
         this.state = {
             annotationMode: false,
@@ -312,4 +312,4 @@ class Annotation extends Component<AnnotationPropsType, AnnotationStateType> {
 
 }
 
-export default Annotation;
+export default Radnnotate;

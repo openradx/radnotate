@@ -3,9 +3,9 @@ import cornerstoneMath from "cornerstone-math";
 import cornerstoneTools from "cornerstone-tools";
 import Hammer from "hammerjs";
 import CornerstoneViewport from "react-cornerstone-viewport";
-import {Patient} from "../DicomDropzone/dicomObject";
+import {Patient} from "../AnnotationForm/DicomDropzone/dicomObject";
 import cornerstone from "cornerstone-core";
-import Variable, {VariableCountType, VariableType} from "../Annotation/AnnotationForm/variable";
+import Variable, {VariableCountType, VariableType} from "../AnnotationForm/variable";
 import {TSMap} from "typescript-map"
 
 cornerstoneTools.external.cornerstone = cornerstone;

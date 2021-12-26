@@ -1,4 +1,4 @@
-import Annotation from "./components/Annotation";
+import Radnnotate from "./components/Radnnotate";
 import {
     Box,
     createTheme,
@@ -14,7 +14,7 @@ import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
 import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
 import DeleteSweepOutlinedIcon from '@mui/icons-material/DeleteSweepOutlined';
 import {useMemo, useState} from "react";
-import {getTheme} from "./styles";
+import {getTheme} from "./components/Radnnotate/styles";
 
 const App = () => {
     const [mode, setMode] = useState<PaletteMode>('light');
@@ -69,11 +69,11 @@ const App = () => {
         <ThemeProvider theme={theme}>
             <Box sx={{marginLeft: "10px", marginTop: "10px", marginRight: "10px"}}>
                 <CssBaseline/>
-                <Annotation handleStartAnnotation={handleStartAnnotation}/>
+                <Radnnotate handleStartAnnotation={handleStartAnnotation}/>
                 <SpeedDial
                     ariaLabel="SpeedDial"
                     direction={"right"}
-                    sx={{position: 'absolute', bottom: 16, left: 16}}
+                    sx={{position: 'absolute', bottom: 5, left: 5}}
                     icon={<SettingsOutlinedIcon/>}
                 >
                     {actions.map((action) => (
