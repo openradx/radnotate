@@ -7,7 +7,7 @@ import {
     Select,
     Stack,
     InputLabel,
-    TextField, FormControlLabel, FormLabel, RadioGroup, Radio, Button, Tooltip
+    TextField, FormControlLabel, FormLabel, RadioGroup, Radio, Button, Tooltip, Box
 } from "@mui/material";
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
@@ -165,23 +165,25 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
     }
 
     _loadFile = (event) => {
-        const loadHeader = new Promise((resolve) => {
-                Papa.parse(event.target.files[0], {
-                    header: true,
-                    complete: results => {
-                        resolve(results.meta.fields?.slice(1,))
-                    }
+        if (event.target.files.length > 0) {
+            const loadHeader = new Promise((resolve) => {
+                    Papa.parse(event.target.files[0], {
+                        header: true,
+                        complete: results => {
+                            resolve(results.meta.fields?.slice(1,))
+                        }
+                    })
                 })
+            loadHeader.then((headers) => {
+                const variables: Variable[] = []
+                headers.forEach((header) => {
+                    const headerAsJson = JSON.parse(header)
+                    variables.push(new Variable(headerAsJson))
+                })
+                variables.push(new Variable(variables.length))
+                this.setState({variables: variables})
             })
-        loadHeader.then((headers) => {
-            const variables: Variable[] = []
-            headers.forEach((header) => {
-                const headerAsJson = JSON.parse(header)
-                variables.push(new Variable(headerAsJson))
-            })
-            variables.push(new Variable(variables.length))
-            this.setState({variables: variables})
-        })
+        }
     }
 
     renderVariableInput(id: number) {
@@ -198,7 +200,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
         return (
             <div key={String(id)} id={String(id)}>
                 <Stack direction="row" divider={<Divider orientation="vertical" flexItem/>} spacing={2}>
-                    <TextField sx={{minWidth: 200}} disabled={!isActiveVariable}
+                    <TextField sx={{minWidth: 200, maxWidth: 200}} disabled={!isActiveVariable}
                                error={this.state.nameError && isActiveVariable}
                                color="primary"
                                id="filled-basic" label="Variable name" variant="filled"
@@ -206,7 +208,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                                value={this.state.variables[id].name}/>
                     <FormControl disabled={!isActiveVariable} error={this.state.typeError && isActiveVariable}
                                  variant="filled"
-                                 sx={{m: 1, minWidth: 120}}>
+                                 sx={{minWidth:175, maxWidth:175}}>
                         <InputLabel id="demo-simple-select-filled-label">Type</InputLabel>
                         <Select
                             labelId="demo-simple-select-filled-label" id="demo-simple-select-filled"
@@ -254,13 +256,17 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
             saveAnnotationButtonDisabled = false
         }
         return (
-            <div>
+            <Box sx={{marginLeft: 8}}>
                 <Stack direction="column" divider={<Divider orientation="horizontal" flexItem/>}
                        spacing={2}>
                     <Stack direction="row" divider={<Divider orientation="vertical" flexItem/>}
                            spacing={2}>
                         <DicomDropzone savePatients={this.savePatients}/>
-                        <FormControl sx={{minWidth: 150}} component="fieldset">
+                        <Button sx={{minWidth: 175, maxWidth: 175, textAlign:"center"}} variant="outlined" component="label">
+                            Load variable definitions
+                            <input type="file" hidden={true} onInput={(event => this._loadFile(event))}/>
+                        </Button>
+                        <FormControl sx={{minWidth: 190}} component="fieldset">
                             <FormLabel component="legend">Annotation level</FormLabel>
                             <RadioGroup row aria-label="annotationLevel" name="row-radio-buttons-group"
                                         defaultValue={this.state.annotationLevel}
@@ -271,19 +277,6 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                                                   label="study" disabled={true}/>
                             </RadioGroup>
                         </FormControl>
-                        <Button sx={{minWidth: 200}} color="primary" variant="outlined" startIcon={<SendIcon/>}
-                                onClick={() => {
-                                    let variables = this.state.variables
-                                    variables = variables.slice(0, variables.length - 1)
-                                    this.props.saveAnnotationForm(this.state.patients, variables, this.state.annotationLevel)
-                                }}
-                                disabled={saveAnnotationButtonDisabled}>
-                            Start annotation
-                        </Button>
-                        <Button sx={{maxWidth: 200, textAlign:"center"}} variant="outlined" component="label">
-                            Load variable definitions
-                            <input type="file" hidden={true} onInput={(event => this._loadFile(event))}/>
-                        </Button>
                     </Stack>
                     <Stack direction="column" divider={<Divider orientation="horizontal" flexItem/>}
                            spacing={2}>
@@ -292,9 +285,18 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                                 return this.renderVariableInput(index)
                             })
                         }
+                        <Button sx={{minWidth: 200, maxWidth: 200, minHeight: 65}} color="primary" variant="outlined" startIcon={<SendIcon/>}
+                                onClick={() => {
+                                    let variables = this.state.variables
+                                    variables = variables.slice(0, variables.length - 1)
+                                    this.props.saveAnnotationForm(this.state.patients, variables, this.state.annotationLevel)
+                                }}
+                                disabled={saveAnnotationButtonDisabled}>
+                            Start annotation
+                        </Button>
                     </Stack>
                 </Stack>
-            </div>
+            </Box>
         );
     }
 

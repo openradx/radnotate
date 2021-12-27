@@ -16,8 +16,8 @@ function CircularProgressWithLabel(props: CircularProgressProps & { value: numbe
     return (
         <Box sx={{
             position: 'absolute',
-            marginLeft: 8.5,
-            marginTop: -6.3
+            marginLeft: 10.5,
+            marginTop: -6.6
         }}>
             <CircularProgress sx={{
                 color: "secondary.main"
@@ -47,7 +47,8 @@ type DicomDropzoneState = {
     patients: Patients | null,
     loadingPatients: boolean,
     loadingAcceptedFiles: boolean,
-    progress: number
+    progress: number,
+    buttonText: string
 }
 
 type DicomDropzoneProps = {
@@ -62,7 +63,8 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
             patients: new Patients(),
             loadingPatients: false,
             loadingAcceptedFiles: false,
-            progress: 0
+            progress: 0,
+            buttonText: "Select or drop folders or files"
         }
     }
 
@@ -97,7 +99,7 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
                 });
             }, Promise.resolve()).then(() => {
                 this.props.savePatients(patients)
-                this.setState({patients: patients, loadingPatients: false})
+                this.setState({patients: patients, loadingPatients: false, buttonText: "Select or drop folders or files"})
             })
         );
     }
@@ -105,12 +107,14 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
     getFilesFromEvent = (event: Event | DropEvent) => {
         if (event._reactName === "onDrop") {
             this.props.savePatients(undefined)
-            this.setState({loadingAcceptedFiles: true, progress: 0})
+            this.setState({loadingAcceptedFiles: true, progress: 0, buttonText: ""})
             return trackPromise(fromEvent(event as Event).then((acceptedFiles => {
                 return new Promise<(FileWithPath | DataTransferItem)[]>((resolve => {
                     resolve(acceptedFiles)
                 }))
             })))
+        } else if (event._reactName === "onDragEnter") {
+            this.setState({buttonText: "Drop here"})
         }
         return new Promise((() => {}))
     }
@@ -130,8 +134,8 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
             return (
                 <Box sx={{
                     position: 'absolute',
-                    marginLeft: 8.5,
-                    marginTop: -6.3
+                    marginLeft: 10.5,
+                    marginTop: -6.6
                 }}>
                     <CircularProgress sx={{color: "secondary.main"}}/>
                 </Box>
@@ -140,31 +144,24 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
     }
 
     render() {
-        let buttonSx = {}
-        if (this.state.loadingPatients || this.state.loadingAcceptedFiles) {
-            buttonSx = {
-                color: "rgba(0, 0, 0, 0.30)"
-            }
-        }
         return (
             <div>
                 <Dropzone
+                    onDragLeave={() => this.setState({buttonText: "Select or drop folders or files"})}
                     onDrop={async acceptedFiles => this.processAcceptedFiles(acceptedFiles)}
                     getFilesFromEvent={async event => this.getFilesFromEvent(event)}>
                     {({getRootProps, getInputProps}) => (
-                        <div style={{
-                            width: 175
+                        <Box sx={{
+                            width: 200
                         }} {...getRootProps()}>
                             <input {...getInputProps()} />
-                            <Box sx={{positon: "absolute"}}>
-                                <Button sx={buttonSx} variant="outlined">
-                                    Select or drop folders or files
-                                </Button>
-                            </Box>
+                            <Button sx={{minWidth: 200, minHeight: 65}} variant="outlined">
+                                {this.state.buttonText}
+                            </Button>
                             {
                                 this.renderProgress()
                             }
-                        </div>
+                        </Box>
                     )}
                 </Dropzone>
             </div>
