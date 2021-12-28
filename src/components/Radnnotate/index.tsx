@@ -171,11 +171,18 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
         } else {
             activeVariableIndex++
         }
+        let isLastPatient: boolean = false
         if (this.state.jumpBackToPatientIndex >= 0) {
-            this._nextPatient()
+            isLastPatient = this._nextPatient()
         } else if (activeVariableIndex === this.state.variables.length) {
             activeVariableIndex = 0
-            this._nextPatient()
+            isLastPatient = this._nextPatient()
+        }
+        if (isLastPatient) {
+            this.setState({
+                activeVariableIndex: -1,
+                jumpBackToVariableIndex: -1
+            })
         }
         const activeVariable = this.state.variables[activeVariableIndex]
         const columns = this._variablesToColumns(this.state.activePatientIndex, activeVariable.name, this.state.variables, this.state.annotationLevel)
@@ -197,20 +204,30 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
         } else {
             activePatientIndex++
         }
-        let activePatient: Patient
-        if (this.state.annotationLevel === AnnotationLevel.patient) {
-            activePatient = this.state.patients.getPatient(activePatientIndex)
+        if (activePatientIndex === this.state.patients.patients.length) {
+            this.setState({
+                activePatientIndex: -1,
+                imageIds: [],
+                jumpBackToPatientIndex: -1
+            })
+            return true
         } else {
-            activePatient = this.state.patients.getPatientStudy(activePatientIndex, this.state.activeStudyIndex)
+            let activePatient: Patient
+            if (this.state.annotationLevel === AnnotationLevel.patient) {
+                activePatient = this.state.patients.getPatient(activePatientIndex)
+            } else {
+                activePatient = this.state.patients.getPatientStudy(activePatientIndex, this.state.activeStudyIndex)
+            }
+            const {imageIds, instanceNumbers} = this._updateImageIds(activePatient)
+            this.setState({
+                activePatient: activePatient,
+                activePatientIndex: activePatientIndex,
+                imageIds: imageIds,
+                instanceNumbers: instanceNumbers,
+                jumpBackToPatientIndex: jumpBackToPatientIndex,
+            })
+            return false
         }
-        const {imageIds, instanceNumbers} = this._updateImageIds(activePatient)
-        this.setState({
-            activePatient: activePatient,
-            activePatientIndex: activePatientIndex,
-            imageIds: imageIds,
-            instanceNumbers: instanceNumbers,
-            jumpBackToPatientIndex: jumpBackToPatientIndex,
-        })
     }
 
     _updateImageIds = (activePatient: Patient | undefined) => {
