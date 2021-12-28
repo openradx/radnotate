@@ -4,7 +4,7 @@ import {Patients} from "./dicomObject";
 import {trackPromise} from "react-promise-tracker";
 import {fromEvent, FileWithPath} from "file-selector";
 import {loadFile} from "./loaders";
-import {Box, Button, CircularProgress, CircularProgressProps, Typography} from "@mui/material";
+import {Box, Button, CircularProgress, CircularProgressProps, Snackbar, Typography} from "@mui/material";
 import cornerstoneWADOImageLoader from "cornerstone-wado-image-loader";
 import cornerstone from "cornerstone-core";
 import dicomParser from "dicom-parser";
@@ -48,7 +48,8 @@ type DicomDropzoneState = {
     loadingPatients: boolean,
     loadingAcceptedFiles: boolean,
     progress: number,
-    buttonText: string
+    buttonText: string,
+    openSnackbar: boolean
 }
 
 type DicomDropzoneProps = {
@@ -64,7 +65,8 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
             loadingPatients: false,
             loadingAcceptedFiles: false,
             progress: 0,
-            buttonText: "Select or drop folders or files"
+            buttonText: "Select or drop folders or files",
+            openSnackbar: false
         }
     }
 
@@ -99,7 +101,12 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
                 });
             }, Promise.resolve()).then(() => {
                 this.props.savePatients(patients)
-                this.setState({patients: patients, loadingPatients: false, buttonText: "Select or drop folders or files"})
+                this.setState({
+                    patients: patients,
+                    loadingPatients: false,
+                    buttonText: "Select or drop folders or files",
+                    openSnackbar: true
+                })
             })
         );
     }
@@ -116,7 +123,8 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
         } else if (event._reactName === "onDragEnter") {
             this.setState({buttonText: "Drop here"})
         }
-        return new Promise((() => {}))
+        return new Promise((() => {
+        }))
     }
 
     onTreeStateChange = (state: any, event: any) => {
@@ -164,6 +172,13 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
                         </Box>
                     )}
                 </Dropzone>
+                <Snackbar
+                    anchorOrigin={{vertical: "bottom", horizontal: "center"}}
+                    open={this.state.openSnackbar}
+                    autoHideDuration={6000}
+                    onClose={() => this.setState({openSnackbar: false})}
+                    message="Patients loaded"
+                />
             </div>
         )
     }
