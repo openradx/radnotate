@@ -1,6 +1,10 @@
 {
   "name": "Radnnotate",
-  "author": "Manuel Debic <manuel.debic@med.uni-heidelberg.de>",
+  "productName": "Radnnotate",
+  "author": {
+    "name": "Manuel Debic",
+    "email": "manuel.debic@med.uni-heidelberg.de"
+  },
   "version": "0.0.1",
   "description": "A radiological annotation tool with a focus on a fast and convenient annotation workflow.",
   "main": "./.webpack/main/index.js",
@@ -10,7 +14,8 @@
     "make": "electron-forge make",
     "release": "electron-forge publish",
     "lint": "eslint . --ext js,ts",
-    "test": "jest"
+    "test": "jest",
+    "make-linux": "electron-forge make --platform linux --targets deb"
   },
   "keywords": [],
   "license": "MIT",
@@ -44,6 +49,7 @@
     "cornerstone-web-image-loader": "^2.1.1",
     "daikon": "^1.2.42",
     "dicom-parser": "^1.8.11",
+    "electron-compile": "^6.4.4",
     "fs": "^0.0.1-security",
     "hammerjs": "^2.0.8",
     "list-files": "^1.1.4",
@@ -70,7 +76,7 @@
     "@babel/preset-env": "7.14.5",
     "@babel/preset-react": "7.14.5",
     "@babel/preset-typescript": "7.14.5",
-    "@electron-forge/cli": "6.0.0-beta.57",
+    "@electron-forge/cli": "^6.0.0-beta.57",
     "@electron-forge/maker-deb": "6.0.0-beta.57",
     "@electron-forge/maker-rpm": "6.0.0-beta.57",
     "@electron-forge/maker-squirrel": "6.0.0-beta.57",
@@ -89,7 +95,8 @@
     "babel-loader": "8.2.2",
     "cross-env": "7.0.3",
     "electron": "13.1.2",
-    "electron-devtools-installer": "^3.2.0",
+    "electron-devtools-installer": "3.2.0",
+    "electron-prebuilt-compile": "8.2.0",
     "eslint": "7.29.0",
     "eslint-config-prettier": "8.3.0",
     "eslint-config-standard": "16.0.3",
@@ -142,9 +149,9 @@
       "makers": [
         {
           "name": "@electron-forge/maker-squirrel",
-          "config": {
-            "name": "Radnnotate"
-          }
+          "platforms": [
+            "win32"
+          ]
         },
         {
           "name": "@electron-forge/maker-zip",
@@ -154,11 +161,9 @@
         },
         {
           "name": "@electron-forge/maker-deb",
-          "config": {}
-        },
-        {
-          "name": "@electron-forge/maker-rpm",
-          "config": {}
+          "platforms": [
+            "linux"
+          ]
         }
       ]
     }
