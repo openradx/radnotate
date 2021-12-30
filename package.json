@@ -50,6 +50,7 @@
     "daikon": "^1.2.42",
     "dicom-parser": "^1.8.11",
     "electron-compile": "^6.4.4",
+    "electron-squirrel-startup": "^1.0.0",
     "fs": "^0.0.1-security",
     "hammerjs": "^2.0.8",
     "list-files": "^1.1.4",
@@ -119,6 +120,7 @@
     "forge": {
       "packagerConfig": {
         "name": "Radnnotate",
+	"title": "Radnnotate",
         "executableName": "Radnnotate",
         "icon": "assets/icon",
         "extraResource": [
