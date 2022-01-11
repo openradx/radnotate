@@ -57,6 +57,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             },
             {name: "Probe", mode: "active", modeOptions: {mouseButtonMask: 1}},
             {name: "RectangleRoi", mode: "active", modeOptions: {mouseButtonMask: 1}},
+            {name: "EllipticalRoi", mode: "active", modeOptions: {mouseButtonMask: 1}},
             {name: 'StackScrollMouseWheel', mode: 'active'},
             {name: 'PanMultiTouch', mode: 'active'},
             {name: 'ZoomTouchPinch', mode: 'active'},
@@ -89,13 +90,32 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         return seed
     }
 
-    _processRoi = (data, instanceNumber: number) => {
+    _processRectangleRoi = (data, instanceNumber: number) => {
         const coordinates = data.handles
         const seed = new TSMap<string, number>()
         seed.set("x1", parseInt(coordinates.start.x))
         seed.set("y1", parseInt(coordinates.start.y))
         seed.set("x2", parseInt(coordinates.end.x))
         seed.set("y2", parseInt(coordinates.end.y))
+        seed.set("z", instanceNumber)
+        return seed
+    }
+
+    _processEllipticalRoi = (data, instanceNumber: number) => {
+        const coordinates = data.handles
+        const seed = new TSMap<string, number>()
+        const x1 = parseInt(coordinates.start.x)
+        const y1 = parseInt(coordinates.start.y)
+        const x2 = parseInt(coordinates.end.x)
+        const y2 = parseInt(coordinates.end.y)
+        const centerX = Math.abs(x1 - x2) + Math.min(x1, x2)
+        const centerY = Math.abs(y1 - y2) + Math.min(y1, y2)
+        const a = centerX - Math.min(x1, x2)
+        const b = centerY - Math.min(y1, y2)
+        seed.set("x", centerX)
+        seed.set("y", centerY)
+        seed.set("a", a)
+        seed.set("b", b)
         seed.set("z", instanceNumber)
         return seed
     }
@@ -120,7 +140,10 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                             currentValues.push(this._processSeed(data, instanceNumber))
                             break;
                         case VariableType.rectangleRoi:
-                            currentValues.push(this._processRoi(data, instanceNumber))
+                            currentValues.push(this._processRectangleRoi(data, instanceNumber))
+                            break;
+                        case VariableType.ellipticalRoi:
+                            currentValues.push(this._processEllipticalRoi(data, instanceNumber))
                             break;
                     }
                 })

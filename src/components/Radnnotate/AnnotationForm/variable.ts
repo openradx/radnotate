@@ -5,12 +5,14 @@ export enum VariableType {
     integer,
     decimal,
     seed,
-    rectangleRoi
+    rectangleRoi,
+    ellipticalRoi
 }
 
 const ToolType = new Map<VariableType, string>([
     [VariableType.seed, "Probe"],
-    [VariableType.rectangleRoi, "RectangleRoi"]
+    [VariableType.rectangleRoi, "RectangleRoi"],
+    [VariableType.ellipticalRoi, "EllipticalRoi"]
 ])
 
 export enum VariableCountType {
