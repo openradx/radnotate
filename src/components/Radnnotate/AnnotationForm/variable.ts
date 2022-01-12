@@ -6,7 +6,8 @@ export enum VariableType {
     decimal, // Not implemented
     seed,
     rectangleRoi,
-    ellipticalRoi
+    ellipticalRoi,
+    length
 }
 
 const ToolType = new Map<VariableType, string>([
@@ -15,7 +16,8 @@ const ToolType = new Map<VariableType, string>([
     [VariableType.decimal, "Pan"],
     [VariableType.seed, "Probe"],
     [VariableType.rectangleRoi, "RectangleRoi"],
-    [VariableType.ellipticalRoi, "EllipticalRoi"]
+    [VariableType.ellipticalRoi, "EllipticalRoi"],
+    [VariableType.length, "Length"],
 ])
 
 export enum VariableCountType {

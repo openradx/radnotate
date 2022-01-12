@@ -240,6 +240,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                             <MenuItem value={VariableType.rectangleRoi}>rectangle ROI</MenuItem>
                             <MenuItem value={VariableType.ellipticalRoi}>elliptical ROI</MenuItem>
                             <MenuItem value={VariableType.seed}>seed</MenuItem>
+                            <MenuItem value={VariableType.length}>length</MenuItem>
                         </Select>
                     </FormControl>
                     <FormControl disabled={!isActiveVariable || this.state.countTypeDisabled} error={this.state.countTypeError && isActiveVariable}

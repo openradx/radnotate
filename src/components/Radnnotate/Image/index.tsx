@@ -59,6 +59,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             {name: "Probe", mode: "active", modeOptions: {mouseButtonMask: 1}},
             {name: "RectangleRoi", mode: "active", modeOptions: {mouseButtonMask: 1}},
             {name: "EllipticalRoi", mode: "active", modeOptions: {mouseButtonMask: 1}},
+            {name: "Length", mode: "active", modeOptions: {mouseButtonMask: 1}},
             {name: 'StackScrollMouseWheel', mode: 'active'},
             {name: 'ZoomTouchPinch', mode: 'active'},
             {name: 'StackScrollMultiTouch', mode: 'active'}
@@ -115,6 +116,18 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         return seed
     }
 
+    _processLength = (data, instanceNumber: number) => {
+        const coordinates = data.handles
+        const length = new TSMap<string, number>()
+        length.set("x1", parseInt(coordinates.start.x))
+        length.set("y1", parseInt(coordinates.start.y))
+        length.set("x2", parseInt(coordinates.end.x))
+        length.set("y2", parseInt(coordinates.end.y))
+        length.set("length", data.length)
+        length.set("z", instanceNumber)
+        return length
+    }
+
     _processBoolean = (keyPressed: string) => {
         const seed = new TSMap<string, boolean>()
         if (keyPressed === "t") {
@@ -136,9 +149,8 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         const keys = Object.keys(existingToolState)
         let annotationsCount = 0
         const currentValues = []
-        if (this.props.activeVariable.type === VariableType.ellipticalRoi ||
-            this.props.activeVariable.type === VariableType.rectangleRoi ||
-            this.props.activeVariable.type === VariableType.seed) {
+        if (this.props.activeVariable.type !== VariableType.boolean &&
+            this.props.activeVariable.type !== VariableType.integer) {
             this.props.imageIds.forEach(imageId => {
                 if (keys.includes(imageId) && this.props.activeVariable.tool in existingToolState[imageId]) {
                     const annotations = existingToolState[imageId][this.props.activeVariable.tool].data
@@ -158,6 +170,9 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                                 break;
                             case VariableType.ellipticalRoi:
                                 currentValues.push(this._processEllipticalRoi(data, instanceNumber))
+                                break;
+                            case VariableType.length:
+                                currentValues.push(this._processLength(data, instanceNumber))
                                 break;
                         }
                     })
