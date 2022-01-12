@@ -3,13 +3,16 @@ import {TSMap} from "typescript-map";
 export enum VariableType {
     boolean,
     integer,
-    decimal,
+    decimal, // Not implemented
     seed,
     rectangleRoi,
     ellipticalRoi
 }
 
 const ToolType = new Map<VariableType, string>([
+    [VariableType.boolean, "Pan"],
+    [VariableType.integer, "Pan"],
+    [VariableType.decimal, "Pan"],
     [VariableType.seed, "Probe"],
     [VariableType.rectangleRoi, "RectangleRoi"],
     [VariableType.ellipticalRoi, "EllipticalRoi"]
@@ -34,7 +37,7 @@ class Variable {
             this._name = ""
             this._type = ""
             this._countType = ""
-            this._count = 0
+            this._count = 1
             this._tool = ""
         } else {
             this._id = value.id

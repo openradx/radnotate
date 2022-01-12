@@ -1,13 +1,20 @@
 import {Component} from "react";
 import {
+    Box,
+    Button,
     Divider,
     FormControl,
+    FormControlLabel,
+    FormLabel,
     IconButton,
+    InputLabel,
     MenuItem,
+    Radio,
+    RadioGroup,
     Select,
     Stack,
-    InputLabel,
-    TextField, FormControlLabel, FormLabel, RadioGroup, Radio, Button, Tooltip, Box
+    TextField,
+    Tooltip
 } from "@mui/material";
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
@@ -15,7 +22,7 @@ import SendIcon from '@mui/icons-material/Send';
 import Variable, {VariableCountType, VariableType} from "./variable";
 import DicomDropzone from "./DicomDropzone";
 import {Patients} from "./DicomDropzone/dicomObject";
-import Papa, {ParseResult} from "papaparse";
+import Papa from "papaparse";
 
 export enum AnnotationLevel {
     patient,
@@ -29,7 +36,10 @@ type AnnotationFormStateType = {
     typeError: boolean
     countTypeError: boolean
     countError: boolean
-    annotationLevel: AnnotationLevel
+    annotationLevel: AnnotationLevel,
+    defaultCountType: VariableCountType,
+    countTypeDisabled: boolean,
+    countDisabled: boolean
 }
 
 type AnnotationFormPropsType = {
@@ -46,7 +56,10 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
             typeError: false,
             countTypeError: false,
             countError: false,
-            annotationLevel: AnnotationLevel.patient
+            annotationLevel: AnnotationLevel.patient,
+            defaultCountType: VariableCountType.dynamic,
+            countTypeDisabled: false,
+            countDisabled: false
         }
     }
 
@@ -105,6 +118,13 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
         this.state.variables.forEach((variable) => {
             if (variable.id === id) {
                 variable.type = value
+                if (variable.type === VariableType.boolean) {
+                    variable.countType = VariableCountType.static
+                    variable.count = 1
+                    this.setState({countTypeDisabled: true, countDisabled: true})
+                } else {
+                    this.setState({countTypeDisabled: false, countDisabled: false})
+                }
                 this.setState({typeError: false})
             }
         })
@@ -143,7 +163,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
         if (this.state.variables[id].countType === VariableCountType.static) {
             return (<TextField
                 sx={{width: 120, minWidth: 120}}
-                disabled={!isActiveVariable}
+                disabled={!isActiveVariable || this.state.countDisabled}
                 color="primary"
                 id="filled-number"
                 label="Count"
@@ -152,6 +172,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                 onChange={(event) => {
                     this.addVariableCount(event, id)
                 }}
+                value={this.state.variables[id].count}
                 error={this.state.countError && isActiveVariable}/>)
         }
     }
@@ -194,7 +215,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
             toolTitle = "Add variable"
         }
         let isErrorVariable = false
-        if (this.state.nameError || this.state.typeError || this.state.counTypeError || (this.state.countError && this.state.variables[id].type === VariableCountType.static)) {
+        if (this.state.nameError || this.state.typeError || this.state.countTypeError || (this.state.countError && this.state.variables[id].type === VariableCountType.static)) {
             isErrorVariable = true
         }
         return (
@@ -213,7 +234,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                         <Select
                             labelId="demo-simple-select-filled-label" id="demo-simple-select-filled"
                             onChange={(event) => this.addVariableType(event, id)} value={this.state.variables[id].type}>
-                            {/*<MenuItem value={VariableType.boolean}>boolean</MenuItem>*/}
+                            <MenuItem value={VariableType.boolean}>boolean</MenuItem>
                             {/*<MenuItem value={VariableType.integer}>integer number</MenuItem>*/}
                             {/*<MenuItem value={VariableType.decimal}>decimal number</MenuItem>*/}
                             <MenuItem value={VariableType.rectangleRoi}>rectangle ROI</MenuItem>
@@ -221,7 +242,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                             <MenuItem value={VariableType.seed}>seed</MenuItem>
                         </Select>
                     </FormControl>
-                    <FormControl disabled={!isActiveVariable} error={this.state.countTypeError && isActiveVariable}
+                    <FormControl disabled={!isActiveVariable || this.state.countTypeDisabled} error={this.state.countTypeError && isActiveVariable}
                                  variant="filled"
                                  sx={{m: 1, minWidth: 120}}>
                         <InputLabel id="demo-simple-select-filled-label">Count type</InputLabel>

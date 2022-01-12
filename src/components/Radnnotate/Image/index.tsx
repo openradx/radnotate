@@ -55,19 +55,14 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                 mode: 'active',
                 modeOptions: {mouseButtonMask: 2},
             },
+            {name: 'Pan', mode: 'active', modeOptions: {mouseButtonMask: 1}},
             {name: "Probe", mode: "active", modeOptions: {mouseButtonMask: 1}},
             {name: "RectangleRoi", mode: "active", modeOptions: {mouseButtonMask: 1}},
             {name: "EllipticalRoi", mode: "active", modeOptions: {mouseButtonMask: 1}},
             {name: 'StackScrollMouseWheel', mode: 'active'},
-            {name: 'PanMultiTouch', mode: 'active'},
             {name: 'ZoomTouchPinch', mode: 'active'},
             {name: 'StackScrollMultiTouch', mode: 'active'}
         ]
-        // toolsList.forEach(tool => {
-        //     if (tool.name === this.props.activeVariable.tool) {
-        //         tool.mode = "active"
-        //     }
-        // })
         this.state = {
             activeViewportIndex: 0,
             viewports: [0],
@@ -120,37 +115,54 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         return seed
     }
 
+    _processBoolean = (keyPressed: string) => {
+        const seed = new TSMap<string, boolean>()
+        if (keyPressed === "t") {
+            seed.set("value", true)
+        } else {
+            seed.set("value", false)
+        }
+        return seed
+    }
+
     _updateVariable = (keyPressed: string | undefined) => {
         const existingToolState = toolStateManager.saveToolState();
         const keys = Object.keys(existingToolState)
         let annotationsCount = 0
         const currentValues = []
-        this.props.imageIds.forEach(imageId => {
-            if (keys.includes(imageId) && this.props.activeVariable.tool in existingToolState[imageId]) {
-                const annotations = existingToolState[imageId][this.props.activeVariable.tool].data
-                annotationsCount += annotations.length
-                let instanceNumber: number
-                if (this.props.instanceNumbers.has(imageId)) {
-                    instanceNumber = this.props.instanceNumbers.get(imageId)
-                }
-                annotations.forEach((data) => {
-                    //ToDo save data into variable, maybe also connection to series number or serisuid needed?
-                    switch (this.props.activeVariable.type) {
-                        case VariableType.seed:
-                            currentValues.push(this._processSeed(data, instanceNumber))
-                            break;
-                        case VariableType.rectangleRoi:
-                            currentValues.push(this._processRectangleRoi(data, instanceNumber))
-                            break;
-                        case VariableType.ellipticalRoi:
-                            currentValues.push(this._processEllipticalRoi(data, instanceNumber))
-                            break;
+        if (this.props.activeVariable.type === VariableType.ellipticalRoi ||
+            this.props.activeVariable.type === VariableType.rectangleRoi ||
+            this.props.activeVariable.type === VariableType.seed) {
+            this.props.imageIds.forEach(imageId => {
+                if (keys.includes(imageId) && this.props.activeVariable.tool in existingToolState[imageId]) {
+                    const annotations = existingToolState[imageId][this.props.activeVariable.tool].data
+                    annotationsCount += annotations.length
+                    let instanceNumber: number
+                    if (this.props.instanceNumbers.has(imageId)) {
+                        instanceNumber = this.props.instanceNumbers.get(imageId)
                     }
-                })
-            }
-        })
+                    annotations.forEach((data) => {
+                        //ToDo save data into variable, maybe also connection to series number or serisuid needed?
+                        switch (this.props.activeVariable.type) {
+                            case VariableType.seed:
+                                currentValues.push(this._processSeed(data, instanceNumber))
+                                break;
+                            case VariableType.rectangleRoi:
+                                currentValues.push(this._processRectangleRoi(data, instanceNumber))
+                                break;
+                            case VariableType.ellipticalRoi:
+                                currentValues.push(this._processEllipticalRoi(data, instanceNumber))
+                                break;
+                        }
+                    })
+                }
+            })
+        }
         const previousAnnotationCount = this.props.annotationsCount
         if (this.props.activeVariable.countType === VariableCountType.static) {
+            if (this.props.activeVariable.type === VariableType.boolean && (keyPressed === "t" || keyPressed === "f")) {
+                this.props.nextVariable([this._processBoolean(keyPressed)])
+            }
             if (this.props.activeVariable.count === annotationsCount) {
                 this._deleteAnnotations()
                 this.props.nextVariable(currentValues.slice(previousAnnotationCount, currentValues.length))
