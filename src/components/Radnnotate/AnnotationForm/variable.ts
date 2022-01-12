@@ -7,7 +7,8 @@ export enum VariableType {
     seed,
     rectangleRoi,
     ellipticalRoi,
-    length
+    length,
+    segmentation
 }
 
 const ToolType = new Map<VariableType, string>([
@@ -18,6 +19,7 @@ const ToolType = new Map<VariableType, string>([
     [VariableType.rectangleRoi, "RectangleRoi"],
     [VariableType.ellipticalRoi, "EllipticalRoi"],
     [VariableType.length, "Length"],
+    [VariableType.segmentation, "FreehandScissors"],
 ])
 
 export enum VariableCountType {

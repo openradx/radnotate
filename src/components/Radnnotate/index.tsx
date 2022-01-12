@@ -1,6 +1,6 @@
 import {Component} from "react";
 import AnnotationForm, {AnnotationLevel} from "./AnnotationForm";
-import Variable from "./AnnotationForm/variable";
+import Variable, {VariableType} from "./AnnotationForm/variable";
 import {Patient, Patients} from "./AnnotationForm/DicomDropzone/dicomObject";
 import Image from "./Image"
 import {
@@ -91,8 +91,16 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
                     if (value === undefined) {
                         value = ""
                     }
+                    const variable: Object = JSON.parse(params.field)
+                    if (variable.type === VariableType.segmentation && value !== "") {
+                        value = JSON.parse(value)
+                        value.forEach(element => {
+                            element.pixelData = "B64EncodedImage"
+                        })
+                        value = JSON.stringify(value)
+                    }
                     return (<Tooltip title={value} followCursor={true}>
-                            <span className="table-cell-trucate">{params.value}</span>
+                            <span className="table-cell-trucate">{value}</span>
                         </Tooltip>
                     )
                 },

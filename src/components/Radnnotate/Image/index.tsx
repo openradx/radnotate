@@ -7,6 +7,7 @@ import {Patient} from "../AnnotationForm/DicomDropzone/dicomObject";
 import cornerstone from "cornerstone-core";
 import Variable, {VariableCountType, VariableType} from "../AnnotationForm/variable";
 import {TSMap} from "typescript-map"
+import {FormControlLabel, FormGroup, Switch} from "@mui/material";
 
 cornerstoneTools.external.cornerstone = cornerstone;
 cornerstoneTools.external.Hammer = Hammer;
@@ -37,6 +38,7 @@ type ImageStateType = {
     isPlaying: boolean,
     frameRate: number,
     cornerstoneElement: any,
+    correctionModeEnabled: boolean,
 }
 
 class Image extends Component<ImagePropsType, ImageStateType> {
@@ -60,6 +62,8 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             {name: "RectangleRoi", mode: "active", modeOptions: {mouseButtonMask: 1}},
             {name: "EllipticalRoi", mode: "active", modeOptions: {mouseButtonMask: 1}},
             {name: "Length", mode: "active", modeOptions: {mouseButtonMask: 1}},
+            {name: "FreehandScissors", mode: "active", modeOptions: {mouseButtonMask: 1}},
+            {name: "CorrectionScissors", mode: "active", modeOptions: {mouseButtonMask: 1}},
             {name: 'StackScrollMouseWheel', mode: 'active'},
             {name: 'ZoomTouchPinch', mode: 'active'},
             {name: 'StackScrollMultiTouch', mode: 'active'}
@@ -71,6 +75,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             imageIdIndex: 0,
             isPlaying: false,
             frameRate: 22,
+            correctionModeEnabled: false
         };
 
     }
@@ -116,6 +121,15 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         return seed
     }
 
+    _processSegmentation = (pixelData, instanceNumber: number) => {
+        const segmentation = new TSMap<string, number>()
+        const decoder = new TextDecoder("utf8")
+        const b64encoded = btoa(decoder.decode(pixelData))
+        segmentation.set("pixelData", b64encoded)
+        segmentation.set("z", instanceNumber)
+        return segmentation
+    }
+
     _processLength = (data, instanceNumber: number) => {
         const coordinates = data.handles
         const length = new TSMap<string, number>()
@@ -145,12 +159,28 @@ class Image extends Component<ImagePropsType, ImageStateType> {
     }
 
     _updateVariable = (keyPressed: string | undefined) => {
-        const existingToolState = toolStateManager.saveToolState();
-        const keys = Object.keys(existingToolState)
         let annotationsCount = 0
         const currentValues = []
-        if (this.props.activeVariable.type !== VariableType.boolean &&
+        if (this.props.activeVariable.type === VariableType.segmentation) {
+            const {
+                getters,
+                setters,
+                configuration,
+                state
+            } = cornerstoneTools.getModule("segmentation");
+            const annotations = state.series[this.props.imageIds[0]].labelmaps3D[0].labelmaps2D
+            const imageIndices = Object.keys(annotations)
+            annotationsCount += imageIndices.length
+            imageIndices.forEach(imageIndex => {
+                const imageId = this.props.imageIds[Number(imageIndex)]
+                const instanceNumber = this.props.instanceNumbers.get(imageId)
+                const pixelData = annotations[imageIndex].pixelData
+                currentValues.push(this._processSegmentation(pixelData, instanceNumber))
+            })
+        } else if (this.props.activeVariable.type !== VariableType.boolean &&
             this.props.activeVariable.type !== VariableType.integer) {
+            const existingToolState = toolStateManager.saveToolState();
+            const keys = Object.keys(existingToolState)
             this.props.imageIds.forEach(imageId => {
                 if (keys.includes(imageId) && this.props.activeVariable.tool in existingToolState[imageId]) {
                     const annotations = existingToolState[imageId][this.props.activeVariable.tool].data
@@ -179,7 +209,6 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                 }
             })
         }
-        const previousAnnotationCount = this.props.annotationsCount
         if (this.props.activeVariable.countType === VariableCountType.static) {
             if (this.props.activeVariable.type === VariableType.boolean && (keyPressed === "t" || keyPressed === "f")) {
                 this.props.nextVariable([this._processBoolean(keyPressed)])
@@ -188,32 +217,43 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             }
             if (this.props.activeVariable.count === annotationsCount) {
                 this._deleteAnnotations()
-                this.props.nextVariable(currentValues.slice(previousAnnotationCount, currentValues.length))
+                this.props.nextVariable(currentValues.slice(0, currentValues.length))
             }
         } else {
             if (keyPressed === "Enter") {
                 this._deleteAnnotations()
-                this.props.nextVariable(currentValues.slice(previousAnnotationCount, currentValues.length))
+                this.props.nextVariable(currentValues.slice(0, currentValues.length))
             }
         }
 
     }
 
     _deleteAnnotations = () => {
-        const existingToolState = toolStateManager.saveToolState();
-        const keys = Object.keys(existingToolState)
-        this.props.imageIds.forEach(imageId => {
-            if (keys.includes(imageId) && this.props.activeVariable.tool in existingToolState[imageId]) {
-                const annotations = existingToolState[imageId][this.props.activeVariable.tool].data
-                let annotationsCount = annotations.length
-                while (annotationsCount > 0) {
-                    annotations.pop()
-                    annotationsCount = annotations.length
+        if (this.props.activeVariable.type === VariableType.segmentation) {
+            const {
+                getters,
+                setters,
+                configuration,
+                state
+            } = cornerstoneTools.getModule("segmentation");
+            state.series = {}
+        } else {
+            const existingToolState = toolStateManager.saveToolState();
+            const keys = Object.keys(existingToolState)
+            this.props.imageIds.forEach(imageId => {
+                if (keys.includes(imageId) && this.props.activeVariable.tool in existingToolState[imageId]) {
+                    const annotations = existingToolState[imageId][this.props.activeVariable.tool].data
+                    let annotationsCount = annotations.length
+                    while (annotationsCount > 0) {
+                        annotations.pop()
+                        annotationsCount = annotations.length
+                    }
                 }
-            }
-        })
-        cornerstoneTools.clearToolState(this.state.cornerstoneElement, this.props.activeVariable.tool);
+            })
+            cornerstoneTools.clearToolState(this.state.cornerstoneElement, this.props.activeVariable.tool);
+        }
         cornerstone.updateImage(this.state.cornerstoneElement);
+        this.setState({correctionModeEnabled: false})
     }
 
     _handleKeyPress = (event) => this._updateVariable(event.key)
@@ -225,20 +265,45 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         this.state.cornerstoneElement.removeEventListener("cornerstonetoolsmeasurementcompleted", this._updateVariable);
     }
 
+    setCorrectionMode = (event: Event) => {
+        this.setState({correctionModeEnabled: event.target.checked})
+    }
+
+    renderSegmentationSettings = () => {
+        if (this.props.activeVariable.type === VariableType.segmentation) {
+            return(
+                <FormGroup>
+                    <FormControlLabel control={<Switch checked={this.state.correctionModeEnabled} onChange={this.setCorrectionMode}/>} label="Correction mode" />
+                </FormGroup>
+            )
+        }
+    }
+
     render() {
+        let height = "98vh"
+        if(this.props.activeVariable.type === VariableType.segmentation) {
+            height = "94vh"
+        }
+        let activeTool = this.props.activeVariable.tool
+        if (this.state.correctionModeEnabled) {
+            activeTool = "CorrectionScissors"
+        }
         return (
             <div>
+                {
+                    this.renderSegmentationSettings()
+                }
                 {this.state.viewports.map(viewportIndex => (
                     <CornerstoneViewport
                         key={viewportIndex}
-                        style={{height: '98vh'}}
+                        style={{height: height}}
                         tools={this.state.tools}
                         imageIds={this.props.imageIds}
                         imageIdIndex={this.state.imageIdIndex}
                         isPlaying={this.state.isPlaying}
                         frameRate={this.state.frameRate}
                         className={this.state.activeViewportIndex === viewportIndex ? 'active' : ''}
-                        activeTool={this.props.activeVariable.tool}
+                        activeTool={activeTool}
                         setViewportActive={() => {
                             this.setState({
                                 activeViewportIndex: viewportIndex,
@@ -247,6 +312,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                         onElementEnabled={elementEnabledEvt => {
                             const cornerstoneElement = elementEnabledEvt.detail.element;
                             this.setState({cornerstoneElement: cornerstoneElement});
+                            cornerstoneElement.addEventListener("cornerstonetoolsmouseup", this._updateVariable);
                             cornerstoneElement.addEventListener("cornerstonetoolsmeasurementcompleted", this._updateVariable);
                         }}
                     />

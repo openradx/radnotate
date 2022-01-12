@@ -122,6 +122,9 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                     variable.countType = VariableCountType.static
                     variable.count = 1
                     this.setState({countTypeDisabled: true, countDisabled: true})
+                } else if (variable.type === VariableType.segmentation) {
+                    variable.countType = VariableCountType.dynamic
+                    this.setState({countTypeDisabled: true})
                 } else {
                     this.setState({countTypeDisabled: false, countDisabled: false})
                 }
@@ -237,10 +240,11 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                             <MenuItem value={VariableType.boolean}>boolean</MenuItem>
                             <MenuItem value={VariableType.integer}>integer number</MenuItem>
                             {/*<MenuItem value={VariableType.decimal}>decimal number</MenuItem>*/}
-                            <MenuItem value={VariableType.rectangleRoi}>rectangle ROI</MenuItem>
-                            <MenuItem value={VariableType.ellipticalRoi}>elliptical ROI</MenuItem>
                             <MenuItem value={VariableType.seed}>seed</MenuItem>
                             <MenuItem value={VariableType.length}>length</MenuItem>
+                            <MenuItem value={VariableType.segmentation}>segmentation</MenuItem>
+                            <MenuItem value={VariableType.rectangleRoi}>rectangle ROI</MenuItem>
+                            <MenuItem value={VariableType.ellipticalRoi}>elliptical ROI</MenuItem>
                         </Select>
                     </FormControl>
                     <FormControl disabled={!isActiveVariable || this.state.countTypeDisabled} error={this.state.countTypeError && isActiveVariable}
