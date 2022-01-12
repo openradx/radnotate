@@ -1,4 +1,4 @@
-import {app, BrowserWindow, ipcMain} from 'electron'
+import {app, BrowserWindow, ipcMain, dialog} from 'electron'
 import installExtension, {REACT_DEVELOPER_TOOLS} from 'electron-devtools-installer';
 
 let mainWindow: BrowserWindow | null
@@ -12,7 +12,7 @@ declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string
 //     : app.getAppPath()
 
 
-if(require('electron-squirrel-startup')) app.quit();
+if (require('electron-squirrel-startup')) app.quit();
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -28,6 +28,22 @@ function createWindow() {
     mainWindow.setMenu(null)
     mainWindow.maximize()
     mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY)
+
+    mainWindow.on('close', (e) => {
+        e.preventDefault()
+        if (process.platform !== 'darwin') {
+            dialog.showMessageBox({
+                title: "Possible data loss",
+                message: "If you close the window, your annotation data will be lost. Be sure to export your " +
+                    "annotation data before you proceed. Are you sure you want to proceed?",
+                buttons: ["Cancel", "Yes"]
+            }).then(result => {
+                if (result.response === 1) {
+                    mainWindow?.destroy()
+                }
+            })
+        }
+    })
 
     mainWindow.on('closed', () => {
         mainWindow = null
