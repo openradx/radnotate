@@ -125,6 +125,12 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         return seed
     }
 
+    _processInteger = (keyPressed: string) => {
+        const seed = new TSMap<string, number>()
+        seed.set("value", Number(keyPressed))
+        return seed
+    }
+
     _updateVariable = (keyPressed: string | undefined) => {
         const existingToolState = toolStateManager.saveToolState();
         const keys = Object.keys(existingToolState)
@@ -162,6 +168,8 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         if (this.props.activeVariable.countType === VariableCountType.static) {
             if (this.props.activeVariable.type === VariableType.boolean && (keyPressed === "t" || keyPressed === "f")) {
                 this.props.nextVariable([this._processBoolean(keyPressed)])
+            } else if (this.props.activeVariable.type === VariableType.integer && (!isNaN(Number(keyPressed)))) {
+                this.props.nextVariable([this._processInteger(keyPressed)])
             }
             if (this.props.activeVariable.count === annotationsCount) {
                 this._deleteAnnotations()

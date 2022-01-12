@@ -118,7 +118,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
         this.state.variables.forEach((variable) => {
             if (variable.id === id) {
                 variable.type = value
-                if (variable.type === VariableType.boolean) {
+                if (variable.type === VariableType.boolean || variable.type === VariableType.integer) {
                     variable.countType = VariableCountType.static
                     variable.count = 1
                     this.setState({countTypeDisabled: true, countDisabled: true})
@@ -235,7 +235,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                             labelId="demo-simple-select-filled-label" id="demo-simple-select-filled"
                             onChange={(event) => this.addVariableType(event, id)} value={this.state.variables[id].type}>
                             <MenuItem value={VariableType.boolean}>boolean</MenuItem>
-                            {/*<MenuItem value={VariableType.integer}>integer number</MenuItem>*/}
+                            <MenuItem value={VariableType.integer}>integer number</MenuItem>
                             {/*<MenuItem value={VariableType.decimal}>decimal number</MenuItem>*/}
                             <MenuItem value={VariableType.rectangleRoi}>rectangle ROI</MenuItem>
                             <MenuItem value={VariableType.ellipticalRoi}>elliptical ROI</MenuItem>
