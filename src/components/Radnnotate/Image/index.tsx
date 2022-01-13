@@ -4,11 +4,12 @@ import cornerstoneTools from "cornerstone-tools";
 import Hammer from "hammerjs";
 import CornerstoneViewport from "react-cornerstone-viewport";
 import {Patient} from "../AnnotationForm/DicomDropzone/dicomObject";
-import cornerstone, {getImage, loadImage} from "cornerstone-core";
+import cornerstone, {loadImage} from "cornerstone-core";
 import Variable, {VariableCountType, VariableType} from "../AnnotationForm/variable";
 import {TSMap} from "typescript-map"
-import {FormControlLabel, FormGroup, Switch} from "@mui/material";
-import {result} from "lodash";
+import {Button, FormControlLabel, FormGroup, Stack, Switch} from "@mui/material";
+import UndoIcon from '@mui/icons-material/Undo';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
 
 cornerstoneTools.external.cornerstone = cornerstone;
 cornerstoneTools.external.Hammer = Hammer;
@@ -63,7 +64,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             {name: "RectangleRoi", mode: "active", modeOptions: {mouseButtonMask: 1}},
             {name: "EllipticalRoi", mode: "active", modeOptions: {mouseButtonMask: 1}},
             {name: "Length", mode: "active", modeOptions: {mouseButtonMask: 1}},
-            {name: "FreehandScissors", mode: "active", modeOptions: {mouseButtonMask: 1}},
+            {name: "FreehandScissors", mode: "active", modeOptions: {mouseButtonMask: 1}, activeStrategy: "ERASE_INSIDE"},
             {name: "CorrectionScissors", mode: "active", modeOptions: {mouseButtonMask: 1}},
             {name: 'StackScrollMouseWheel', mode: 'active'},
             {name: 'ZoomTouchPinch', mode: 'active'},
@@ -284,19 +285,47 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         this.setState({correctionModeEnabled: event.target.checked})
     }
 
+    handleUndoClick = () => {
+        const {
+            getters,
+            setters,
+            configuration,
+            state
+        } = cornerstoneTools.getModule("segmentation");
+        setters.undo(this.state.cornerstoneElement);
+    }
+
+    handleResetClick = () => {
+        this._deleteAnnotations()
+    }
+
     renderSegmentationSettings = () => {
         if (this.props.activeVariable.type === VariableType.segmentation) {
             return(
-                <FormGroup>
-                    <FormControlLabel control={<Switch checked={this.state.correctionModeEnabled} onChange={this.setCorrectionMode}/>} label="Correction mode" />
-                </FormGroup>
+                <Stack direction={"row"} sx={{marginBottom: 1}}>
+                    <FormGroup>
+                        <FormControlLabel control={<Switch checked={this.state.correctionModeEnabled} onChange={this.setCorrectionMode}/>} label="Correction mode" />
+                    </FormGroup>
+                    <Button onClick={this.handleUndoClick} color="primary" variant="outlined" startIcon={<UndoIcon/>}>
+                        Undo
+                    </Button>
+                </Stack>
+            )
+        } else if(this.props.activeVariable.type !== VariableType.boolean &&
+            this.props.activeVariable.type !== VariableType.integer) {
+            return(
+                <Button onClick={this.handleResetClick} sx={{marginBottom: 1}} color="primary" variant="outlined" startIcon={<RestartAltIcon/>}>
+                    Reset
+                </Button>
             )
         }
     }
 
     render() {
         let height = "98vh"
-        if(this.props.activeVariable.type === VariableType.segmentation) {
+        if(this.props.activeVariable.type === VariableType.segmentation ||
+            (this.props.activeVariable.type !== VariableType.boolean &&
+            this.props.activeVariable.type !== VariableType.integer)) {
             height = "94vh"
         }
         let activeTool = this.props.activeVariable.tool
