@@ -302,12 +302,15 @@ class Image extends Component<ImagePropsType, ImageStateType> {
     renderSegmentationSettings = () => {
         if (this.props.activeVariable.type === VariableType.segmentation) {
             return(
-                <Stack direction={"row"} sx={{marginBottom: 1}}>
+                <Stack direction={"row"} sx={{marginBottom: 1}} justifyContent={"flex-start"} spacing={1}>
                     <FormGroup>
                         <FormControlLabel control={<Switch checked={this.state.correctionModeEnabled} onChange={this.setCorrectionMode}/>} label="Correction mode" />
                     </FormGroup>
                     <Button onClick={this.handleUndoClick} color="primary" variant="outlined" startIcon={<UndoIcon/>}>
                         Undo
+                    </Button>
+                    <Button onClick={this.handleResetClick} color="primary" variant="outlined" startIcon={<RestartAltIcon/>}>
+                        Reset
                     </Button>
                 </Stack>
             )
