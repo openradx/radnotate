@@ -41,7 +41,8 @@ type ImageStateType = {
     frameRate: number,
     cornerstoneElement: any,
     correctionModeEnabled: boolean,
-    segmentationTransparency: number
+    segmentationTransparency: number,
+    currentImageId: string
 }
 
 class Image extends Component<ImagePropsType, ImageStateType> {
@@ -142,7 +143,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
     _processSegmentation = async (pixelData, imageId: string, instanceNumber: number) => {
         return await new Promise(resolve => {
             loadImage(imageId).then((image) => {
-                const segmentation = new TSMap<string, number>()
+                const segmentation = new TSMap<string, number | string>()
                 const decoder = new TextDecoder("utf8")
                 const b64encoded = btoa(decoder.decode(pixelData))
                 segmentation.set("z", instanceNumber)
@@ -182,79 +183,108 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         return seed
     }
 
-    _updateVariable = (keyPressed: string | undefined) => {
-        let annotationsCount = 0
-        new Promise(resolve => {
-            const currentValues = []
-            if (this.props.activeVariable.type === VariableType.segmentation) {
-                const {
-                    state
-                } = cornerstoneTools.getModule("segmentation");
-                const annotations = state.series[this.props.imageIds[0]].labelmaps3D[0].labelmaps2D
-                const imageIndices = Object.keys(annotations)
-                annotationsCount += imageIndices.length
-                imageIndices.forEach(imageIndex => {
-                    const imageId = this.props.imageIds[Number(imageIndex)]
-                    const instanceNumber = this.props.instanceNumbers.get(imageId)
-                    const pixelData = annotations[imageIndex].pixelData
-                    this._processSegmentation(pixelData, imageId, instanceNumber).then((segmentation) => {
-                        currentValues.push(segmentation)
-                        resolve(currentValues)
-                    })
-                })
-            } else if (this.props.activeVariable.type !== VariableType.boolean &&
-                this.props.activeVariable.type !== VariableType.integer) {
-                const existingToolState = toolStateManager.saveToolState();
-                const keys = Object.keys(existingToolState)
-                this.props.imageIds.forEach(imageId => {
-                    if (keys.includes(imageId) && this.props.activeVariable.tool in existingToolState[imageId]) {
-                        const annotations = existingToolState[imageId][this.props.activeVariable.tool].data
-                        annotationsCount += annotations.length
-                        let instanceNumber: number
-                        if (this.props.instanceNumbers.has(imageId)) {
-                            instanceNumber = this.props.instanceNumbers.get(imageId)
-                        }
-                        annotations.forEach((data) => {
-                            //ToDo save data into variable, maybe also connection to series number or serisuid needed?
-                            switch (this.props.activeVariable.type) {
-                                case VariableType.seed:
-                                    currentValues.push(this._processSeed(data, instanceNumber))
-                                    break;
-                                case VariableType.rectangleRoi:
-                                    currentValues.push(this._processRectangleRoi(data, instanceNumber))
-                                    break;
-                                case VariableType.ellipticalRoi:
-                                    currentValues.push(this._processEllipticalRoi(data, instanceNumber))
-                                    break;
-                                case VariableType.length:
-                                    currentValues.push(this._processLength(data, instanceNumber))
-                                    break;
-                            }
-                        })
-                    }
-                })
-                resolve(currentValues)
-            } else {
-                resolve(currentValues)
-            }
-        }).then((currentValues) => {
-            if (this.props.activeVariable.countType === VariableCountType.static) {
-                if (this.props.activeVariable.type === VariableType.boolean && (keyPressed === "t" || keyPressed === "f")) {
-                    this.props.nextVariable([this._processBoolean(keyPressed)])
-                } else if (this.props.activeVariable.type === VariableType.integer && (!isNaN(Number(keyPressed)))) {
-                    this.props.nextVariable([this._processInteger(keyPressed)])
-                }
-                if (this.props.activeVariable.count === annotationsCount) {
-                    this._deleteAnnotations()
-                    this.props.nextVariable(currentValues.slice(0, currentValues.length))
-                }
-            } else {
-                if (keyPressed === "Enter") {
-                    this._deleteAnnotations()
-                    this.props.nextVariable(currentValues.slice(0, currentValues.length))
-                }
-            }
+    _processImage = async (imageId: string) => {
+        return await new Promise(resolve => {
+            loadImage(imageId).then((image) => {
+                const defaultValue = new TSMap<string, number>()
+                defaultValue.set("studyUid", image.data.string('x0020000d'))
+                defaultValue.set("seriesUid", image.data.string('x0020000e'))
+                defaultValue.set("sopUid", image.data.string('x00080018'))
+                defaultValue.set("seriesNumber", image.data.string('x00200011'))
+                defaultValue.set("tablePosition", image.data.string('x00201041'))
+                resolve(defaultValue)
+            })
         })
+    }
+
+    _resolveSegmentation = async () => {
+        const currentValues = []
+        const {
+            state
+        } = cornerstoneTools.getModule("segmentation");
+        const annotations = state.series[this.props.imageIds[0]].labelmaps3D[0].labelmaps2D
+        const imageIndices = Object.keys(annotations)
+        for (let i = 0; i < imageIndices.length; i++) {
+            const imageIndex = imageIndices[i]
+            const imageId = this.props.imageIds[Number(imageIndex)]
+            const instanceNumber = this.props.instanceNumbers.get(imageId)
+            const pixelData = annotations[imageIndex].pixelData
+            const segmentation = await this._processSegmentation(pixelData, imageId, instanceNumber)
+            const defaultValues = await this._processImage(imageId)
+            const value = new TSMap([...Array.from(segmentation.entries()), ...Array.from(defaultValues.entries())])
+            currentValues.push(value)
+        }
+        return currentValues
+    }
+
+    _resolveAnnotations = async () => {
+        const currentValues = []
+        const existingToolState = toolStateManager.saveToolState();
+        const keys = Object.keys(existingToolState)
+        for(let i = 0; i < this.props.imageIds.length; i++) {
+            const imageId = this.props.imageIds[i]
+            if (keys.includes(imageId) && this.props.activeVariable.tool in existingToolState[imageId]) {
+                const annotations = existingToolState[imageId][this.props.activeVariable.tool].data
+                let instanceNumber: number
+                if (this.props.instanceNumbers.has(imageId)) {
+                    instanceNumber = this.props.instanceNumbers.get(imageId)
+                }
+                for(let j = 0; j < annotations.length; j++) {
+                    const data = annotations[j]
+                    let value
+                    switch (this.props.activeVariable.type) {
+                        case VariableType.seed:
+                            value = this._processSeed(data, instanceNumber)
+                            break;
+                        case VariableType.rectangleRoi:
+                            value = this._processRectangleRoi(data, instanceNumber)
+                            break;
+                        case VariableType.ellipticalRoi:
+                            value = this._processEllipticalRoi(data, instanceNumber)
+                            break;
+                        case VariableType.length:
+                            value = this._processLength(data, instanceNumber)
+                            break;
+                    }
+                    const defaultValues = await this._processImage(imageId)
+                    value = new TSMap([...Array.from(value.entries()), ...Array.from(defaultValues.entries())])
+                    currentValues.push(value)
+                }
+            }
+        }
+        return currentValues
+    }
+
+    _updateVariable = async (keyPressed: string | undefined) => {
+        let currentValues = []
+        if (this.props.activeVariable.type === VariableType.segmentation) {
+            currentValues = await this._resolveSegmentation()
+        } else if (this.props.activeVariable.type !== VariableType.boolean &&
+            this.props.activeVariable.type !== VariableType.integer) {
+            currentValues = await this._resolveAnnotations()
+        }
+        if (this.props.activeVariable.countType === VariableCountType.static) {
+            if (this.props.activeVariable.type === VariableType.boolean && (keyPressed === "t" || keyPressed === "f")) {
+                const defaultValues = await this._processImage(this.state.currentImageId)
+                let value = this._processBoolean(keyPressed)
+                value = new TSMap([...Array.from(value.entries()), ...Array.from(defaultValues.entries())])
+                this.props.nextVariable([value])
+            } else if (this.props.activeVariable.type === VariableType.integer && (!isNaN(Number(keyPressed)))) {
+                const defaultValues = await this._processImage(this.state.currentImageId)
+                let value = this._processInteger(keyPressed)
+                value = new TSMap([...Array.from(value.entries()), ...Array.from(defaultValues.entries())])
+                this.props.nextVariable([value])
+            }
+            if (this.props.activeVariable.count === currentValues.length) {
+                this._deleteAnnotations()
+                this.props.nextVariable(currentValues.slice(0, currentValues.length))
+            }
+        } else {
+            if (keyPressed === "Enter") {
+                this._deleteAnnotations()
+                this.props.nextVariable(currentValues.slice(0, currentValues.length))
+            }
+        }
     }
 
     _deleteAnnotations = () => {
@@ -264,6 +294,18 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             } = cornerstoneTools.getModule("segmentation");
             state.series = {}
         } else {
+            const existingToolState = toolStateManager.saveToolState();
+            const keys = Object.keys(existingToolState)
+            this.props.imageIds.forEach(imageId => {
+                if (keys.includes(imageId) && this.props.activeVariable.tool in existingToolState[imageId]) {
+                    const annotations = existingToolState[imageId][this.props.activeVariable.tool].data
+                    let annotationsCount = annotations.length
+                    while (annotationsCount > 0) {
+                        annotations.pop()
+                        annotationsCount = annotations.length
+                    }
+                }
+            })
             cornerstoneTools.clearToolState(this.state.cornerstoneElement, this.props.activeVariable.tool);
         }
         cornerstone.updateImage(this.state.cornerstoneElement);
@@ -400,6 +442,9 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                             this.setState({cornerstoneElement: cornerstoneElement});
                             cornerstoneElement.addEventListener("cornerstonetoolsmouseup", this._updateVariable);
                             cornerstoneElement.addEventListener("cornerstonetoolsmeasurementcompleted", this._updateVariable);
+                            cornerstoneElement.addEventListener("cornerstonenewimage", (event: Event) => {
+                                this.setState({currentImageId: event.detail.image.imageId})
+                            })
                         }}
                     />
                 ))}
