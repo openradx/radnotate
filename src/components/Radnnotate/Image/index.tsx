@@ -72,6 +72,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                 activeStrategy: "ERASE_INSIDE"
             },
             {name: "CorrectionScissors", mode: "active", modeOptions: {mouseButtonMask: 1}},
+            {name: "Eraser", mode: "active", modeOptions: {mouseButtonMask: 1}},
             {name: 'StackScrollMouseWheel', mode: 'active'},
             {name: 'ZoomTouchPinch', mode: 'active'},
             {name: 'StackScrollMultiTouch', mode: 'active'}
@@ -263,18 +264,6 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             } = cornerstoneTools.getModule("segmentation");
             state.series = {}
         } else {
-            const existingToolState = toolStateManager.saveToolState();
-            const keys = Object.keys(existingToolState)
-            this.props.imageIds.forEach(imageId => {
-                if (keys.includes(imageId) && this.props.activeVariable.tool in existingToolState[imageId]) {
-                    const annotations = existingToolState[imageId][this.props.activeVariable.tool].data
-                    let annotationsCount = annotations.length
-                    while (annotationsCount > 0) {
-                        annotations.pop()
-                        annotationsCount = annotations.length
-                    }
-                }
-            })
             cornerstoneTools.clearToolState(this.state.cornerstoneElement, this.props.activeVariable.tool);
         }
         cornerstone.updateImage(this.state.cornerstoneElement);
@@ -352,10 +341,21 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         } else if (this.props.activeVariable.type !== VariableType.boolean &&
             this.props.activeVariable.type !== VariableType.integer) {
             return (
-                <Button onClick={this.handleResetClick} sx={{marginBottom: 1}} color="primary" variant="outlined"
-                        startIcon={<RestartAltIcon/>}>
-                    Reset
-                </Button>
+                <Stack direction={"row"} sx={{marginBottom: 1}}
+                           justifyContent={"flex-start"}
+                           alignItems={"center"}
+                           spacing={1}
+                           divider={<Divider orientation="vertical" flexItem/>}>
+                    <FormGroup sx={{minWidth:185}} >
+                        <FormControlLabel control={<Switch checked={this.state.correctionModeEnabled}
+                                                           onChange={this.setCorrectionMode}/>}
+                                          label="Deletion mode"/>
+                    </FormGroup>
+                    <Button onClick={this.handleResetClick} sx={{minWidth: 100}} color="primary" variant="outlined"
+                            startIcon={<RestartAltIcon/>}>
+                        Reset
+                    </Button>
+                </Stack>
             )
         }
     }
@@ -368,8 +368,11 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             height = "94vh"
         }
         let activeTool = this.props.activeVariable.tool
-        if (this.state.correctionModeEnabled) {
+        if (this.state.correctionModeEnabled && this.props.activeVariable.type === VariableType.segmentation) {
             activeTool = "CorrectionScissors"
+        } else if (this.state.correctionModeEnabled && (this.props.activeVariable.type !== VariableType.boolean &&
+            this.props.activeVariable.type !== VariableType.integer)) {
+            activeTool = "Eraser"
         }
         return (
             <div>
