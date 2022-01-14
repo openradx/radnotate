@@ -7,7 +7,7 @@ import {Patient} from "../AnnotationForm/DicomDropzone/dicomObject";
 import cornerstone, {loadImage} from "cornerstone-core";
 import Variable, {VariableCountType, VariableType} from "../AnnotationForm/variable";
 import {TSMap} from "typescript-map"
-import {Button, FormControlLabel, FormGroup, Stack, Switch} from "@mui/material";
+import {Box, Button, Divider, FormControlLabel, FormGroup, Slider, Stack, Switch, Typography} from "@mui/material";
 import UndoIcon from '@mui/icons-material/Undo';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 
@@ -41,6 +41,7 @@ type ImageStateType = {
     frameRate: number,
     cornerstoneElement: any,
     correctionModeEnabled: boolean,
+    segmentationTransparency: number
 }
 
 class Image extends Component<ImagePropsType, ImageStateType> {
@@ -64,12 +65,25 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             {name: "RectangleRoi", mode: "active", modeOptions: {mouseButtonMask: 1}},
             {name: "EllipticalRoi", mode: "active", modeOptions: {mouseButtonMask: 1}},
             {name: "Length", mode: "active", modeOptions: {mouseButtonMask: 1}},
-            {name: "FreehandScissors", mode: "active", modeOptions: {mouseButtonMask: 1}, activeStrategy: "ERASE_INSIDE"},
+            {
+                name: "FreehandScissors",
+                mode: "active",
+                modeOptions: {mouseButtonMask: 1},
+                activeStrategy: "ERASE_INSIDE"
+            },
             {name: "CorrectionScissors", mode: "active", modeOptions: {mouseButtonMask: 1}},
             {name: 'StackScrollMouseWheel', mode: 'active'},
             {name: 'ZoomTouchPinch', mode: 'active'},
             {name: 'StackScrollMultiTouch', mode: 'active'}
         ]
+        const segmentationModule = cornerstoneTools.getModule("segmentation");
+        const {
+            colorLUT: setColorLUT
+        } = segmentationModule.setters
+        const segmentationTransparency = 0
+        const newColorLutTables = new Array(segmentationModule.state.colorLutTables[0].length - 1).fill([222, 117, 26, segmentationTransparency])
+        setColorLUT(0, newColorLutTables)
+
         this.state = {
             activeViewportIndex: 0,
             viewports: [0],
@@ -77,7 +91,8 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             imageIdIndex: 0,
             isPlaying: false,
             frameRate: 22,
-            correctionModeEnabled: false
+            correctionModeEnabled: false,
+            segmentationTransparency: segmentationTransparency
         };
 
     }
@@ -123,7 +138,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         return seed
     }
 
-    _processSegmentation = async (pixelData, imageId:string ,instanceNumber: number) => {
+    _processSegmentation = async (pixelData, imageId: string, instanceNumber: number) => {
         return await new Promise(resolve => {
             loadImage(imageId).then((image) => {
                 const segmentation = new TSMap<string, number>()
@@ -172,9 +187,6 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             const currentValues = []
             if (this.props.activeVariable.type === VariableType.segmentation) {
                 const {
-                    getters,
-                    setters,
-                    configuration,
                     state
                 } = cornerstoneTools.getModule("segmentation");
                 const annotations = state.series[this.props.imageIds[0]].labelmaps3D[0].labelmaps2D
@@ -247,9 +259,6 @@ class Image extends Component<ImagePropsType, ImageStateType> {
     _deleteAnnotations = () => {
         if (this.props.activeVariable.type === VariableType.segmentation) {
             const {
-                getters,
-                setters,
-                configuration,
                 state
             } = cornerstoneTools.getModule("segmentation");
             state.series = {}
@@ -287,10 +296,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
 
     handleUndoClick = () => {
         const {
-            getters,
             setters,
-            configuration,
-            state
         } = cornerstoneTools.getModule("segmentation");
         setters.undo(this.state.cornerstoneElement);
     }
@@ -299,25 +305,55 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         this._deleteAnnotations()
     }
 
-    renderSegmentationSettings = () => {
+    handleSegmentationTransparencySlider = (event: Event) => {
+        const segmentationTransparency = event.target.value
+        const segmentationModule = cornerstoneTools.getModule("segmentation");
+        const {
+            colorLUT: setColorLUT
+        } = segmentationModule.setters
+        const newColorLutTables = new Array(segmentationModule.state.colorLutTables[0].length - 1).fill([222, 117, 26, segmentationTransparency])
+        setColorLUT(0, newColorLutTables)
+        cornerstone.updateImage(this.state.cornerstoneElement);
+        this.setState({segmentationTransparency: segmentationTransparency})
+    }
+
+    renderImageSettings = () => {
         if (this.props.activeVariable.type === VariableType.segmentation) {
-            return(
-                <Stack direction={"row"} sx={{marginBottom: 1}} justifyContent={"flex-start"} spacing={1}>
+            return (
+                <Stack direction={"row"} sx={{marginBottom: 1}}
+                       justifyContent={"flex-start"}
+                       alignItems={"center"}
+                       spacing={1}
+                       divider={<Divider orientation="vertical" flexItem/>}>
                     <FormGroup>
-                        <FormControlLabel control={<Switch checked={this.state.correctionModeEnabled} onChange={this.setCorrectionMode}/>} label="Correction mode" />
+                        <FormControlLabel control={<Switch checked={this.state.correctionModeEnabled}
+                                                           onChange={this.setCorrectionMode}/>}
+                                          label="Correction mode"/>
                     </FormGroup>
                     <Button onClick={this.handleUndoClick} color="primary" variant="outlined" startIcon={<UndoIcon/>}>
                         Undo
                     </Button>
-                    <Button onClick={this.handleResetClick} color="primary" variant="outlined" startIcon={<RestartAltIcon/>}>
+                    <Button onClick={this.handleResetClick} color="primary" variant="outlined"
+                            startIcon={<RestartAltIcon/>}>
                         Reset
                     </Button>
+                    <Box sx={{minWidth: 600}}>
+                        <Stack direction={"row"} alignItems={"center"} justifyContent={"flex-start"}>
+                            <Slider aria-label="segmentation-transparency" track={false}
+                                    value={this.state.segmentationTransparency} max={255}
+                                    onChange={event => this.handleSegmentationTransparencySlider(event)}/>
+                            <Typography sx={{marginLeft: 2}} id="segmentation-transparency-slider">
+                                Segmentation transparency
+                            </Typography>
+                        </Stack>
+                    </Box>
                 </Stack>
             )
-        } else if(this.props.activeVariable.type !== VariableType.boolean &&
+        } else if (this.props.activeVariable.type !== VariableType.boolean &&
             this.props.activeVariable.type !== VariableType.integer) {
-            return(
-                <Button onClick={this.handleResetClick} sx={{marginBottom: 1}} color="primary" variant="outlined" startIcon={<RestartAltIcon/>}>
+            return (
+                <Button onClick={this.handleResetClick} sx={{marginBottom: 1}} color="primary" variant="outlined"
+                        startIcon={<RestartAltIcon/>}>
                     Reset
                 </Button>
             )
@@ -326,9 +362,9 @@ class Image extends Component<ImagePropsType, ImageStateType> {
 
     render() {
         let height = "98vh"
-        if(this.props.activeVariable.type === VariableType.segmentation ||
+        if (this.props.activeVariable.type === VariableType.segmentation ||
             (this.props.activeVariable.type !== VariableType.boolean &&
-            this.props.activeVariable.type !== VariableType.integer)) {
+                this.props.activeVariable.type !== VariableType.integer)) {
             height = "94vh"
         }
         let activeTool = this.props.activeVariable.tool
@@ -338,7 +374,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         return (
             <div>
                 {
-                    this.renderSegmentationSettings()
+                    this.renderImageSettings()
                 }
                 {this.state.viewports.map(viewportIndex => (
                     <CornerstoneViewport
