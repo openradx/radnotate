@@ -325,24 +325,24 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                        alignItems={"center"}
                        spacing={1}
                        divider={<Divider orientation="vertical" flexItem/>}>
-                    <FormGroup>
+                    <FormGroup sx={{minWidth:185}} >
                         <FormControlLabel control={<Switch checked={this.state.correctionModeEnabled}
                                                            onChange={this.setCorrectionMode}/>}
                                           label="Correction mode"/>
                     </FormGroup>
-                    <Button onClick={this.handleUndoClick} color="primary" variant="outlined" startIcon={<UndoIcon/>}>
+                    <Button sx={{minWidth:100}} onClick={this.handleUndoClick} color="primary" variant="outlined" startIcon={<UndoIcon/>}>
                         Undo
                     </Button>
-                    <Button onClick={this.handleResetClick} color="primary" variant="outlined"
+                    <Button sx={{minWidth:100}} onClick={this.handleResetClick} color="primary" variant="outlined"
                             startIcon={<RestartAltIcon/>}>
                         Reset
                     </Button>
-                    <Box sx={{minWidth: 600}}>
+                    <Box sx={{minWidth: 400, paddingLeft: 1}}>
                         <Stack direction={"row"} alignItems={"center"} justifyContent={"flex-start"}>
                             <Slider aria-label="segmentation-transparency" track={false}
                                     value={this.state.segmentationTransparency} max={255}
                                     onChange={event => this.handleSegmentationTransparencySlider(event)}/>
-                            <Typography sx={{marginLeft: 2}} id="segmentation-transparency-slider">
+                            <Typography sx={{marginLeft: 2.5}} id="segmentation-transparency-slider">
                                 Segmentation transparency
                             </Typography>
                         </Stack>
