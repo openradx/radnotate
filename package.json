@@ -6,7 +6,7 @@
     "email": "manuel.debic@med.uni-heidelberg.de"
   },
   "version": "0.0.1",
-  "description": "A radilogical annotation tool for DICOM data for a fast and convenient annotation workflow.",
+  "description": "A radiological annotation tool for DICOM data for a fast and convenient annotation workflow.",
   "main": "./.webpack/main/index.js",
   "scripts": {
     "start": "electron-forge start",
