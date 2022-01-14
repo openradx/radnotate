@@ -20,6 +20,7 @@
   "keywords": [],
   "license": "MIT",
   "dependencies": {
+    "@electron-forge/maker-wix": "^6.0.0-beta.63",
     "@emotion/react": "^11.7.0",
     "@emotion/styled": "^11.6.0",
     "@mui/icons-material": "^5.2.0",
@@ -51,6 +52,7 @@
     "dicom-parser": "^1.8.11",
     "electron-compile": "^6.4.4",
     "electron-squirrel-startup": "^1.0.0",
+    "exe-icon-extractor": "^1.0.8",
     "fs": "^0.0.1-security",
     "hammerjs": "^2.0.8",
     "list-files": "^1.1.4",
@@ -98,6 +100,8 @@
     "electron": "13.1.2",
     "electron-devtools-installer": "3.2.0",
     "electron-prebuilt-compile": "8.2.0",
+    "electron-winstaller": "^5.0.0",
+    "electron-wix-msi": "^3.2.0",
     "eslint": "7.29.0",
     "eslint-config-prettier": "8.3.0",
     "eslint-config-standard": "16.0.3",
@@ -120,7 +124,7 @@
     "forge": {
       "packagerConfig": {
         "name": "Radnnotate",
-	"title": "Radnnotate",
+        "title": "Radnnotate",
         "executableName": "Radnnotate",
         "icon": "assets/icon",
         "extraResource": [
@@ -151,6 +155,12 @@
       "makers": [
         {
           "name": "@electron-forge/maker-squirrel",
+          "platforms": [
+            "win32"
+          ]
+        },
+        {
+          "name": "@electron-forge/maker-wix",
           "platforms": [
             "win32"
           ]
