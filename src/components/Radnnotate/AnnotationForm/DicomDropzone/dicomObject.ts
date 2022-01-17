@@ -11,6 +11,7 @@ export type StudyType = {
 export type SeriesType = {
     seriesInstanceUID: string,
     seriesDescription: string,
+    seriesNumber: number,
     modality: string,
 }
 
@@ -29,6 +30,7 @@ export type TreeNodeType = {
 class Series {
     seriesInstanceUID: string;
     seriesDescription: string;
+    seriesNumber: number;
     modality: string;
     images: ImageType[];
     treeNode: TreeNodeType;
@@ -36,6 +38,7 @@ class Series {
     constructor(seriesDict: SeriesType, imageDict: ImageType) {
         this.seriesInstanceUID = seriesDict.seriesInstanceUID
         this.seriesDescription = seriesDict.seriesDescription
+        this.seriesNumber = seriesDict.seriesNumber
         this.modality = seriesDict.modality
         this.images = [imageDict]
         this.treeNode = {

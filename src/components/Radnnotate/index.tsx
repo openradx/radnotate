@@ -14,9 +14,6 @@ import {Box, Slider, Stack, Tooltip} from "@mui/material";
 import {TSMap} from "typescript-map"
 import AnnotationData from "./AnnotationData";
 import {GridColumnHeaderParams, GridRenderCellParams} from "@mui/x-data-grid-pro";
-import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
-import DeleteSweepOutlinedIcon from "@mui/icons-material/DeleteSweepOutlined";
-import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
 import {Settings} from "./Settings";
 import { LicenseInfo } from '@mui/x-data-grid-pro';
 
@@ -43,6 +40,7 @@ type RadnnotateStateType = {
     jumpBackToVariableIndex: number,
     jumpBackToPatientIndex: number,
     width: number,
+    seriesDescriptions: TSMap<string, Array<string>>
 }
 
 class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
@@ -140,7 +138,7 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
         } else {
             activePatient = patients.getPatientStudy(0, 0)
         }
-        const {imageIds, instanceNumbers} = this._updateImageIds(activePatient)
+        const {imageIds, instanceNumbers, seriesDescriptions} = this._updateImageIds(activePatient)
         const rowNames = this._defineRowNames(patients, annotationLevel)
 
         const activeVariable = variables.slice(0, 1).pop()
@@ -168,6 +166,7 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
             rows: initialRows,
             jumpBackToPatientIndex: -1,
             jumpBackToVariableIndex: -1,
+            seriesDescriptions: seriesDescriptions
         })
     }
 
@@ -228,13 +227,14 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
             } else {
                 activePatient = this.state.patients.getPatientStudy(activePatientIndex, this.state.activeStudyIndex)
             }
-            const {imageIds, instanceNumbers} = this._updateImageIds(activePatient)
+            const {imageIds, instanceNumbers, seriesDescriptions} = this._updateImageIds(activePatient)
             this.setState({
                 activePatient: activePatient,
                 activePatientIndex: activePatientIndex,
                 imageIds: imageIds,
                 instanceNumbers: instanceNumbers,
                 jumpBackToPatientIndex: jumpBackToPatientIndex,
+                seriesDescriptions: seriesDescriptions
             })
             return false
         }
@@ -243,6 +243,7 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
     _updateImageIds = (activePatient: Patient | undefined) => {
         let imageIds: string[] = []
         const instanceNumbers: Map<string, number> = new Map<string, number>()
+        const seriesDescriptions: TSMap<string, Array<string>> = new TSMap<string, Array<string>>()
         if (activePatient === undefined) {
             return {imageIds, instanceNumbers}
         }
@@ -253,10 +254,16 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
                     imageIdsTemp[image.instanceNumber - 1] = image.imageID
                     instanceNumbers.set(image.imageID, image.instanceNumber);
                 })
+                if (seriesDescriptions.has(series.seriesDescription)) {
+                    const seriesDescription = series.seriesDescription + " " + series.seriesNumber
+                    seriesDescriptions.set(seriesDescription, imageIdsTemp)
+                } else {
+                    seriesDescriptions.set(series.seriesDescription, imageIdsTemp)
+                }
                 imageIds = [...imageIds, ...imageIdsTemp]
             })
         })
-        return {imageIds, instanceNumbers}
+        return {imageIds, instanceNumbers, seriesDescriptions}
     }
 
     _handleCellClick = (params: GridCellParams) => {
@@ -275,7 +282,7 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
         })
         const activeVariable = this.state.variables[activeVariableIndex]
         const columns = this._variablesToColumns(activePatientIndex, activeVariable.name, this.state.variables, this.state.annotationLevel);
-        const {imageIds, instanceNumbers} = this._updateImageIds(activePatient)
+        const {imageIds, instanceNumbers, seriesDescriptions} = this._updateImageIds(activePatient)
         this.setState({
             activeVariableIndex: activeVariableIndex,
             activeVariable: activeVariable,
@@ -284,6 +291,7 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
             columns: columns,
             imageIds: imageIds,
             instanceNumbers: instanceNumbers,
+            seriesDescriptions: seriesDescriptions
         })
         if (this.state.jumpBackToVariableIndex === -1 && this.state.jumpBackToPatientIndex === -1) {
             this.setState({
@@ -342,7 +350,7 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
                                         handleCellClick={this._handleCellClick}
                                         activePatientIndex={this.state.activePatientIndex}
                                         activeVariableIndex={this.state.activeVariableIndex}/>
-                        <Box sx={{height: "98vh"}}>
+                        <Box sx={{height: "97vh"}}>
                             <Tooltip title={"Set width of windows"} followCursor={true}>
                                 <Slider
                                     track={false}
@@ -358,6 +366,7 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
                                    nextVariable={this.nextVariable}
                                    imageIds={this.state.imageIds}
                                    instanceNumbers={this.state.instanceNumbers}
+                                   seriesDescriptions={this.state.seriesDescriptions}
                                    width={String(100 - this.state.width) + "%"}/>
                         </Box>
                     </Stack>

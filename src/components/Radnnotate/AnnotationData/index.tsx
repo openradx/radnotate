@@ -46,7 +46,6 @@ const AnnotationData = (props: AnnotationDataProps) => {
 
     return (
         <Box sx={{
-            height: "98vh",
             maxHeight: "100%",
             width: String(props.width) + "%",
             overflow: "auto",

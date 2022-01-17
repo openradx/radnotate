@@ -1,4 +1,4 @@
-import React, {Component} from "react";
+import React, {ChangeEvent, Component} from "react";
 import cornerstoneMath from "cornerstone-math";
 import cornerstoneTools from "cornerstone-tools";
 import Hammer from "hammerjs";
@@ -7,7 +7,20 @@ import {Patient} from "../AnnotationForm/DicomDropzone/dicomObject";
 import cornerstone, {loadImage} from "cornerstone-core";
 import Variable, {VariableCountType, VariableType} from "../AnnotationForm/variable";
 import {TSMap} from "typescript-map"
-import {Box, Button, Divider, FormControlLabel, FormGroup, Slider, Stack, Switch, Typography} from "@mui/material";
+import {
+    Box,
+    Button,
+    Divider,
+    FormControl,
+    FormControlLabel,
+    FormGroup,
+    MenuItem,
+    Select, SelectChangeEvent,
+    Slider,
+    Stack,
+    Switch,
+    Typography
+} from "@mui/material";
 import UndoIcon from '@mui/icons-material/Undo';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 
@@ -29,6 +42,7 @@ type ImagePropsType = {
     nextVariable: Function,
     imageIds: string[],
     instanceNumbers: Map<string, number>,
+    seriesDescriptions: TSMap<string, Array<string>>
     width: number
 }
 
@@ -42,7 +56,8 @@ type ImageStateType = {
     cornerstoneElement: any,
     correctionModeEnabled: boolean,
     segmentationTransparency: number,
-    currentImageId: string
+    currentImageId: string,
+    currentSeriesDescription: string
 }
 
 class Image extends Component<ImagePropsType, ImageStateType> {
@@ -86,6 +101,15 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         const newColorLutTables = new Array(segmentationModule.state.colorLutTables[0].length - 1).fill([222, 117, 26, segmentationTransparency])
         setColorLUT(0, newColorLutTables)
 
+        let currentSeriesDescription: string
+        this.props.seriesDescriptions.keys().forEach(seriesDescription => {
+            this.props.seriesDescriptions.get(seriesDescription).forEach(imageId => {
+                if (imageId === this.props.imageIds[0]) {
+                    currentSeriesDescription = seriesDescription
+                }
+            })
+        })
+
         this.state = {
             activeViewportIndex: 0,
             viewports: [0],
@@ -94,7 +118,8 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             isPlaying: false,
             frameRate: 22,
             correctionModeEnabled: false,
-            segmentationTransparency: segmentationTransparency
+            segmentationTransparency: segmentationTransparency,
+            currentSeriesDescription: currentSeriesDescription
         };
 
     }
@@ -316,7 +341,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         if (event.type === "keydown") {
             this._updateVariable(event.key)
         }
-        this.setCorrectionMode(event)
+        this._setCorrectionMode(event)
     }
 
     componentDidMount = () => {
@@ -332,7 +357,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         this.state.cornerstoneElement.removeEventListener("cornerstonenewimage", this._updateVariable);
     }
 
-    setCorrectionMode = (event: Event) => {
+    _setCorrectionMode = (event: ChangeEvent) => {
         if (event.key === "Control") {
             if (event.type === "keydown") {
                 this.setState({correctionModeEnabled: true})
@@ -340,9 +365,25 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                 this.setState({correctionModeEnabled: false})
             }
         } else {
-            const checked = event.target.checked
+            let checked = event.target.checked
+            if (checked === undefined) {
+                checked = false
+            }
             this.setState({correctionModeEnabled: checked})
         }
+    }
+
+    _setCurrentImage = (event: Event) => {
+        const currentImageId = event.detail.image.imageId
+        let currentSeriesDescription: string
+        this.props.seriesDescriptions.keys().forEach(seriesDescription => {
+            this.props.seriesDescriptions.get(seriesDescription).forEach(imageId => {
+                if (imageId === currentImageId) {
+                    currentSeriesDescription = seriesDescription
+                }
+            })
+        })
+        this.setState({currentImageId: currentImageId, currentSeriesDescription: currentSeriesDescription})
     }
 
     handleUndoClick = () => {
@@ -368,6 +409,42 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         this.setState({segmentationTransparency: segmentationTransparency})
     }
 
+    handleSeriesSelection = async (event: SelectChangeEvent) => {
+        const currentSeriesDescription = event.target.value
+        const currentImageId = this.props.seriesDescriptions.get(currentSeriesDescription)[0]
+        let imageIdIndex: number
+        this.props.imageIds.forEach((imageId, index) => {
+            if (currentImageId === imageId) {
+                imageIdIndex = index
+            }
+        })
+        const image = await cornerstone.loadImage(currentImageId)
+        cornerstone.displayImage(this.state.cornerstoneElement, image)
+        this.setState({currentSeriesDescription: currentSeriesDescription, imageIdIndex: imageIdIndex})
+    }
+
+    renderSeriesSelection = () => {
+        return (
+            <div>
+                <FormControl sx={{width: 350}} size={"small"}>
+                    <Select value={this.state.currentSeriesDescription}
+                            onChange={event => this.handleSeriesSelection(event)}
+                            onClose={() => {
+                                setTimeout(() => {
+                                    document.activeElement.blur();
+                                }, 0);
+                            }}>
+                        {this.props.seriesDescriptions.keys().map((seriesDescription) => (
+                            <MenuItem key={seriesDescription} value={seriesDescription}>
+                                {seriesDescription}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+            </div>
+        )
+    }
+
     renderImageSettings = () => {
         if (this.props.activeVariable.type === VariableType.segmentation) {
             return (
@@ -376,10 +453,11 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                        alignItems={"center"}
                        spacing={1}
                        divider={<Divider orientation="vertical" flexItem/>}>
+                    {this.renderSeriesSelection()}
                     <FormGroup sx={{minWidth: 185}}>
                         <FormControlLabel control={<Switch checked={this.state.correctionModeEnabled}
                                                            value={this.state.correctionModeEnabled}
-                                                           onChange={this.setCorrectionMode}/>}
+                                                           onChange={event => this._setCorrectionMode(event)}/>}
                                           label="Correction mode"/>
                     </FormGroup>
                     <Button sx={{minWidth: 100}} onClick={this.handleUndoClick} color="primary" variant="outlined"
@@ -390,7 +468,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                             startIcon={<RestartAltIcon/>}>
                         Reset
                     </Button>
-                    <Box sx={{minWidth: 400, paddingLeft: 1}}>
+                    <Box sx={{minWidth: 300, paddingLeft: 1}}>
                         <Stack direction={"row"} alignItems={"center"} justifyContent={"flex-start"}>
                             <Slider aria-label="segmentation-transparency" track={false}
                                     value={this.state.segmentationTransparency} max={255}
@@ -410,10 +488,12 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                        alignItems={"center"}
                        spacing={1}
                        divider={<Divider orientation="vertical" flexItem/>}>
+
+                    {this.renderSeriesSelection()}
                     <FormGroup sx={{minWidth: 185}}>
                         <FormControlLabel control={<Switch checked={this.state.correctionModeEnabled}
                                                            value={this.state.correctionModeEnabled}
-                                                           onChange={this.setCorrectionMode}/>}
+                                                           onChange={this._setCorrectionMode}/>}
                                           label="Deletion mode"/>
                     </FormGroup>
                     <Button onClick={this.handleResetClick} sx={{minWidth: 100}} color="primary" variant="outlined"
@@ -422,16 +502,16 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                     </Button>
                 </Stack>
             )
+        } else {
+            return (
+                <Box sx={{marginBottom: 1}} justifyContent={"flex-start"} alignItems={"center"}>
+                    {this.renderSeriesSelection()}
+                </Box>
+            )
         }
     }
 
     render() {
-        let height = "98vh"
-        if (this.props.activeVariable.type === VariableType.segmentation ||
-            (this.props.activeVariable.type !== VariableType.boolean &&
-                this.props.activeVariable.type !== VariableType.integer)) {
-            height = "94vh"
-        }
         let activeTool = this.props.activeVariable.tool
         if (this.state.correctionModeEnabled && this.props.activeVariable.type === VariableType.segmentation) {
             activeTool = "CorrectionScissors"
@@ -447,7 +527,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                 {this.state.viewports.map(viewportIndex => (
                     <CornerstoneViewport
                         key={viewportIndex}
-                        style={{height: height}}
+                        style={{height: "91.5vh"}}
                         tools={this.state.tools}
                         imageIds={this.props.imageIds}
                         imageIdIndex={this.state.imageIdIndex}
@@ -460,14 +540,13 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                                 activeViewportIndex: viewportIndex,
                             });
                         }}
+                        id={this.state.currentImageId}
                         onElementEnabled={elementEnabledEvt => {
                             const cornerstoneElement = elementEnabledEvt.detail.element;
-                            this.setState({cornerstoneElement: cornerstoneElement});
+                            this.setState({cornerstoneElement: cornerstoneElement, });
                             cornerstoneElement.addEventListener("cornerstonetoolsmouseup", this._updateVariable);
                             cornerstoneElement.addEventListener("cornerstonetoolsmeasurementcompleted", this._updateVariable);
-                            cornerstoneElement.addEventListener("cornerstonenewimage", (event: Event) => {
-                                this.setState({currentImageId: event.detail.image.imageId})
-                            })
+                            cornerstoneElement.addEventListener("cornerstonenewimage", (event: Event) => this._setCurrentImage(event))
                         }}
                     />
                 ))}

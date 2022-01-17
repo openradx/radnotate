@@ -15,6 +15,7 @@ const studyDict = (dataSet: typeof DataSet): StudyType => ({
 const seriesDict = (dataSet: typeof DataSet): SeriesType => ({
     seriesInstanceUID: dataSet.string('x0020000e'),
     seriesDescription: dataSet.string('x0008103e'),
+    seriesNumber: dataSet.string('x00200011'),
     modality: dataSet.string('x00080060'),
 })
 
