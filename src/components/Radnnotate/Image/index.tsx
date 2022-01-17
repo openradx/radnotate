@@ -221,7 +221,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         const currentValues = []
         const existingToolState = toolStateManager.saveToolState();
         const keys = Object.keys(existingToolState)
-        for(let i = 0; i < this.props.imageIds.length; i++) {
+        for (let i = 0; i < this.props.imageIds.length; i++) {
             const imageId = this.props.imageIds[i]
             if (keys.includes(imageId) && this.props.activeVariable.tool in existingToolState[imageId]) {
                 const annotations = existingToolState[imageId][this.props.activeVariable.tool].data
@@ -229,7 +229,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                 if (this.props.instanceNumbers.has(imageId)) {
                     instanceNumber = this.props.instanceNumbers.get(imageId)
                 }
-                for(let j = 0; j < annotations.length; j++) {
+                for (let j = 0; j < annotations.length; j++) {
                     const data = annotations[j]
                     let value
                     switch (this.props.activeVariable.type) {
@@ -312,17 +312,37 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         this.setState({correctionModeEnabled: false})
     }
 
-    _handleKeyPress = (event) => this._updateVariable(event.key)
+    _handleKeyPress = (event: Event) => {
+        if (event.type === "keydown") {
+            this._updateVariable(event.key)
+        }
+        this.setCorrectionMode(event)
+    }
 
-    componentDidMount = () => document.addEventListener("keydown", this._handleKeyPress, false);
+    componentDidMount = () => {
+        document.addEventListener("keydown", this._handleKeyPress, false)
+        document.addEventListener("keyup", this._handleKeyPress, false)
+    };
 
     componentWillUnmount = () => {
         document.removeEventListener("keydown", this._handleKeyPress, false)
+        document.addEventListener("keyup", this._handleKeyPress, false)
         this.state.cornerstoneElement.removeEventListener("cornerstonetoolsmeasurementcompleted", this._updateVariable);
+        this.state.cornerstoneElement.removeEventListener("cornerstonetoolsmouseup", this._updateVariable);
+        this.state.cornerstoneElement.removeEventListener("cornerstonenewimage", this._updateVariable);
     }
 
     setCorrectionMode = (event: Event) => {
-        this.setState({correctionModeEnabled: event.target.checked})
+        if (event.key === "Control") {
+            if (event.type === "keydown") {
+                this.setState({correctionModeEnabled: true})
+            } else {
+                this.setState({correctionModeEnabled: false})
+            }
+        } else {
+            const checked = event.target.checked
+            this.setState({correctionModeEnabled: checked})
+        }
     }
 
     handleUndoClick = () => {
@@ -356,15 +376,17 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                        alignItems={"center"}
                        spacing={1}
                        divider={<Divider orientation="vertical" flexItem/>}>
-                    <FormGroup sx={{minWidth:185}} >
+                    <FormGroup sx={{minWidth: 185}}>
                         <FormControlLabel control={<Switch checked={this.state.correctionModeEnabled}
+                                                           value={this.state.correctionModeEnabled}
                                                            onChange={this.setCorrectionMode}/>}
                                           label="Correction mode"/>
                     </FormGroup>
-                    <Button sx={{minWidth:100}} onClick={this.handleUndoClick} color="primary" variant="outlined" startIcon={<UndoIcon/>}>
+                    <Button sx={{minWidth: 100}} onClick={this.handleUndoClick} color="primary" variant="outlined"
+                            startIcon={<UndoIcon/>}>
                         Undo
                     </Button>
-                    <Button sx={{minWidth:100}} onClick={this.handleResetClick} color="primary" variant="outlined"
+                    <Button sx={{minWidth: 100}} onClick={this.handleResetClick} color="primary" variant="outlined"
                             startIcon={<RestartAltIcon/>}>
                         Reset
                     </Button>
@@ -384,12 +406,13 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             this.props.activeVariable.type !== VariableType.integer) {
             return (
                 <Stack direction={"row"} sx={{marginBottom: 1}}
-                           justifyContent={"flex-start"}
-                           alignItems={"center"}
-                           spacing={1}
-                           divider={<Divider orientation="vertical" flexItem/>}>
-                    <FormGroup sx={{minWidth:185}} >
+                       justifyContent={"flex-start"}
+                       alignItems={"center"}
+                       spacing={1}
+                       divider={<Divider orientation="vertical" flexItem/>}>
+                    <FormGroup sx={{minWidth: 185}}>
                         <FormControlLabel control={<Switch checked={this.state.correctionModeEnabled}
+                                                           value={this.state.correctionModeEnabled}
                                                            onChange={this.setCorrectionMode}/>}
                                           label="Deletion mode"/>
                     </FormGroup>
