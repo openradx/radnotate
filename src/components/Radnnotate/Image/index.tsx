@@ -426,7 +426,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
     renderSeriesSelection = () => {
         return (
             <div>
-                <FormControl sx={{width: 350}} size={"small"}>
+                <FormControl sx={{width: 250}} size={"small"}>
                     <Select value={this.state.currentSeriesDescription}
                             onChange={event => this.handleSeriesSelection(event)}
                             onClose={() => {
@@ -454,21 +454,21 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                        spacing={1}
                        divider={<Divider orientation="vertical" flexItem/>}>
                     {this.renderSeriesSelection()}
-                    <FormGroup sx={{minWidth: 185}}>
+                    <FormGroup sx={{minWidth: 160}}>
                         <FormControlLabel control={<Switch checked={this.state.correctionModeEnabled}
                                                            value={this.state.correctionModeEnabled}
                                                            onChange={event => this._setCorrectionMode(event)}/>}
                                           label="Correction mode"/>
                     </FormGroup>
-                    <Button sx={{minWidth: 100}} onClick={this.handleUndoClick} color="primary" variant="outlined"
+                    <Button sx={{minWidth: 80}} onClick={this.handleUndoClick} color="primary" variant="outlined"
                             startIcon={<UndoIcon/>}>
                         Undo
                     </Button>
-                    <Button sx={{minWidth: 100}} onClick={this.handleResetClick} color="primary" variant="outlined"
+                    <Button sx={{minWidth: 80}} onClick={this.handleResetClick} color="primary" variant="outlined"
                             startIcon={<RestartAltIcon/>}>
                         Reset
                     </Button>
-                    <Box sx={{minWidth: 300, paddingLeft: 1}}>
+                    <Box sx={{minWidth: 250, paddingLeft: 1}}>
                         <Stack direction={"row"} alignItems={"center"} justifyContent={"flex-start"}>
                             <Slider aria-label="segmentation-transparency" track={false}
                                     value={this.state.segmentationTransparency} max={255}
@@ -490,13 +490,13 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                        divider={<Divider orientation="vertical" flexItem/>}>
 
                     {this.renderSeriesSelection()}
-                    <FormGroup sx={{minWidth: 185}}>
+                    <FormGroup sx={{minWidth: 160}}>
                         <FormControlLabel control={<Switch checked={this.state.correctionModeEnabled}
                                                            value={this.state.correctionModeEnabled}
                                                            onChange={this._setCorrectionMode}/>}
                                           label="Deletion mode"/>
                     </FormGroup>
-                    <Button onClick={this.handleResetClick} sx={{minWidth: 100}} color="primary" variant="outlined"
+                    <Button onClick={this.handleResetClick} sx={{minWidth: 80}} color="primary" variant="outlined"
                             startIcon={<RestartAltIcon/>}>
                         Reset
                     </Button>

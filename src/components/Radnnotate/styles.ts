@@ -2,6 +2,9 @@ import {PaletteMode} from "@mui/material";
 
 
 export const getTheme = (mode: PaletteMode) => ({
+    typography: {
+      fontSize: 12
+    },
     palette: {
         mode,
         ...(mode === 'light'
