@@ -169,6 +169,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                 disabled={!isActiveVariable || this.state.countDisabled}
                 color="primary"
                 id="filled-number"
+                size="small"
                 label="Count"
                 type="number"
                 variant="filled"
@@ -227,11 +228,12 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                     <TextField sx={{minWidth: 200, maxWidth: 200}} disabled={!isActiveVariable}
                                error={this.state.nameError && isActiveVariable}
                                color="primary"
+                               size="small"
                                id="filled-basic" label="Variable name" variant="filled"
                                onChange={(event) => this.addVariableName(event, id)}
                                value={this.state.variables[id].name}/>
                     <FormControl disabled={!isActiveVariable} error={this.state.typeError && isActiveVariable}
-                                 variant="filled"
+                                 variant="filled" size="small"
                                  sx={{minWidth:175, maxWidth:175}}>
                         <InputLabel id="demo-simple-select-filled-label">Type</InputLabel>
                         <Select
@@ -248,7 +250,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                         </Select>
                     </FormControl>
                     <FormControl disabled={!isActiveVariable || this.state.countTypeDisabled} error={this.state.countTypeError && isActiveVariable}
-                                 variant="filled"
+                                 variant="filled" size="small"
                                  sx={{m: 1, minWidth: 120}}>
                         <InputLabel id="demo-simple-select-filled-label">Count type</InputLabel>
                         <Select
@@ -262,7 +264,6 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                     {
                         this.renderAnnotationsCountField(id, isActiveVariable)
                     }
-
                     <Tooltip title={toolTitle}>
                         <IconButton color={"primary"} onClick={() => this._handleButtonClick(id, isActiveVariable)}>
                             {isActiveVariable ?
@@ -287,7 +288,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                 <Stack direction="column" divider={<Divider orientation="horizontal" flexItem/>}
                        spacing={2}>
                     <Stack direction="row" divider={<Divider orientation="vertical" flexItem/>}
-                           spacing={2}>
+                           spacing={2} alignItems={"center"}>
                         <DicomDropzone savePatients={this.savePatients}/>
                         <Button sx={{minWidth: 175, maxWidth: 175, textAlign:"center"}} variant="outlined" component="label">
                             Load variable definitions
@@ -312,7 +313,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                                 return this.renderVariableInput(index)
                             })
                         }
-                        <Button sx={{minWidth: 200, maxWidth: 200, minHeight: 65}} color="primary" variant="outlined" startIcon={<SendIcon/>}
+                        <Button sx={{minWidth: 200, maxWidth: 200, minHeight: 54}} color="primary" variant="outlined" startIcon={<SendIcon/>}
                                 onClick={() => {
                                     let variables = this.state.variables
                                     variables = variables.slice(0, variables.length - 1)

@@ -13,7 +13,6 @@ declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string
 
 
 if (require('electron-squirrel-startup')) app.quit();
-
 function createWindow() {
     mainWindow = new BrowserWindow({
         // icon: path.join(assetsPath, 'assets', 'icon.png'),
@@ -22,10 +21,11 @@ function createWindow() {
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
+            worldSafeExecuteJavaScript: true,
             preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY
-        }
+        },
     })
-    mainWindow.setMenu(null)
+    //mainWindow.setMenu(null)
     mainWindow.maximize()
     mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY)
 

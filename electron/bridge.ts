@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
-
+import MedImgReader from "med-img-reader";
+import fs from "fs";
 export const api = {
   /**
    * Here you can expose functions to the renderer process
@@ -21,4 +22,18 @@ export const api = {
   }
 }
 
+
+export const test = {
+  newobj: (image, filename) => {
+    console.log("awa1")
+    const medImgWriter = new MedImgReader();
+    medImgWriter.SetInput(image);
+    medImgWriter.SetFilename(filename);
+    medImgWriter.WriteImage();
+    fs.writeFile("/home/manuel/awa.txt", "Hi", ()=>{})
+    console.log("awa2")
+  }
+}
+
 contextBridge.exposeInMainWorld('Main', api)
+contextBridge.exposeInMainWorld('test', test)
