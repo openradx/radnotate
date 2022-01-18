@@ -125,10 +125,18 @@ class Image extends Component<ImagePropsType, ImageStateType> {
     _processRectangleRoi = (data, instanceNumber: number) => {
         const coordinates = data.handles
         const seed = new TSMap<string, number>()
-        seed.set("x1", parseInt(coordinates.start.x))
-        seed.set("y1", parseInt(coordinates.start.y))
-        seed.set("x2", parseInt(coordinates.end.x))
-        seed.set("y2", parseInt(coordinates.end.y))
+        const x1 = Number(coordinates.start.x)
+        const y1 = Number(coordinates.start.y)
+        const x2 = Number(coordinates.end.x)
+        const y2 = Number(coordinates.end.y)
+        const minX = Math.floor(Math.min(x1, x2))
+        const maxX = Math.ceil(Math.max(x1, x2))
+        const minY = Math.floor(Math.min(y1, y2))
+        const maxY = Math.ceil(Math.max(y1, y2))
+        seed.set("x1", minX)
+        seed.set("y1", minY)
+        seed.set("x2", maxX)
+        seed.set("y2", maxY)
         seed.set("z", instanceNumber)
         return seed
     }
