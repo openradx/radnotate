@@ -22,17 +22,10 @@ const ToolType = new Map<VariableType, string>([
     [VariableType.segmentation, "FreehandScissors"],
 ])
 
-export enum VariableCountType {
-    static,
-    dynamic
-}
-
 class Variable {
     private _id: number
     private _name: string
     private _type: VariableType | string
-    private _countType: VariableCountType | string
-    private _count: number
     private _tool: string
 
     constructor(value: number|Object) {
@@ -40,15 +33,11 @@ class Variable {
             this._id = value
             this._name = ""
             this._type = ""
-            this._countType = ""
-            this._count = 1
             this._tool = ""
         } else {
             this._id = value.id
             this._name = value.name
             this._type = value.type
-            this._countType = value.countType
-            this._count = value.count
             this._tool = ToolType.get(value.type)
         }
     }
@@ -66,14 +55,6 @@ class Variable {
         this._tool = ToolType.get(value)
     }
 
-    set countType(value: VariableCountType) {
-        this._countType = value;
-    }
-
-    set count(value: number) {
-        this._count = value;
-    }
-
     get id(): number {
         return this._id;
     }
@@ -86,14 +67,6 @@ class Variable {
         return this._type;
     }
 
-    get countType(): VariableCountType | string {
-        return this._countType;
-    }
-    
-    get count(): number {
-        return this._count;
-    }
-
     get tool(): string {
         return this._tool;
     }
@@ -103,8 +76,6 @@ class Variable {
         map.set("id", this._id)
         map.set("name", this._name)
         map.set("type", this._type)
-        map.set("countType", this._countType)
-        map.set("count", this._count)
         return JSON.stringify(map.toJSON())
     }
 }

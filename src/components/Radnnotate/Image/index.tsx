@@ -5,7 +5,7 @@ import Hammer from "hammerjs";
 import CornerstoneViewport from "react-cornerstone-viewport";
 import {Patient} from "../AnnotationForm/DicomDropzone/dicomObject";
 import cornerstone, {loadImage} from "cornerstone-core";
-import Variable, {VariableCountType, VariableType} from "../AnnotationForm/variable";
+import Variable, {VariableType} from "../AnnotationForm/variable";
 import {TSMap} from "typescript-map"
 import {
     Box,
@@ -66,27 +66,14 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         super(props);
 
         const toolsList = [
-            {
-                name: 'Wwwc',
-                mode: 'active',
-                modeOptions: {mouseButtonMask: 4},
-            },
-            {
-                name: 'Zoom',
-                mode: 'active',
-                modeOptions: {mouseButtonMask: 2},
-            },
-            {name: 'Pan', mode: 'active', modeOptions: {mouseButtonMask: 1}},
-            {name: "Probe", mode: "active", modeOptions: {mouseButtonMask: 1}},
-            {name: "RectangleRoi", mode: "active", modeOptions: {mouseButtonMask: 1}},
-            {name: "EllipticalRoi", mode: "active", modeOptions: {mouseButtonMask: 1}},
-            {name: "Length", mode: "active", modeOptions: {mouseButtonMask: 1}},
-            {
-                name: "FreehandScissors",
-                mode: "active",
-                modeOptions: {mouseButtonMask: 1},
-                activeStrategy: "ERASE_INSIDE"
-            },
+            {name: 'Pan', modeOptions: {mouseButtonMask: 1}},
+            {name: "Probe", modeOptions: {mouseButtonMask: 1}},
+            {name: "RectangleRoi", modeOptions: {mouseButtonMask: 1}},
+            {name: "EllipticalRoi", modeOptions: {mouseButtonMask: 1}},
+            {name: "Length", modeOptions: {mouseButtonMask: 1}},
+            {name: "FreehandScissors", modeOptions: {mouseButtonMask: 1}, activeStrategy: "ERASE_INSIDE"},
+            {name: 'Wwwc', mode: 'active', modeOptions: {mouseButtonMask: 4}},
+            {name: 'Zoom', mode: 'active', modeOptions: {mouseButtonMask: 2}},
             {name: "CorrectionScissors", mode: "active", modeOptions: {mouseButtonMask: 1}},
             {name: "Eraser", mode: "active", modeOptions: {mouseButtonMask: 1}},
             {name: 'StackScrollMouseWheel', mode: 'active'},
@@ -280,7 +267,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         return currentValues
     }
 
-    _updateVariable = async (keyPressed: string | undefined) => {
+    _updateVariable = async (keyPressed: string) => {
         let currentValues = []
         if (this.props.activeVariable.type === VariableType.segmentation) {
             currentValues = await this._resolveSegmentation()
@@ -288,28 +275,38 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             this.props.activeVariable.type !== VariableType.integer) {
             currentValues = await this._resolveAnnotations()
         }
-        if (this.props.activeVariable.countType === VariableCountType.static) {
-            if (this.props.activeVariable.type === VariableType.boolean && (keyPressed === "t" || keyPressed === "f")) {
-                const defaultValues = await this._processImage(this.state.currentImageId)
-                let value = this._processBoolean(keyPressed)
-                value = new TSMap([...Array.from(value.entries()), ...Array.from(defaultValues.entries())])
-                this.props.nextVariable([value])
-            } else if (this.props.activeVariable.type === VariableType.integer && (!isNaN(Number(keyPressed)))) {
-                const defaultValues = await this._processImage(this.state.currentImageId)
-                let value = this._processInteger(keyPressed)
-                value = new TSMap([...Array.from(value.entries()), ...Array.from(defaultValues.entries())])
-                this.props.nextVariable([value])
-            }
-            if (this.props.activeVariable.count === currentValues.length) {
-                this._deleteAnnotations()
-                this.props.nextVariable(currentValues.slice(0, currentValues.length))
-            }
+
+        if (this.props.activeVariable.type === VariableType.boolean && (keyPressed === "t" || keyPressed === "f")) {
+            const defaultValues = await this._processImage(this.state.currentImageId)
+            let value = this._processBoolean(keyPressed)
+            value = new TSMap([...Array.from(value.entries()), ...Array.from(defaultValues.entries())])
+            this.props.nextVariable([value])
+            this._setTools()
+        } else if (this.props.activeVariable.type === VariableType.integer && (!isNaN(Number(keyPressed)))) {
+            const defaultValues = await this._processImage(this.state.currentImageId)
+            let value = this._processInteger(keyPressed)
+            value = new TSMap([...Array.from(value.entries()), ...Array.from(defaultValues.entries())])
+            this.props.nextVariable([value])
+            this._setTools()
         } else {
             if (keyPressed === "Enter") {
-                this._deleteAnnotations()
                 this.props.nextVariable(currentValues.slice(0, currentValues.length))
+                this._setTools()
             }
         }
+    }
+
+    _setTools = () => {
+        const activeTool = this.props.activeVariable.tool
+        this.state.tools.slice(0, 6).forEach(tool => {
+            if (tool.name === activeTool) {
+                tool.mode = "Active"
+                cornerstoneTools.setToolActive(tool.name, {mouseButtonMask: 1});
+            } else {
+                tool.mode = "Disabled"
+                cornerstoneTools.setToolEnabled(tool.name);
+            }
+        })
     }
 
     _deleteAnnotations = () => {
@@ -352,9 +349,9 @@ class Image extends Component<ImagePropsType, ImageStateType> {
     componentWillUnmount = () => {
         document.removeEventListener("keydown", this._handleKeyPress, false)
         document.addEventListener("keyup", this._handleKeyPress, false)
-        this.state.cornerstoneElement.removeEventListener("cornerstonetoolsmeasurementcompleted", this._updateVariable);
-        this.state.cornerstoneElement.removeEventListener("cornerstonetoolsmouseup", this._updateVariable);
-        this.state.cornerstoneElement.removeEventListener("cornerstonenewimage", this._updateVariable);
+        //this.state.cornerstoneElement.removeEventListener("cornerstonetoolsmeasurementcompleted", this._updateVariable);
+        //this.state.cornerstoneElement.removeEventListener("cornerstonetoolsmouseup", this._updateVariable);
+        this.state.cornerstoneElement.removeEventListener("cornerstonenewimage", this._setCurrentImage);
     }
 
     _setCorrectionMode = (event: ChangeEvent) => {
@@ -543,9 +540,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                         id={this.state.currentImageId}
                         onElementEnabled={elementEnabledEvt => {
                             const cornerstoneElement = elementEnabledEvt.detail.element;
-                            this.setState({cornerstoneElement: cornerstoneElement, });
-                            cornerstoneElement.addEventListener("cornerstonetoolsmouseup", this._updateVariable);
-                            cornerstoneElement.addEventListener("cornerstonetoolsmeasurementcompleted", this._updateVariable);
+                            this.setState({cornerstoneElement: cornerstoneElement});
                             cornerstoneElement.addEventListener("cornerstonenewimage", (event: Event) => this._setCurrentImage(event))
                         }}
                     />
