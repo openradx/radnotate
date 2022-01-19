@@ -99,6 +99,15 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
                         })
                         value = JSON.stringify(value)
                     }
+                    if (value !== "") {
+                        value = JSON.parse(value)
+                        value.forEach(element => {
+                            delete element.studyUid
+                            delete element.seriesUid
+                            delete element.sopUid
+                        })
+                        value = JSON.stringify(value)
+                    }
                     return (<Tooltip title={value} followCursor={true}>
                             <span className="table-cell-trucate">{value}</span>
                         </Tooltip>
@@ -254,6 +263,7 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
                     imageIdsTemp[image.instanceNumber - 1] = image.imageID
                     instanceNumbers.set(image.imageID, image.instanceNumber);
                 })
+                // ToDo If multiple studies within one patient, with same name and same series number exist, this approach will fail
                 if (seriesDescriptions.has(series.seriesDescription)) {
                     const seriesDescription = series.seriesDescription + " " + series.seriesNumber
                     seriesDescriptions.set(seriesDescription, imageIdsTemp)

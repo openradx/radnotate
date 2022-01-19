@@ -18,7 +18,7 @@ import {
     Select, SelectChangeEvent,
     Slider,
     Stack,
-    Switch,
+    Switch, Tooltip,
     Typography
 } from "@mui/material";
 import UndoIcon from '@mui/icons-material/Undo';
@@ -431,21 +431,23 @@ class Image extends Component<ImagePropsType, ImageStateType> {
     renderSeriesSelection = () => {
         return (
             <div>
-                <FormControl sx={{width: 250}} size={"small"}>
-                    <Select value={this.state.currentSeriesDescription}
-                            onChange={event => this.handleSeriesSelection(event)}
-                            onClose={() => {
-                                setTimeout(() => {
-                                    document.activeElement.blur();
-                                }, 0);
-                            }}>
-                        {this.props.seriesDescriptions.keys().map((seriesDescription) => (
-                            <MenuItem key={seriesDescription} value={seriesDescription}>
-                                {seriesDescription}
-                            </MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
+                <Tooltip title={"Select series by series description"}>
+                    <FormControl sx={{width: 250}} size={"small"}>
+                        <Select value={this.state.currentSeriesDescription}
+                                onChange={event => this.handleSeriesSelection(event)}
+                                onClose={() => {
+                                    setTimeout(() => {
+                                        document.activeElement.blur();
+                                    }, 0);
+                                }}>
+                            {this.props.seriesDescriptions.keys().map((seriesDescription) => (
+                                <MenuItem key={seriesDescription} value={seriesDescription}>
+                                    {seriesDescription}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                </Tooltip>
             </div>
         )
     }
@@ -495,12 +497,14 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                        divider={<Divider orientation="vertical" flexItem/>}>
 
                     {this.renderSeriesSelection()}
-                    <FormGroup sx={{minWidth: 160}}>
-                        <FormControlLabel control={<Switch checked={this.state.correctionModeEnabled}
-                                                           value={this.state.correctionModeEnabled}
-                                                           onChange={this._setCorrectionMode}/>}
-                                          label="Deletion mode"/>
-                    </FormGroup>
+                    <Tooltip title={"Enable by pressing Control key"}>
+                        <FormGroup sx={{minWidth: 160}}>
+                            <FormControlLabel control={<Switch checked={this.state.correctionModeEnabled}
+                                                               value={this.state.correctionModeEnabled}
+                                                               onChange={this._setCorrectionMode}/>}
+                                              label="Deletion mode"/>
+                        </FormGroup>
+                    </Tooltip>
                     <Button onClick={this.handleResetClick} sx={{minWidth: 80}} color="primary" variant="outlined"
                             startIcon={<RestartAltIcon/>}>
                         Reset

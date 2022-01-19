@@ -1,5 +1,5 @@
 import React from "react";
-import {Box, gridClasses} from "@mui/material";
+import {Box, gridClasses, Tooltip} from "@mui/material";
 import {
     DataGridPro, GridColDef, GridRowsProp, GridToolbarContainer, GridToolbarExport,
     gridVisibleSortedRowIdsSelector, useGridApiRef, visibleGridColumnsSelector
@@ -21,7 +21,9 @@ const AnnotationData = (props: AnnotationDataProps) => {
     const exportAnnotationsToolbar = () => {
         return (
             <GridToolbarContainer className={gridClasses.toolbarContainer}>
-                <GridToolbarExport printOptions={{disableToolbarButton: true}}/>
+                <Tooltip title={"Export only selected files"}>
+                    <GridToolbarExport printOptions={{disableToolbarButton: true}}/>
+                </Tooltip>
             </GridToolbarContainer>
         );
     }
