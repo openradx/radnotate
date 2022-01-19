@@ -90,6 +90,9 @@ class Study {
             })
             if (!isSame) {
                 this.series.push(newSeries)
+                this.series.sort((a, b) => {
+                    return a.seriesNumber - b.seriesNumber;
+                })
                 this.treeNode.children?.push(newSeries.treeNode)
             }
         }
@@ -132,6 +135,11 @@ export class Patient {
             })
             if (!isSame) {
                 this.studies.push(newStudy)
+                this.studies.sort((a, b) => {
+                    const dateA = new Date(Number(a.studyDate.slice(0, 4)), Number(a.studyDate.slice(4,6))-1, Number(a.studyDate.slice(6, 8)))
+                    const dateB = new Date(Number(b.studyDate.slice(0, 4)), Number(b.studyDate.slice(4,6))-1, Number(b.studyDate.slice(6, 8)))
+                    return dateB - dateA
+                })
                 this.treeNode.children?.push(newStudy.treeNode)
             }
         }
