@@ -35,10 +35,11 @@ type AnnotationFormStateType = {
     nameError: boolean
     typeError: boolean
     annotationLevel: AnnotationLevel,
+    rows: Object | undefined
 }
 
 type AnnotationFormPropsType = {
-    saveAnnotationForm: Function
+    saveAnnotationForm: Function,
 }
 
 class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormStateType> {
@@ -49,7 +50,8 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
             variables: [new Variable(0)],
             nameError: false,
             typeError: false,
-            annotationLevel: AnnotationLevel.patient
+            annotationLevel: AnnotationLevel.patient,
+            rows: undefined
         }
     }
 
@@ -121,7 +123,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
         }
     }
 
-    _loadFile = (event) => {
+    _loadVariableDefinitions = (event) => {
         if (event.target.files.length > 0) {
             const loadHeader = new Promise((resolve) => {
                     Papa.parse(event.target.files[0], {
@@ -139,6 +141,27 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                 })
                 variables.push(new Variable(variables.length))
                 this.setState({variables: variables})
+            })
+        }
+    }
+
+    _loadAnnotationData = (event) => {
+        this._loadVariableDefinitions(event)
+        if (event.target.files.length > 0) {
+            const loadData = new Promise((resolve) => {
+                Papa.parse(event.target.files[0], {
+                    header: true,
+                    complete: results => {
+                        const data = results.data
+                        data.forEach((row, index) => {
+                            row.id = index
+                        })
+                        resolve(data)
+                    }
+                })
+            })
+            loadData.then((rows) => {
+                this.setState({rows: rows})
             })
         }
     }
@@ -208,7 +231,11 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                         <DicomDropzone savePatients={this.savePatients}/>
                         <Button sx={{minWidth: 175, maxWidth: 175, textAlign:"center"}} variant="outlined" component="label">
                             Load variable definitions
-                            <input type="file" hidden={true} onInput={(event => this._loadFile(event))}/>
+                            <input type="file" hidden={true} onInput={(event => this._loadVariableDefinitions(event))}/>
+                        </Button>
+                        <Button sx={{minWidth: 175, maxWidth: 175, textAlign:"center"}} variant="outlined" component="label">
+                            Load annotation data
+                            <input type="file" hidden={true} onInput={(event => this._loadAnnotationData(event))}/>
                         </Button>
                         <FormControl sx={{minWidth: 190}} component="fieldset">
                             <FormLabel component="legend">Annotation level</FormLabel>
@@ -233,7 +260,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                                 onClick={() => {
                                     let variables = this.state.variables
                                     variables = variables.slice(0, variables.length - 1)
-                                    this.props.saveAnnotationForm(this.state.patients, variables, this.state.annotationLevel)
+                                    this.props.saveAnnotationForm(this.state.patients, variables, this.state.annotationLevel, this.state.rows)
                                 }}
                                 disabled={saveAnnotationButtonDisabled}>
                             Start annotation

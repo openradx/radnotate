@@ -21,6 +21,7 @@ const seriesDict = (dataSet: typeof DataSet): SeriesType => ({
 
 const imageDict = (dataSet: typeof DataSet, imagePath: string, imageID: string): ImageType => ({
     instanceNumber: parseInt(dataSet.string('x00200013')),
+    sopInstanceUID: dataSet.string('x00080018'),
     imageID: imageID
 })
 

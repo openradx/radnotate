@@ -1,23 +1,21 @@
 import {Component} from "react";
 import AnnotationForm, {AnnotationLevel} from "./AnnotationForm";
-import Variable, {VariableType} from "./AnnotationForm/variable";
+import Variable, {ToolType, VariableType} from "./AnnotationForm/variable";
 import {Patient, Patients} from "./AnnotationForm/DicomDropzone/dicomObject";
 import Image from "./Image"
-import {
-    GridCellParams,
-    GridColDef,
-    GridRowsProp,
-}
-    from "@mui/x-data-grid";
+import {GridCellParams, GridColDef, GridRowsProp,} from "@mui/x-data-grid";
 import clsx from "clsx";
 import {Box, Slider, Stack, Tooltip} from "@mui/material";
 import {TSMap} from "typescript-map"
 import AnnotationData from "./AnnotationData";
-import {GridColumnHeaderParams, GridRenderCellParams} from "@mui/x-data-grid-pro";
+import {GridColumnHeaderParams, GridRenderCellParams, LicenseInfo} from "@mui/x-data-grid-pro";
 import {Settings} from "./Settings";
-import { LicenseInfo } from '@mui/x-data-grid-pro';
+import {Buffer} from "buffer";
 
 LicenseInfo.setLicenseKey("07a54c751acde4192070a1600dac24bdT1JERVI6MCxFWFBJUlk9MTc5OTc3Njg5NjA4NCxLRVlWRVJTSU9OPTE=",);
+
+const decode = (str: string): string => Buffer.from(str, 'base64').toString('binary');
+
 type RadnnotatePropsType = {
     colorMode: Function
 }
@@ -40,7 +38,9 @@ type RadnnotateStateType = {
     jumpBackToVariableIndex: number,
     jumpBackToPatientIndex: number,
     width: number,
-    seriesDescriptions: TSMap<string, Array<string>>
+    seriesDescriptions: TSMap<string, Array<string>>,
+    toolStates: [],
+    stackIndices: Map<string, number>,
 }
 
 class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
@@ -64,14 +64,12 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
             columns.push({
                 field: "PatientID",
                 filterable: false,
-                resizable: false,
                 disableReorder: true,
             })
         } else {
             columns.push({
                 field: "Study",
                 filterable: false,
-                resizable: false,
                 disableReorder: true,
             })
         }
@@ -79,7 +77,6 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
             columns.push({
                 field: variable.toString(),
                 filterable: false,
-                resizable: false,
                 disableReorder: true,
                 cellClassName: (params: GridCellParams) => {
                     return (clsx('cell', {
@@ -105,6 +102,7 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
                             delete element.studyUid
                             delete element.seriesUid
                             delete element.sopUid
+                            delete element.data
                         })
                         value = JSON.stringify(value)
                     }
@@ -140,9 +138,45 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
         return rowNames
     }
 
-    saveAnnotationForm = (patients: Patients, variables: Variable[], annotationLevel: AnnotationLevel) => {
+    saveAnnotationForm = (patients: Patients, variables: Variable[], annotationLevel: AnnotationLevel, rows) => {
         let activePatient: Patient
         if (annotationLevel === AnnotationLevel.patient) {
+            if (rows !== undefined) {
+                const imagePatientIDs = []
+                const annotationPatientIDs = []
+                patients.patients.forEach(patient => {
+                    imagePatientIDs.push(patient.patientID)
+                })
+                rows.forEach(row => {
+                    const patientID = row.PatientID
+                    annotationPatientIDs.push(patientID)
+                })
+                const intersectionPatientIDs = imagePatientIDs.filter(patientID => annotationPatientIDs.includes(patientID));
+                imagePatientIDs.forEach(patientID => {
+                    if (!intersectionPatientIDs.includes(patientID)) {
+                        console.log(patientID)
+                        patients.deletePatient(patientID)
+                    }
+                })
+                let deleteIndices: number[] = []
+                annotationPatientIDs.forEach(patientID => {
+                    if (!intersectionPatientIDs.includes(patientID)) {
+                        rows.forEach((row, index) => {
+                            if (row.PatientID === patientID) {
+                                deleteIndices.push(index)
+                            }
+                        })
+                    }
+                })
+                let counter = 0
+                deleteIndices.forEach(deleteIndex => {
+                    rows.splice(deleteIndex-counter++,1)
+                })
+                rows.forEach((row, index) => {
+                    row.id = index
+                })
+                console.log(patients)
+            }
             activePatient = patients.getPatient(0)
         } else {
             activePatient = patients.getPatientStudy(0, 0)
@@ -152,13 +186,20 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
 
         const activeVariable = variables.slice(0, 1).pop()
         const columns = this._variablesToColumns(0, activeVariable.name, variables, annotationLevel);
+
         let initialRows = []
-        rowNames.forEach((rowName, index) => {
-            let row = {}
-            row[columns[0].field] = rowName
-            row.id = index
-            initialRows.push(row)
-        })
+        let existingToolStates = []
+        if (rows === undefined) {
+            rowNames.forEach((rowName, index) => {
+                let row = {}
+                row[columns[0].field] = rowName
+                row.id = index
+                initialRows.push(row)
+            })
+        } else {
+            initialRows = rows
+            existingToolStates = this._setInitialToolState(patients, rows)
+        }
         this.setState({
             activePatientIndex: 0,
             activeVariableIndex: 0,
@@ -175,7 +216,8 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
             rows: initialRows,
             jumpBackToPatientIndex: -1,
             jumpBackToVariableIndex: -1,
-            seriesDescriptions: seriesDescriptions
+            seriesDescriptions: seriesDescriptions,
+            toolStates: existingToolStates
         })
     }
 
@@ -211,6 +253,57 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
             rows: rows,
             jumpBackToVariableIndex: jumpBackToVariableIndex
         })
+    }
+
+    _setInitialToolState = (patients: Patients, rows: Object) => {
+        const annotations = []
+        let sopInstanceUIDs = []
+        rows.forEach(row => {
+            const fields = Object.keys(row)
+            fields.forEach(field => {
+                if (field !== "PatientID" && field !== "id") {
+                    const currentValues = JSON.parse(row[field])
+                    const type = JSON.parse(field).type
+                    currentValues.forEach(currentValue => {
+                        const sopInstanceUID = currentValue.sopUid
+                        let annotation
+                        if (type === VariableType.segmentation) {
+                            const pixelData = new Uint8Array(atob(currentValue.pixelData).split("").map(function (c) {
+                                return c.charCodeAt(0);
+                            }));
+                            annotations.push([sopInstanceUID, currentValue.height, currentValue.width, pixelData])
+                        } else if (type !== VariableType.boolean && type !== VariableType.integer) {
+                            annotation = currentValue.data
+                            annotations.push([sopInstanceUID, ToolType.get(type), annotation])
+                        }
+                        sopInstanceUIDs.push(sopInstanceUID)
+                    })
+                }
+            })
+        })
+        const toolStates = []
+        sopInstanceUIDs = [...new Set(sopInstanceUIDs)]
+        const stackIndices = new Map<string, number>()
+        let stackCounter = 0
+        patients.patients.forEach(patient => {
+            patient.studies.forEach(study => {
+                study.series.forEach(series => {
+                    series.images.forEach(image => {
+                        stackIndices.set(image.imageID, stackCounter++)
+                        if (sopInstanceUIDs.includes(image.sopInstanceUID)) {
+                            annotations.forEach(annotation => {
+                                const annotationSopUid = annotation[0]
+                                if (annotationSopUid === image.sopInstanceUID) {
+                                    toolStates.push([image.imageID, ...annotation.slice(1, annotation.length)])
+                                }
+                            })
+                        }
+                    })
+                })
+            })
+        })
+        this.setState({stackIndices: stackIndices})
+        return toolStates
     }
 
     _nextPatient = () => {
@@ -377,7 +470,8 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
                                    imageIds={this.state.imageIds}
                                    instanceNumbers={this.state.instanceNumbers}
                                    seriesDescriptions={this.state.seriesDescriptions}
-                                   width={String(100 - this.state.width) + "%"}/>
+                                   toolStates={this.state.toolStates}
+                                   stackIndices={this.state.stackIndices}/>
                         </Box>
                     </Stack>
                     :

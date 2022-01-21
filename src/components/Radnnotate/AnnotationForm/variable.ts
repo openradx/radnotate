@@ -11,7 +11,7 @@ export enum VariableType {
     segmentation
 }
 
-const ToolType = new Map<VariableType, string>([
+export const ToolType = new Map<VariableType, string>([
     [VariableType.boolean, "Pan"],
     [VariableType.integer, "Pan"],
     [VariableType.decimal, "Pan"],
