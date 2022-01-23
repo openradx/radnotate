@@ -87,13 +87,10 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             {name: 'ZoomTouchPinch', mode: 'active'},
             {name: 'StackScrollMultiTouch', mode: 'active'}
         ]
-        const segmentationModule = cornerstoneTools.getModule("segmentation");
-        const {
-            colorLUT: setColorLUT
-        } = segmentationModule.setters
+
         const segmentationTransparency = 0
-        const newColorLutTables = new Array(segmentationModule.state.colorLutTables[0].length - 1).fill([222, 117, 26, segmentationTransparency])
-        setColorLUT(0, newColorLutTables)
+        const { configuration} = cornerstoneTools.getModule("segmentation");
+        configuration.fillAlpha = segmentationTransparency;
 
         let currentSeriesDescription: string = ""
         this.props.seriesDescriptions.keys().forEach(seriesDescription => {
@@ -466,12 +463,8 @@ class Image extends Component<ImagePropsType, ImageStateType> {
 
     handleSegmentationTransparencySlider = (event: Event) => {
         const segmentationTransparency = event.target.value
-        const segmentationModule = cornerstoneTools.getModule("segmentation");
-        const {
-            colorLUT: setColorLUT
-        } = segmentationModule.setters
-        const newColorLutTables = new Array(segmentationModule.state.colorLutTables[0].length - 1).fill([222, 117, 26, segmentationTransparency])
-        setColorLUT(0, newColorLutTables)
+        const { configuration} = cornerstoneTools.getModule("segmentation");
+        configuration.fillAlpha = segmentationTransparency/100;
         cornerstone.updateImage(this.state.cornerstoneElement);
         this.setState({segmentationTransparency: segmentationTransparency})
     }
@@ -540,7 +533,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                     <Box sx={{minWidth: 250, paddingLeft: 1}}>
                         <Stack direction={"row"} alignItems={"center"} justifyContent={"flex-start"}>
                             <Slider aria-label="segmentation-transparency" track={false}
-                                    value={this.state.segmentationTransparency} max={255}
+                                    value={this.state.segmentationTransparency} max={100}
                                     onChange={event => this.handleSegmentationTransparencySlider(event)}/>
                             <Typography sx={{marginLeft: 2.5}} id="segmentation-transparency-slider">
                                 Segmentation transparency
