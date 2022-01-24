@@ -38,6 +38,7 @@ type RadnnotateStateType = {
     seriesDescriptions: TSMap<string, Array<string>>,
     toolStates: [],
     stackIndices: Map<string, number>,
+    segmentationsCount: number,
 }
 
 class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
@@ -219,6 +220,7 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
             jumpBackToVariableIndex: -1,
             seriesDescriptions: seriesDescriptions,
             toolStates: existingToolStates,
+            segmentationsCount: segmentationIndex,
         })
     }
 
@@ -472,7 +474,8 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
                                    instanceNumbers={this.state.instanceNumbers}
                                    seriesDescriptions={this.state.seriesDescriptions}
                                    toolStates={this.state.toolStates}
-                                   stackIndices={this.state.stackIndices}/>
+                                   stackIndices={this.state.stackIndices}
+                                   segmentationsCount={this.state.segmentationsCount}/>
                         </Box>
                     </Stack>
                     :
