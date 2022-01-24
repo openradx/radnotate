@@ -27,6 +27,7 @@ class Variable {
     private _name: string
     private _type: VariableType | string
     private _tool: string
+    private _segmentationIndex: number | undefined
 
     constructor(value: number|Object) {
         if (typeof value === "number") {
@@ -55,6 +56,10 @@ class Variable {
         this._tool = ToolType.get(value)
     }
 
+    set segmentationIndex(value: number) {
+        this._segmentationIndex = value;
+    }
+
     get id(): number {
         return this._id;
     }
@@ -69,6 +74,10 @@ class Variable {
 
     get tool(): string {
         return this._tool;
+    }
+
+    get segmentationIndex(): number | undefined {
+        return this._segmentationIndex;
     }
 
     toString() {

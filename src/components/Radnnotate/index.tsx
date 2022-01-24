@@ -10,11 +10,8 @@ import {TSMap} from "typescript-map"
 import AnnotationData from "./AnnotationData";
 import {GridColumnHeaderParams, GridRenderCellParams, LicenseInfo} from "@mui/x-data-grid-pro";
 import {Settings} from "./Settings";
-import {Buffer} from "buffer";
 
 LicenseInfo.setLicenseKey("07a54c751acde4192070a1600dac24bdT1JERVI6MCxFWFBJUlk9MTc5OTc3Njg5NjA4NCxLRVlWRVJTSU9OPTE=",);
-
-const decode = (str: string): string => Buffer.from(str, 'base64').toString('binary');
 
 type RadnnotatePropsType = {
     colorMode: Function
@@ -139,6 +136,12 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
     }
 
     saveAnnotationForm = (patients: Patients, variables: Variable[], annotationLevel: AnnotationLevel, rows) => {
+        let segmentationIndex = 0
+        variables.forEach(variable => {
+            if (variable.type === VariableType.segmentation) {
+                variable.segmentationIndex = segmentationIndex++
+            }
+        })
         let activePatient: Patient
         if (annotationLevel === AnnotationLevel.patient) {
             if (rows !== undefined) {
@@ -154,7 +157,6 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
                 const intersectionPatientIDs = imagePatientIDs.filter(patientID => annotationPatientIDs.includes(patientID));
                 imagePatientIDs.forEach(patientID => {
                     if (!intersectionPatientIDs.includes(patientID)) {
-                        console.log(patientID)
                         patients.deletePatient(patientID)
                     }
                 })
@@ -175,7 +177,6 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
                 rows.forEach((row, index) => {
                     row.id = index
                 })
-                console.log(patients)
             }
             activePatient = patients.getPatient(0)
         } else {
@@ -217,7 +218,7 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
             jumpBackToPatientIndex: -1,
             jumpBackToVariableIndex: -1,
             seriesDescriptions: seriesDescriptions,
-            toolStates: existingToolStates
+            toolStates: existingToolStates,
         })
     }
 
@@ -271,10 +272,10 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
                             const pixelData = new Uint8Array(atob(currentValue.pixelData).split("").map(function (c) {
                                 return c.charCodeAt(0);
                             }));
-                            annotations.push([sopInstanceUID, currentValue.height, currentValue.width, pixelData])
+                            annotations.push([sopInstanceUID, currentValue.height, currentValue.width, pixelData, currentValue.segmentationIndex])
                         } else if (type !== VariableType.boolean && type !== VariableType.integer) {
                             annotation = currentValue.data
-                            annotations.push([sopInstanceUID, ToolType.get(type), annotation])
+                            annotations.push([sopInstanceUID, ToolType.get(type), annotation, currentValue.segmentationIndex])
                         }
                         sopInstanceUIDs.push(sopInstanceUID)
                     })

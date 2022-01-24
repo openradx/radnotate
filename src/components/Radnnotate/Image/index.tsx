@@ -89,8 +89,9 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         ]
 
         const segmentationTransparency = 0
-        const { configuration} = cornerstoneTools.getModule("segmentation");
+        const {configuration} = cornerstoneTools.getModule("segmentation");
         configuration.fillAlpha = segmentationTransparency;
+        configuration.fillAlphaInactive = 0;
 
         let currentSeriesDescription: string = ""
         this.props.seriesDescriptions.keys().forEach(seriesDescription => {
@@ -131,8 +132,8 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         setTimeout(() => {
             const {getters, setters} = cornerstoneTools.getModule("segmentation");
             this.props.toolStates.forEach(annotationToolState => {
-                if (annotationToolState.length === 4) {
-                    const [imageId, height, width, pixelData] = annotationToolState
+                if (annotationToolState.length === 5) {
+                    const [imageId, height, width, pixelData, segmentationIndex] = annotationToolState
                     let imageIdIndex
                     this.props.imageIds.forEach((currentImageId, index) => {
                         if (currentImageId === imageId) {
@@ -140,7 +141,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                         }
                     })
                     if (imageIdIndex !== undefined) {
-                        setters.activeLabelmapIndex(this.state.cornerstoneElement, 0);
+                        setters.activeLabelmapIndex(this.state.cornerstoneElement, segmentationIndex);
                         const {labelmap3D} = getters.labelmap2D(this.state.cornerstoneElement);
                         const l2dforImageIdIndex = getters.labelmap2DByImageIdIndex(
                             labelmap3D,
@@ -153,6 +154,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                     }
                 }
             })
+            setters.activeLabelmapIndex(this.state.cornerstoneElement, 0);
             cornerstone.updateImage(this.state.cornerstoneElement);
         }, 200)
     }
@@ -206,7 +208,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         return seed
     }
 
-    _processSegmentation = async (pixelData, imageId: string, instanceNumber: number) => {
+    _processSegmentation = async (pixelData, imageId: string, instanceNumber: number, segmentationIndex: number) => {
         return await new Promise(resolve => {
             loadImage(imageId).then((image) => {
                 const segmentation = new TSMap<string, number | string>()
@@ -215,6 +217,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                 segmentation.set("pixelData", b64encoded)
                 segmentation.set("width", image.width)
                 segmentation.set("height", image.height)
+                segmentation.set("segmentationIndex", segmentationIndex)
                 resolve(segmentation)
             })
         })
@@ -265,18 +268,19 @@ class Image extends Component<ImagePropsType, ImageStateType> {
     _resolveSegmentation = async () => {
         const currentValues = []
         const {
-            state,
+            state
         } = cornerstoneTools.getModule("segmentation");
         const imageIdState = state.series[this.props.imageIds[0]]
-        if (imageIdState !== undefined) {
-        const annotations = imageIdState.labelmaps3D[0].labelmaps2D
+        if (imageIdState !== undefined && imageIdState.labelmaps3D !== undefined) {
+            const annotations = imageIdState.labelmaps3D[this.props.activeVariable.segmentationIndex].labelmaps2D
             const imageIndices = Object.keys(annotations)
             for (let i = 0; i < imageIndices.length; i++) {
                 const imageIndex = imageIndices[i]
                 const imageId = this.props.imageIds[Number(imageIndex)]
                 const instanceNumber = this.props.instanceNumbers.get(imageId)
                 const pixelData = annotations[imageIndex].pixelData
-                const segmentation = await this._processSegmentation(pixelData, imageId, instanceNumber)
+                const segmentationIndex = this.props.activeVariable.segmentationIndex
+                const segmentation = await this._processSegmentation(pixelData, imageId, instanceNumber, segmentationIndex)
                 const defaultValues = await this._processImage(imageId)
                 const value = new TSMap([...Array.from(segmentation.entries()), ...Array.from(defaultValues.entries())])
                 currentValues.push(value)
@@ -372,7 +376,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             const {
                 state
             } = cornerstoneTools.getModule("segmentation");
-            state.series = {}
+            state.series[this.props.imageIds[0]].labelmaps3D[this.props.activeVariable.segmentationIndex].labelmaps2D = []
         } else {
             const existingToolState = toolStateManager.saveToolState();
             const keys = Object.keys(existingToolState)
@@ -402,6 +406,8 @@ class Image extends Component<ImagePropsType, ImageStateType> {
     componentDidMount = () => {
         document.addEventListener("keydown", this._handleKeyPress, false)
         document.addEventListener("keyup", this._handleKeyPress, false)
+        const {setters} = cornerstoneTools.getModule("segmentation");
+        setters.activeLabelmapIndex(this.state.cornerstoneElement, this.props.activeVariable.segmentationIndex);
         this._setInitialTools()
     };
 
@@ -415,6 +421,11 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         if (!prevState.stackStartingImageIds.includes(prevProps.imageIds[0])) {
             prevState.stackStartingImageIds.push(prevProps.imageIds[0])
             this._setInitialTools()
+        }
+        if (prevProps.activeVariable.id !== this.props.activeVariable.id ||
+            prevProps.activePatient.patientID !== this.props.activePatient.patientID) {
+            const {setters} = cornerstoneTools.getModule("segmentation");
+            setters.activeLabelmapIndex(this.state.cornerstoneElement, this.props.activeVariable.segmentationIndex);
         }
     }
 
@@ -463,8 +474,8 @@ class Image extends Component<ImagePropsType, ImageStateType> {
 
     handleSegmentationTransparencySlider = (event: Event) => {
         const segmentationTransparency = event.target.value
-        const { configuration} = cornerstoneTools.getModule("segmentation");
-        configuration.fillAlpha = segmentationTransparency/100;
+        const {configuration} = cornerstoneTools.getModule("segmentation");
+        configuration.fillAlpha = segmentationTransparency / 100;
         cornerstone.updateImage(this.state.cornerstoneElement);
         this.setState({segmentationTransparency: segmentationTransparency})
     }
