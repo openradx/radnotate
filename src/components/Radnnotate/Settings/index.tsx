@@ -9,7 +9,7 @@ import {
     SpeedDial,
     SpeedDialAction
 } from "@mui/material";
-import {useEffect, useMemo, useState} from "react";
+import {useEffect, useState} from "react";
 import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
 import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
@@ -24,7 +24,7 @@ type SeetingsPropsType = {
 
 export const Settings = (props: SeetingsPropsType) => {
     const [actions, setActions] = useState([
-            {icon: <DarkModeOutlinedIcon/>, name: 'Dark mode'},
+            {icon: <LightModeOutlinedIcon/>, name: 'Light mode'},
         ]
     )
     const [dialogOpen, setDialogOpen] = useState(false)

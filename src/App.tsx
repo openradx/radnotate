@@ -10,8 +10,8 @@ import {useMemo, useState} from "react";
 import {getTheme} from "./components/Radnnotate/styles";
 
 const App = () => {
-    const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
-    const [mode, setMode] = useState<PaletteMode>(prefersDarkMode? "dark" : "light");
+    const prefersLightMode = useMediaQuery('(prefers-color-scheme: light)');
+    const [mode, setMode] = useState<PaletteMode>(prefersLightMode ? "light" : "dark");
 
     const theme = useMemo(() => createTheme(getTheme(mode)), [mode]);
 
@@ -20,7 +20,8 @@ const App = () => {
             toggleColorMode: () => {
                 setMode((prevMode: PaletteMode) =>
                     prevMode === 'light' ? 'dark' : 'light',
-                );            }
+                );
+            }
         }),
         [mode]);
 
