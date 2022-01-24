@@ -470,12 +470,12 @@ class Image extends Component<ImagePropsType, ImageStateType> {
 
     _initSegmentation = () => {
         const {setters, configuration, getters} = cornerstoneTools.getModule("segmentation");
+        const segmentationTransparency = this.state.segmentationTransparency
+        configuration.fillAlpha = segmentationTransparency / 100
         const segmentationIndex = this.props.activeVariable.segmentationIndex
         if (segmentationIndex !== undefined) {
-            const segmentationTransparency = this.state.segmentationTransparency
             setters.activeLabelmapIndex(this.state.cornerstoneElement, segmentationIndex);
             setters.colorLUTIndexForLabelmap3D(getters.labelmap3D(this.state.cornerstoneElement, segmentationIndex), segmentationIndex)
-            configuration.fillAlpha = segmentationTransparency / 100
             cornerstone.updateImage(this.state.cornerstoneElement);
         }
     }
