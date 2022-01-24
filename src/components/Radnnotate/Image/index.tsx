@@ -8,6 +8,7 @@ import cornerstone, {loadImage} from "cornerstone-core";
 import Variable, {VariableType} from "../AnnotationForm/variable";
 import {TSMap} from "typescript-map"
 import {
+    Alert,
     Box,
     Button,
     Divider,
@@ -16,7 +17,7 @@ import {
     FormGroup,
     MenuItem,
     Select, SelectChangeEvent,
-    Slider,
+    Slider, Snackbar,
     Stack,
     Switch, Tooltip,
     Typography
@@ -61,6 +62,9 @@ type ImageStateType = {
     currentImageId: string,
     currentSeriesDescription: string,
     stackStartingImageIds: string[],
+    snackbarKeyPressedOpen: boolean,
+    snackbarKeyPressedText: string,
+    keyPressedValue: TSMap<string, string> | undefined,
 }
 
 // ToDO Since only 10 colors are provided, segmentationIndex will break whne more than 10 segmentations are wanted.
@@ -138,6 +142,8 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             segmentationTransparency: 0,
             currentSeriesDescription: currentSeriesDescription,
             stackStartingImageIds: stackStartingImageIds,
+            snackbarKeyPressedOpen: false,
+            keyPressedValue: undefined,
         };
 
     }
@@ -319,25 +325,32 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             this.props.activeVariable.type !== VariableType.integer) {
             currentValues = await this._resolveAnnotations()
         }
-
         if (this.props.activeVariable.type === VariableType.boolean && (keyPressed === "t" || keyPressed === "f")) {
             const defaultValues = await this._processImage(this.state.currentImageId)
             let value = this._processBoolean(keyPressed)
             value = new TSMap([...Array.from(value.entries()), ...Array.from(defaultValues.entries())])
-            this.props.nextVariable([value])
             this._setTools()
+            let text = '"' + keyPressed + '" key was pressed. "' + String(value.get("value")) + '" successfully recognized as value. Press "Enter" key to confirm.'
+            this.setState({snackbarKeyPressedOpen: true, snackbarKeyPressedText: text, keyPressedValue: value})
         } else if (this.props.activeVariable.type === VariableType.integer && (!isNaN(Number(keyPressed)))) {
             const defaultValues = await this._processImage(this.state.currentImageId)
             let value = this._processInteger(keyPressed)
             value = new TSMap([...Array.from(value.entries()), ...Array.from(defaultValues.entries())])
-            this.props.nextVariable([value])
             this._setTools()
-        } else {
-            // ToDo Handle Enter press during boolean or integer, especially in validation mode
-            if (keyPressed === "Enter") {
+            const text = '"' + keyPressed + '" key was pressed and successfully recognized as value. Press "Enter" key to confirm.'
+            this.setState({snackbarKeyPressedOpen: true, snackbarKeyPressedText: text, keyPressedValue: value})
+        } else if (keyPressed === "Enter") {
+            if (this.props.activeVariable.type === VariableType.boolean || this.props.activeVariable.type === VariableType.integer) {
+                if (this.state.keyPressedValue === undefined) {
+                    this.props.nextVariable([])
+                } else {
+                    this.props.nextVariable([this.state.keyPressedValue])
+                }
+                this.setState({keyPressedValue: undefined})
+            } else {
                 this.props.nextVariable(currentValues.slice(0, currentValues.length))
-                this._setTools()
             }
+            this._setTools()
         }
     }
 
@@ -381,7 +394,12 @@ class Image extends Component<ImagePropsType, ImageStateType> {
 
     _handleKeyPress = (event: Event) => {
         if (event.type === "keydown") {
-            this._updateVariable(event.key)
+            if (event.key === "Escape") {
+                const text = '"Escape" key was pressed. Cached value deleted.'
+                this.setState({keyPressedValue: new TSMap<string, string>([["value", "Escape"]]), snackbarKeyPressedOpen: true, snackbarKeyPressedText: text})
+            } else {
+                this._updateVariable(event.key)
+            }
         }
         this._setCorrectionMode(event)
     }
@@ -399,6 +417,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             this._initTools()
             this._initSegmentation()
         })
+
     };
 
     componentWillUnmount = () => {
@@ -452,11 +471,13 @@ class Image extends Component<ImagePropsType, ImageStateType> {
     _initSegmentation = () => {
         const {setters, configuration, getters} = cornerstoneTools.getModule("segmentation");
         const segmentationIndex = this.props.activeVariable.segmentationIndex
-        const segmentationTransparency = this.state.segmentationTransparency
-        setters.activeLabelmapIndex(this.state.cornerstoneElement, segmentationIndex);
-        setters.colorLUTIndexForLabelmap3D(getters.labelmap3D(this.state.cornerstoneElement, segmentationIndex), segmentationIndex)
-        configuration.fillAlpha = segmentationTransparency / 100
-        cornerstone.updateImage(this.state.cornerstoneElement);
+        if (segmentationIndex !== undefined) {
+            const segmentationTransparency = this.state.segmentationTransparency
+            setters.activeLabelmapIndex(this.state.cornerstoneElement, segmentationIndex);
+            setters.colorLUTIndexForLabelmap3D(getters.labelmap3D(this.state.cornerstoneElement, segmentationIndex), segmentationIndex)
+            configuration.fillAlpha = segmentationTransparency / 100
+            cornerstone.updateImage(this.state.cornerstoneElement);
+        }
     }
 
     _setCorrectionMode = (event: ChangeEvent) => {
@@ -657,6 +678,14 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                         }}
                     />
                 ))}
+                <Snackbar open={this.state.snackbarKeyPressedOpen}
+                          autoHideDuration={6000}
+                          anchorOrigin={{vertical: "top", horizontal: "right"}}
+                          onClose={() => this.setState({snackbarKeyPressedOpen: false})}>
+                    <Alert severity="success">
+                        {this.state.snackbarKeyPressedText}
+                    </Alert>
+                </Snackbar>
             </div>
         )
     }

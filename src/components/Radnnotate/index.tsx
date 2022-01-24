@@ -277,7 +277,7 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
                             annotations.push([sopInstanceUID, currentValue.height, currentValue.width, pixelData, currentValue.segmentationIndex])
                         } else if (type !== VariableType.boolean && type !== VariableType.integer) {
                             annotation = currentValue.data
-                            annotations.push([sopInstanceUID, ToolType.get(type), annotation, currentValue.segmentationIndex])
+                            annotations.push([sopInstanceUID, ToolType.get(type), annotation])
                         }
                         sopInstanceUIDs.push(sopInstanceUID)
                     })
@@ -422,7 +422,19 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
                 } else {
                     json += "]"
                 }
-                row[this.state.activeVariable.toString()] = json
+                if (this.state.activeVariable.type === VariableType.boolean || this.state.activeVariable.type === VariableType.integer) {
+                    if (currentValues[0] !== undefined) {
+                        if (currentValues[0].get("value") === "Escape") {
+                            row[this.state.activeVariable.toString()] = "[]"
+                        } else {
+                            row[this.state.activeVariable.toString()] = json
+                        }
+                    } else if (row[this.state.activeVariable.toString()] === undefined) {
+                        row[this.state.activeVariable.toString()] = json
+                    }
+                } else {
+                    row[this.state.activeVariable.toString()] = json
+                }
             }
         })
         return rows
