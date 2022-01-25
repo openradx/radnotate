@@ -373,6 +373,9 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
     }
 
     _handleCellClick = (params: GridCellParams) => {
+        if(this.state.jumpBackToPatientIndex >= 0 || this.state.jumpBackToVariableIndex >= 0) {
+            return
+        }
         const activePatientIndex = Number(params.id)
         let activePatient: Patient
         if (this.state.annotationLevel === AnnotationLevel.patient) {

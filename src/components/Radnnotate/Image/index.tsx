@@ -16,13 +16,17 @@ import {
     FormControlLabel,
     FormGroup,
     MenuItem,
-    Select, SelectChangeEvent,
-    Slider, Snackbar,
+    Select,
+    SelectChangeEvent,
+    Slider,
+    Snackbar,
     Stack,
-    Switch, Tooltip,
+    Switch,
+    Tooltip,
     Typography
 } from "@mui/material";
 import UndoIcon from '@mui/icons-material/Undo';
+import RedoIcon from '@mui/icons-material/Redo';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 
 cornerstoneTools.external.cornerstone = cornerstone;
@@ -261,18 +265,23 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         } = cornerstoneTools.getModule("segmentation");
         const imageIdState = state.series[this.props.imageIds[0]]
         if (imageIdState !== undefined && imageIdState.labelmaps3D !== undefined) {
-            const annotations = imageIdState.labelmaps3D[this.props.activeVariable.segmentationIndex].labelmaps2D
-            const imageIndices = Object.keys(annotations)
-            for (let i = 0; i < imageIndices.length; i++) {
-                const imageIndex = imageIndices[i]
-                const imageId = this.props.imageIds[Number(imageIndex)]
-                const instanceNumber = this.props.instanceNumbers.get(imageId)
-                const pixelData = annotations[imageIndex].pixelData
-                const segmentationIndex = this.props.activeVariable.segmentationIndex
-                const segmentation = await this._processSegmentation(pixelData, imageId, instanceNumber, segmentationIndex)
-                const defaultValues = await this._processImage(imageId)
-                const value = new TSMap([...Array.from(segmentation.entries()), ...Array.from(defaultValues.entries())])
-                currentValues.push(value)
+            const labelmap3D = imageIdState.labelmaps3D[this.props.activeVariable.segmentationIndex]
+            if (labelmap3D.undo.length > 0) {
+                const annotations = labelmap3D.labelmaps2D
+                const imageIndices = Object.keys(annotations)
+                for (let i = 0; i < imageIndices.length; i++) {
+                    const imageIndex = imageIndices[i]
+                    const imageId = this.props.imageIds[Number(imageIndex)]
+                    const instanceNumber = this.props.instanceNumbers.get(imageId)
+                    const pixelData = annotations[imageIndex].pixelData
+                    if (pixelData.some(value => value !== 0)) {
+                        const segmentationIndex = this.props.activeVariable.segmentationIndex
+                        const segmentation = await this._processSegmentation(pixelData, imageId, instanceNumber, segmentationIndex)
+                        const defaultValues = await this._processImage(imageId)
+                        const value = new TSMap([...Array.from(segmentation.entries()), ...Array.from(defaultValues.entries())])
+                        currentValues.push(value)
+                    }
+                }
             }
         }
         return currentValues
@@ -325,9 +334,9 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             this.props.activeVariable.type !== VariableType.integer) {
             currentValues = await this._resolveAnnotations()
         }
-        if (this.props.activeVariable.type === VariableType.boolean && (keyPressed === "t" || keyPressed === "f")) {
+        if (this.props.activeVariable.type === VariableType.boolean && (keyPressed.toLowerCase() === "t" || keyPressed.toLowerCase() === "f")) {
             const defaultValues = await this._processImage(this.state.currentImageId)
-            let value = this._processBoolean(keyPressed)
+            let value = this._processBoolean(keyPressed.toLowerCase())
             value = new TSMap([...Array.from(value.entries()), ...Array.from(defaultValues.entries())])
             this._setTools()
             let text = '"' + keyPressed + '" key was pressed. "' + String(value.get("value")) + '" successfully recognized as value. Press "Enter" key to confirm.'
@@ -372,7 +381,11 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             const {
                 state
             } = cornerstoneTools.getModule("segmentation");
-            state.series[this.props.imageIds[0]].labelmaps3D[this.props.activeVariable.segmentationIndex].labelmaps2D = []
+            const labelmap3D = state.series[this.props.imageIds[0]].labelmaps3D[this.props.activeVariable.segmentationIndex]
+            const len = labelmap3D.undo.length
+            for (let i=0; i < len; i++) {
+                this.handleUndoClick()
+            }
         } else {
             const existingToolState = toolStateManager.saveToolState();
             const keys = Object.keys(existingToolState)
@@ -392,11 +405,15 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         this.setState({correctionModeEnabled: false})
     }
 
-    _handleKeyPress = (event: Event) => {
+    _handleKeyPress = (event: KeyboardEvent) => {
         if (event.type === "keydown") {
             if (event.key === "Escape") {
                 const text = '"Escape" key was pressed. Cached value deleted.'
                 this.setState({keyPressedValue: new TSMap<string, string>([["value", "Escape"]]), snackbarKeyPressedOpen: true, snackbarKeyPressedText: text})
+            } else if (event.key.toLowerCase() === "z" && event.ctrlKey) {
+                this.handleUndoClick()
+            } else if (event.key.toLowerCase() === "y" && event.ctrlKey) {
+                this.handleRedoClick()
             } else {
                 this._updateVariable(event.key)
             }
@@ -487,12 +504,6 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             } else {
                 this.setState({correctionModeEnabled: false})
             }
-        } else {
-            let checked = event.target.checked
-            if (checked === undefined) {
-                checked = false
-            }
-            this.setState({correctionModeEnabled: checked})
         }
     }
 
@@ -513,10 +524,21 @@ class Image extends Component<ImagePropsType, ImageStateType> {
     }
 
     handleUndoClick = () => {
-        const {
-            setters,
-        } = cornerstoneTools.getModule("segmentation");
-        setters.undo(this.state.cornerstoneElement);
+        if (this.props.activeVariable.type === VariableType.segmentation) {
+            const {
+                setters,
+            } = cornerstoneTools.getModule("segmentation");
+            setters.undo(this.state.cornerstoneElement);
+        }
+    }
+
+    handleRedoClick = () => {
+        if (this.props.activeVariable.type === VariableType.segmentation) {
+            const {
+                setters,
+            } = cornerstoneTools.getModule("segmentation");
+            setters.redo(this.state.cornerstoneElement);
+        }
     }
 
     handleResetClick = () => {
@@ -592,6 +614,10 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                     <Button sx={{minWidth: 80}} onClick={this.handleUndoClick} color="primary" variant="outlined"
                             startIcon={<UndoIcon/>}>
                         Undo
+                    </Button>
+                    <Button sx={{minWidth: 80}} onClick={this.handleRedoClick} color="primary" variant="outlined"
+                            startIcon={<RedoIcon/>}>
+                        Redo
                     </Button>
                     <Button sx={{minWidth: 80}} onClick={this.handleResetClick} color="primary" variant="outlined"
                             startIcon={<RestartAltIcon/>}>
