@@ -265,6 +265,7 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
             const fields = Object.keys(row)
             fields.forEach(field => {
                 if (field !== "PatientID" && field !== "id") {
+                    // ToDo Fix parsing empty string
                     const currentValues = JSON.parse(row[field])
                     const type = JSON.parse(field).type
                     currentValues.forEach(currentValue => {
