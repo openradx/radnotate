@@ -541,9 +541,15 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         }
     }
 
-    _setCorrectionMode = (event: ChangeEvent) => {
+    _setCorrectionMode = (event: Event | KeyboardEvent) => {
         if (event.key === "Control") {
             if (event.type === "keydown") {
+                this.setState({correctionModeEnabled: true})
+            } else {
+                this.setState({correctionModeEnabled: false})
+            }
+        } else if(event.type === "change"){
+            if (event.target.checked) {
                 this.setState({correctionModeEnabled: true})
             } else {
                 this.setState({correctionModeEnabled: false})
