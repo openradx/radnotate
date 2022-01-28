@@ -21,7 +21,7 @@ const AnnotationData = (props: AnnotationDataProps) => {
     const exportAnnotationsToolbar = () => {
         return (
             <GridToolbarContainer className={gridClasses.toolbarContainer}>
-                <Tooltip title={"Export only selected files"}>
+                <Tooltip title={"Export only selected rows"} followCursor={true}>
                     <GridToolbarExport printOptions={{disableToolbarButton: true}}/>
                 </Tooltip>
             </GridToolbarContainer>

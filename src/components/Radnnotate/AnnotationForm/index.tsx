@@ -1,10 +1,10 @@
-import {Component} from "react";
+import React, {Component} from "react";
 import {
     Box,
     Button,
     Divider,
     FormControl,
-    FormControlLabel,
+    FormControlLabel, FormGroup,
     FormLabel,
     IconButton,
     InputLabel,
@@ -12,7 +12,7 @@ import {
     Radio,
     RadioGroup,
     Select,
-    Stack,
+    Stack, Switch,
     TextField,
     Tooltip
 } from "@mui/material";
@@ -35,7 +35,8 @@ type AnnotationFormStateType = {
     nameError: boolean
     typeError: boolean
     annotationLevel: AnnotationLevel,
-    rows: Object | undefined
+    rows: Object | undefined,
+    loadAnnotations: boolean
 }
 
 type AnnotationFormPropsType = {
@@ -51,7 +52,8 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
             nameError: false,
             typeError: false,
             annotationLevel: AnnotationLevel.patient,
-            rows: undefined
+            rows: undefined,
+            loadAnnotations: false
         }
     }
 
@@ -123,47 +125,58 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
         }
     }
 
-    _loadVariableDefinitions = (event) => {
-        if (event.target.files.length > 0) {
-            const loadHeader = new Promise((resolve) => {
-                    Papa.parse(event.target.files[0], {
-                        header: true,
-                        complete: results => {
-                            resolve(results.meta.fields?.slice(1,))
-                        }
-                    })
-                })
-            loadHeader.then((headers) => {
-                const variables: Variable[] = []
-                headers.forEach((header) => {
-                    const headerAsJson = JSON.parse(header)
-                    variables.push(new Variable(headerAsJson))
-                })
-                variables.push(new Variable(variables.length))
-                this.setState({variables: variables})
-            })
+    _setLoadAnnotationsSwitch = (event: Event) => {
+        if (event.target.checked) {
+            this.setState({loadAnnotations: true})
+        } else {
+            this.setState({loadAnnotations: false})
         }
     }
 
-    _loadAnnotationData = (event) => {
-        this._loadVariableDefinitions(event)
+    _loadExport = (event: Event) => {
         if (event.target.files.length > 0) {
-            const loadData = new Promise((resolve) => {
-                Papa.parse(event.target.files[0], {
+            const file = event.target.files[0]
+            this._loadVariableDefinitions(file)
+            this._loadAnnotationData(file)
+        }
+    }
+
+    _loadVariableDefinitions = (file: File) => {
+        const loadHeader = new Promise((resolve) => {
+                Papa.parse(file, {
                     header: true,
                     complete: results => {
-                        const data = results.data
-                        data.forEach((row, index) => {
-                            row.id = index
-                        })
-                        resolve(data)
+                        resolve(results.meta.fields?.slice(1,))
                     }
                 })
             })
-            loadData.then((rows) => {
-                this.setState({rows: rows})
+        loadHeader.then((headers) => {
+            const variables: Variable[] = []
+            headers.forEach((header) => {
+                const headerAsJson = JSON.parse(header)
+                variables.push(new Variable(headerAsJson))
             })
-        }
+            variables.push(new Variable(variables.length))
+            this.setState({variables: variables})
+        })
+    }
+
+    _loadAnnotationData = (file: File) => {
+        const loadData = new Promise((resolve) => {
+            Papa.parse(file, {
+                header: true,
+                complete: results => {
+                    const data = results.data
+                    data.forEach((row, index) => {
+                        row.id = index
+                    })
+                    resolve(data)
+                }
+            })
+        })
+        loadData.then((rows) => {
+            this.setState({rows: rows})
+        })
     }
 
     renderVariableInput(id: number) {
@@ -227,16 +240,18 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                 <Stack direction="column" divider={<Divider orientation="horizontal" flexItem/>}
                        spacing={2}>
                     <Stack direction="row" divider={<Divider orientation="vertical" flexItem/>}
-                           spacing={2}>
+                           spacing={2} alignItems={"center"}>
                         <DicomDropzone savePatients={this.savePatients}/>
                         <Button sx={{minWidth: 175, maxWidth: 175, textAlign:"center"}} variant="outlined" component="label">
-                            Load variable definitions
-                            <input type="file" hidden={true} onInput={(event => this._loadVariableDefinitions(event))}/>
+                            Load previous export
+                            <input type="file" hidden={true} onInput={(event => this._loadExport(event))}/>
                         </Button>
-                        <Button sx={{minWidth: 175, maxWidth: 175, textAlign:"center"}} variant="outlined" component="label">
-                            Load annotation data
-                            <input type="file" hidden={true} onInput={(event => this._loadAnnotationData(event))}/>
-                        </Button>
+                        <FormGroup sx={{minWidth: 140, maxWidth: 140}}>
+                            <FormControlLabel control={<Switch checked={this.state.loadAnnotations}
+                                                               value={this.state.loadAnnotations}
+                                                               onChange={event => this._setLoadAnnotationsSwitch(event)}/>}
+                                              label="Load annotations"/>
+                        </FormGroup>
                         <FormControl sx={{minWidth: 190}} component="fieldset">
                             <FormLabel component="legend">Annotation level</FormLabel>
                             <RadioGroup row aria-label="annotationLevel" name="row-radio-buttons-group"
@@ -256,11 +271,15 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                                 return this.renderVariableInput(index)
                             })
                         }
-                        <Button sx={{minWidth: 200, maxWidth: 200, minHeight: 65}} color="primary" variant="outlined" startIcon={<SendIcon/>}
+                        <Button sx={{minWidth: 200, maxWidth: 200, minHeight: 55}} color="primary" variant="outlined" startIcon={<SendIcon/>}
                                 onClick={() => {
                                     let variables = this.state.variables
                                     variables = variables.slice(0, variables.length - 1)
-                                    this.props.saveAnnotationForm(this.state.patients, variables, this.state.annotationLevel, this.state.rows)
+                                    if (this.state.loadAnnotations) {
+                                        this.props.saveAnnotationForm(this.state.patients, variables, this.state.annotationLevel, this.state.rows)
+                                    } else {
+                                        this.props.saveAnnotationForm(this.state.patients, variables, this.state.annotationLevel)
+                                    }
                                 }}
                                 disabled={saveAnnotationButtonDisabled}>
                             Start annotation

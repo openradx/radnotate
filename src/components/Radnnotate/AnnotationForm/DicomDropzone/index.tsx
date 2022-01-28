@@ -17,7 +17,7 @@ function CircularProgressWithLabel(props: CircularProgressProps & { value: numbe
         <Box sx={{
             position: 'absolute',
             marginLeft: 10.5,
-            marginTop: -6.6
+            marginTop: -5.8
         }}>
             <CircularProgress sx={{
                 color: "secondary.main"
@@ -163,7 +163,7 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
                             width: 200
                         }} {...getRootProps()}>
                             <input {...getInputProps()} />
-                            <Button sx={{minWidth: 200, minHeight: 65}} variant="outlined">
+                            <Button sx={{minWidth: 200, minHeight: 55}} variant="outlined">
                                 {this.state.buttonText}
                             </Button>
                             {

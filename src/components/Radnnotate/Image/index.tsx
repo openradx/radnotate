@@ -10,7 +10,7 @@ import {TSMap} from "typescript-map"
 import {
     Alert,
     Box,
-    Button,
+    Button, ClickAwayListener,
     Divider,
     FormControl,
     FormControlLabel,
@@ -69,6 +69,7 @@ type ImageStateType = {
     snackbarKeyPressedOpen: boolean,
     snackbarKeyPressedText: string,
     keyPressedValue: TSMap<string, string> | undefined,
+    openTooltip: boolean,
 }
 
 // ToDO Since only 10 colors are provided, segmentationIndex will break whne more than 10 segmentations are wanted.
@@ -152,6 +153,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             stackStartingImageIds: stackStartingImageIds,
             snackbarKeyPressedOpen: false,
             keyPressedValue: undefined,
+            openTooltip: false,
         };
 
     }
@@ -411,7 +413,11 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         if (event.type === "keydown") {
             if (event.key === "Escape") {
                 const text = '"Escape" key was pressed. Cached value deleted.'
-                this.setState({keyPressedValue: new TSMap<string, string>([["value", "Escape"]]), snackbarKeyPressedOpen: true, snackbarKeyPressedText: text})
+                this.setState({
+                    keyPressedValue: new TSMap<string, string>([["value", "Escape"]]),
+                    snackbarKeyPressedOpen: true,
+                    snackbarKeyPressedText: text
+                })
             } else if (event.key.toLowerCase() === "z" && event.ctrlKey) {
                 this.handleUndoClick()
             } else if (event.key.toLowerCase() === "y" && event.ctrlKey) {
@@ -453,7 +459,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             prevProps.activePatient.patientID !== this.props.activePatient.patientID) {
             this._initSegmentation()
         }
-        if (prevProps.activePatient.patientID !== this.props.activePatient.patientID ) {
+        if (prevProps.activePatient.patientID !== this.props.activePatient.patientID) {
             awaitTimeout(500).then(() => {
                 this._jumpToImage()
             })
@@ -548,7 +554,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             } else {
                 this.setState({correctionModeEnabled: false})
             }
-        } else if(event.type === "change"){
+        } else if (event.type === "change") {
             if (event.target.checked) {
                 this.setState({correctionModeEnabled: true})
             } else {
@@ -558,7 +564,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
     }
 
     _setCurrentImage = (event: Event | string) => {
-        let currentImageId : string
+        let currentImageId: string
         if (typeof event === "string") {
             currentImageId = event
         } else {
@@ -631,30 +637,37 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         })
         const image = await cornerstone.loadImage(currentImageId)
         cornerstone.displayImage(this.state.cornerstoneElement, image)
-        this.setState({currentSeriesDescription: currentSeriesDescription, imageIdIndex: imageIdIndex})
+        this.setState({
+            currentSeriesDescription: currentSeriesDescription,
+            imageIdIndex: imageIdIndex,
+            openTooltip: false
+        })
     }
 
     renderSeriesSelection = () => {
         return (
-            <div>
-                <Tooltip title={"Select series by series description"}>
-                    <FormControl sx={{width: 250}} size={"small"}>
-                        <Select value={this.state.currentSeriesDescription}
-                                onChange={event => this.handleSeriesSelection(event)}
-                                onClose={() => {
-                                    setTimeout(() => {
-                                        document.activeElement.blur();
-                                    }, 0);
-                                }}>
-                            {this.props.seriesDescriptions.keys().map((seriesDescription) => (
-                                <MenuItem key={seriesDescription} value={seriesDescription}>
-                                    {seriesDescription}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
-                </Tooltip>
-            </div>
+                <div>
+                    <Tooltip title={"Select series by series description"} followCursor={true} disableTouchListener={true}
+                             disableFocusListener={true} disableInteractive={true} open={this.state.openTooltip}>
+                        <FormControl sx={{width: 250}} size={"small"}>
+                            <Select value={this.state.currentSeriesDescription}
+                                    onOpen={() => this.setState({openTooltip: true})}
+                                    onChange={event => this.handleSeriesSelection(event)}
+                                    onClose={() => {
+                                        this.setState({openTooltip: false})
+                                        setTimeout(() => {
+                                            document.activeElement.blur();
+                                        }, 0);
+                                    }}>
+                                {this.props.seriesDescriptions.keys().map((seriesDescription) => (
+                                    <MenuItem key={seriesDescription} value={seriesDescription}>
+                                        {seriesDescription}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    </Tooltip>
+                </div>
         )
     }
 
@@ -667,12 +680,15 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                        spacing={1}
                        divider={<Divider orientation="vertical" flexItem/>}>
                     {this.renderSeriesSelection()}
-                    <FormGroup sx={{minWidth: 160}}>
-                        <FormControlLabel control={<Switch checked={this.state.correctionModeEnabled}
-                                                           value={this.state.correctionModeEnabled}
-                                                           onChange={event => this._setCorrectionMode(event)}/>}
-                                          label="Correction mode"/>
-                    </FormGroup>
+
+                    <Tooltip title={"Enable by pressing Control key"}>
+                        <FormGroup sx={{minWidth: 160}}>
+                            <FormControlLabel control={<Switch checked={this.state.correctionModeEnabled}
+                                                               value={this.state.correctionModeEnabled}
+                                                               onChange={event => this._setCorrectionMode(event)}/>}
+                                              label="Correction mode"/>
+                        </FormGroup>
+                    </Tooltip>
                     <Button sx={{minWidth: 80}} onClick={this.handleUndoClick} color="primary" variant="outlined"
                             startIcon={<UndoIcon/>}>
                         Undo
