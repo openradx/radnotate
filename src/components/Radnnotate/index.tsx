@@ -56,6 +56,13 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
         }
     }
 
+    componentDidMount = () => {
+        addEventListener("beforeunload", (event) => {
+            event.preventDefault()
+        })
+    };
+
+
     _variablesToColumns = (activePatientIndex: number, activeVariableName: string, variables: Variable[], annotationLevel: AnnotationLevel) => {
         const columns: GridColDef[] = []
         if (annotationLevel === AnnotationLevel.patient) {
