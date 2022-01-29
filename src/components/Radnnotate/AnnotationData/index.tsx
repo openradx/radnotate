@@ -1,9 +1,10 @@
 import React from "react";
-import {Box, gridClasses, Tooltip} from "@mui/material";
+import {Box, gridClasses} from "@mui/material";
 import {
     DataGridPro, GridColDef, GridRowsProp, GridToolbarContainer, GridToolbarExport,
     gridVisibleSortedRowIdsSelector, useGridApiRef, visibleGridColumnsSelector
 } from '@mui/x-data-grid-pro';
+import {CustomWidthTooltip} from "../styles";
 
 type AnnotationDataProps = {
     columns: GridColDef[],
@@ -21,9 +22,9 @@ const AnnotationData = (props: AnnotationDataProps) => {
     const exportAnnotationsToolbar = () => {
         return (
             <GridToolbarContainer className={gridClasses.toolbarContainer}>
-                <Tooltip title={"Export only selected rows"} followCursor={true}>
+                <CustomWidthTooltip title={"CAUTION: Exporting only selected rows. Be sure to selected all desired rows."} followCursor={true}>
                     <GridToolbarExport printOptions={{disableToolbarButton: true}}/>
-                </Tooltip>
+                </CustomWidthTooltip>
             </GridToolbarContainer>
         );
     }

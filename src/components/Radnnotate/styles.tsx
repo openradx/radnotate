@@ -1,4 +1,7 @@
-import {PaletteMode} from "@mui/material";
+import {PaletteMode, Tooltip, tooltipClasses} from "@mui/material";
+import {styled} from "@mui/styles";
+import React from "react";
+import {classes} from "@mui/lab/ClockPicker/ClockNumber";
 
 
 export const getTheme = (mode: PaletteMode) => ({
@@ -32,4 +35,12 @@ export const getTheme = (mode: PaletteMode) => ({
             }
         }
     }
+});
+
+export const CustomWidthTooltip = styled(({ className, ...props }) => (
+    <Tooltip {...props} classes={{ popper: className }} />
+))({
+    [`& .${tooltipClasses.tooltip}`]: {
+        maxWidth: 200,
+    },
 });

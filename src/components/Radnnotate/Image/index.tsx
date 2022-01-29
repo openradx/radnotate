@@ -359,7 +359,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                 } else {
                     this.props.nextVariable([this.state.keyPressedValue])
                 }
-                this.setState({keyPressedValue: undefined})
+                this.setState({keyPressedValue: undefined, snackbarKeyPressedOpen: false})
             } else {
                 this.props.nextVariable(currentValues.slice(0, currentValues.length))
             }

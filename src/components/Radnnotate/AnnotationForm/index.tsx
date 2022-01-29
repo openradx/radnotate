@@ -14,7 +14,7 @@ import {
     Select,
     Stack, Switch,
     TextField,
-    Tooltip
+    Tooltip, Typography
 } from "@mui/material";
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
@@ -23,6 +23,7 @@ import Variable, {VariableType} from "./variable";
 import DicomDropzone from "./DicomDropzone";
 import {Patients} from "./DicomDropzone/dicomObject";
 import Papa from "papaparse";
+import {CustomWidthTooltip} from "../styles";
 
 export enum AnnotationLevel {
     patient,
@@ -237,54 +238,73 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
         }
         return (
             <Box sx={{marginLeft: 8}}>
-                <Stack direction="column" divider={<Divider orientation="horizontal" flexItem/>}
-                       spacing={2}>
-                    <Stack direction="row" divider={<Divider orientation="vertical" flexItem/>}
-                           spacing={2} alignItems={"center"}>
-                        <DicomDropzone savePatients={this.savePatients}/>
-                        <Button sx={{minWidth: 175, maxWidth: 175, textAlign:"center"}} variant="outlined" component="label">
-                            Load previous export
-                            <input type="file" hidden={true} onInput={(event => this._loadExport(event))}/>
-                        </Button>
-                        <FormGroup sx={{minWidth: 140, maxWidth: 140}}>
-                            <FormControlLabel control={<Switch checked={this.state.loadAnnotations}
-                                                               value={this.state.loadAnnotations}
-                                                               onChange={event => this._setLoadAnnotationsSwitch(event)}/>}
-                                              label="Load annotations"/>
-                        </FormGroup>
-                        <FormControl sx={{minWidth: 190}} component="fieldset">
-                            <FormLabel component="legend">Annotation level</FormLabel>
-                            <RadioGroup row aria-label="annotationLevel" name="row-radio-buttons-group"
-                                        defaultValue={this.state.annotationLevel}
-                                        onChange={event => this.setAnnotationLevel(event)}>
-                                <FormControlLabel value={AnnotationLevel.patient} control={<Radio/>}
-                                                  label="patient"/>
-                                <FormControlLabel value={AnnotationLevel.study} control={<Radio/>}
-                                                  label="study" disabled={true}/>
-                            </RadioGroup>
-                        </FormControl>
-                    </Stack>
+                <Stack direction="row" divider={<Divider orientation="horizontal" flexItem/>}>
                     <Stack direction="column" divider={<Divider orientation="horizontal" flexItem/>}
                            spacing={2}>
-                        {
-                            this.state.variables?.map((value, index) => {
-                                return this.renderVariableInput(index)
-                            })
-                        }
-                        <Button sx={{minWidth: 200, maxWidth: 200, minHeight: 55}} color="primary" variant="outlined" startIcon={<SendIcon/>}
-                                onClick={() => {
-                                    let variables = this.state.variables
-                                    variables = variables.slice(0, variables.length - 1)
-                                    if (this.state.loadAnnotations) {
-                                        this.props.saveAnnotationForm(this.state.patients, variables, this.state.annotationLevel, this.state.rows)
-                                    } else {
-                                        this.props.saveAnnotationForm(this.state.patients, variables, this.state.annotationLevel)
-                                    }
-                                }}
-                                disabled={saveAnnotationButtonDisabled}>
-                            Start annotation
-                        </Button>
+                        <Stack direction="row" divider={<Divider orientation="vertical" flexItem/>}
+                               spacing={2} alignItems={"center"}>
+                            <DicomDropzone savePatients={this.savePatients}/>
+                            <Button sx={{minWidth: 175, maxWidth: 175, textAlign:"center"}} variant="outlined" component="label">
+                                Load previous export file
+                                <input type="file" hidden={true} onInput={(event => this._loadExport(event))}/>
+                            </Button>
+                            <CustomWidthTooltip title={"Load annotations from previous export file for validation purposes"}>
+                                <FormGroup sx={{minWidth: 140, maxWidth: 140}}>
+                                    <FormControlLabel control={<Switch checked={this.state.loadAnnotations}
+                                                                       value={this.state.loadAnnotations}
+                                                                       onChange={event => this._setLoadAnnotationsSwitch(event)}/>}
+                                                      label="Load annotations"/>
+                                </FormGroup>
+                            </CustomWidthTooltip>
+                            <FormControl sx={{minWidth: 190}} component="fieldset">
+                                <FormLabel component="legend">Annotation level</FormLabel>
+                                <RadioGroup row aria-label="annotationLevel" name="row-radio-buttons-group"
+                                            defaultValue={this.state.annotationLevel}
+                                            onChange={event => this.setAnnotationLevel(event)}>
+                                    <FormControlLabel value={AnnotationLevel.patient} control={<Radio/>}
+                                                      label="patient"/>
+                                    <FormControlLabel value={AnnotationLevel.study} control={<Radio/>}
+                                                      label="study" disabled={true}/>
+                                </RadioGroup>
+                            </FormControl>
+                        </Stack>
+                        <Stack direction="column" divider={<Divider orientation="horizontal" flexItem/>}
+                               spacing={2}>
+                            {
+                                this.state.variables?.map((value, index) => {
+                                    return this.renderVariableInput(index)
+                                })
+                            }
+                            <Button sx={{minWidth: 200, maxWidth: 200, minHeight: 55}} color="primary" variant="outlined" startIcon={<SendIcon/>}
+                                    onClick={() => {
+                                        let variables = this.state.variables
+                                        variables = variables.slice(0, variables.length - 1)
+                                        if (this.state.loadAnnotations) {
+                                            this.props.saveAnnotationForm(this.state.patients, variables, this.state.annotationLevel, this.state.rows)
+                                        } else {
+                                            this.props.saveAnnotationForm(this.state.patients, variables, this.state.annotationLevel)
+                                        }
+                                    }}
+                                    disabled={saveAnnotationButtonDisabled}>
+                                Start annotation
+                            </Button>
+                        </Stack>
                     </Stack>
+                    <Box sx={{marginLeft: 10, paddingRight:8, minWidth: 400}}>
+                        <Typography variant="body1" align={"justify"}>
+                            Dear colleagues,<br/><br/>
+                            Radnnotate is a radiological annotation tool for DICOM data for a fast and convenient
+                            annotation workflow. Most of the development took place in my spare time. Primary goal was
+                            to simplify the annotation work flow, automating as much as possible, which is especially
+                            useful if you have a large amount of data. Compared to tools like MITK, the tool set is
+                            reduced. The strength of Radnnotate rather lies in doing simple things faster. I developed
+                            it for my personal research needs, but naturally I hope to provide a benefit for all my
+                            colleagues. If Radnnotate helps you to focus more of your time on your actual scientific
+                            project, then please consider me, when possible, in your publications.<br/><br/>
+                            Kind regards,<br/>
+                            Manuel Debić
+                        </Typography>
+                    </Box>
                 </Stack>
             </Box>
         );

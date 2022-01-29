@@ -65,7 +65,7 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
             loadingPatients: false,
             loadingAcceptedFiles: false,
             progress: 0,
-            buttonText: "Select or drop folders or files",
+            buttonText: "Select or drop folders or dicom files",
             openSnackbar: false
         }
     }
@@ -155,7 +155,7 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
         return (
             <div>
                 <Dropzone
-                    onDragLeave={() => this.setState({buttonText: "Select or drop folders or files"})}
+                    onDragLeave={() => this.setState({buttonText: "Select or drop folders or dicom files"})}
                     onDrop={async acceptedFiles => this.processAcceptedFiles(acceptedFiles)}
                     getFilesFromEvent={async event => this.getFilesFromEvent(event)}>
                     {({getRootProps, getInputProps}) => (
