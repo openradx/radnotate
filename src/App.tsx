@@ -1,4 +1,4 @@
-import Radnnotate from "./components/Radnnotate";
+import Radnotate from "./components/Radnotate";
 import {
     Box,
     createTheme,
@@ -7,7 +7,7 @@ import {
     ThemeProvider, useMediaQuery
 } from "@mui/material";
 import {useMemo, useState} from "react";
-import {getTheme} from "./components/Radnnotate/styles";
+import {getTheme} from "./components/Radnotate/styles";
 
 const App = () => {
     const prefersLightMode = useMediaQuery('(prefers-color-scheme: light)');
@@ -29,7 +29,7 @@ const App = () => {
         <ThemeProvider theme={theme}>
             <Box sx={{marginLeft: "10px", marginTop: "10px", marginRight: "10px"}}>
                 <CssBaseline/>
-                <Radnnotate colorMode={colorMode}/>
+                <Radnotate colorMode={colorMode}/>
             </Box>
         </ThemeProvider>
     )

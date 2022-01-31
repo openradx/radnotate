@@ -1,7 +1,6 @@
 import {PaletteMode, Tooltip, tooltipClasses} from "@mui/material";
 import {styled} from "@mui/styles";
 import React from "react";
-import {classes} from "@mui/lab/ClockPicker/ClockNumber";
 
 
 export const getTheme = (mode: PaletteMode) => ({

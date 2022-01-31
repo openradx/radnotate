@@ -13,11 +13,11 @@ import {Settings} from "./Settings";
 
 LicenseInfo.setLicenseKey("07a54c751acde4192070a1600dac24bdT1JERVI6MCxFWFBJUlk9MTc5OTc3Njg5NjA4NCxLRVlWRVJTSU9OPTE=",);
 
-type RadnnotatePropsType = {
+type RadnotatePropsType = {
     colorMode: Function
 }
 
-type RadnnotateStateType = {
+type RadnotateStateType = {
     patients: Patients,
     variables: Variable[],
     annotationMode: boolean,
@@ -41,9 +41,9 @@ type RadnnotateStateType = {
     segmentationsCount: number,
 }
 
-class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
+class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
 
-    constructor(props: RadnnotatePropsType) {
+    constructor(props: RadnotatePropsType) {
         super(props);
         this.state = {
             annotationMode: false,
@@ -530,4 +530,4 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
 
 }
 
-export default Radnnotate;
+export default Radnotate;

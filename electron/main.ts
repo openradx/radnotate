@@ -6,19 +6,13 @@ let mainWindow: BrowserWindow | null
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string
 
-// const assetsPath =
-//   process.env.NODE_ENV === 'production'
-//     ? process.resourcesPath
-//     : app.getAppPath()
-
-
 if (require('electron-squirrel-startup')) app.quit();
 
 function createWindow() {
     mainWindow = new BrowserWindow({
         // icon: path.join(assetsPath, 'assets', 'icon.png'),
         backgroundColor: '#191622',
-        title: "Radnnotate",
+        title: "Radnotate",
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,

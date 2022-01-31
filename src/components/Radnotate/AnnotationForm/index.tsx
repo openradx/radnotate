@@ -297,13 +297,13 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                     <Box sx={{marginLeft: 10, paddingRight:8, minWidth: 400}}>
                         <Typography variant="body1" align={"justify"}>
                             Dear colleagues,<br/><br/>
-                            Radnnotate is a radiological annotation tool for DICOM data for a fast and convenient
-                            annotation workflow. Most of the development took place in my spare time. Primary goal was
+                            Radnotate is a radiological annotation tool for DICOM data for a fast and convenient
+                            annotation workflow. The development took place in my spare time. Primary goal was
                             to simplify the annotation work flow, automating as much as possible, which is especially
                             useful if you have a large amount of data. Compared to tools like MITK, the tool set is
-                            reduced. The strength of Radnnotate rather lies in doing simple things faster. I developed
+                            reduced. The strength of Radnotate rather lies in doing simple things faster. I developed
                             it for my personal research needs, but naturally I hope to provide a benefit for all my
-                            colleagues. If Radnnotate helps you to focus more of your time on your actual scientific
+                            colleagues. If Radnotate helps you to focus more of your time on your actual scientific
                             project, then please consider me, when possible, in your publications.<br/><br/>
                             Kind regards,<br/>
                             Manuel Debić
