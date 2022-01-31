@@ -1,16 +1,16 @@
-import React, {ChangeEvent, Component} from "react";
+import React, {Component} from "react";
 import cornerstoneMath from "cornerstone-math";
 import cornerstoneTools from "cornerstone-tools";
 import Hammer from "hammerjs";
 import CornerstoneViewport from "react-cornerstone-viewport";
 import {Patient} from "../AnnotationForm/DicomDropzone/dicomObject";
 import cornerstone, {loadImage} from "cornerstone-core";
-import Variable, {VariableType} from "../AnnotationForm/variable";
+import Variable, {ToolType, VariableType} from "../AnnotationForm/variable";
 import {TSMap} from "typescript-map"
 import {
     Alert,
     Box,
-    Button, ClickAwayListener,
+    Button,
     Divider,
     FormControl,
     FormControlLabel,
@@ -58,14 +58,12 @@ type ImageStateType = {
     viewports: number[],
     tools: object[],
     imageIdIndex: number,
-    isPlaying: boolean,
-    frameRate: number,
     cornerstoneElement: any,
     correctionModeEnabled: boolean,
     segmentationTransparency: number,
     currentImageId: string,
     currentSeriesDescription: string,
-    stackStartingImageIds: string[],
+    stackStartImageIds: string[],
     snackbarKeyPressedOpen: boolean,
     snackbarKeyPressedText: string,
     keyPressedValue: TSMap<string, string> | undefined,
@@ -87,10 +85,11 @@ const colors = [
     [0, 128, 128] //teal blue
 ]
 
-
 const awaitTimeout = delay =>
     new Promise(resolve => setTimeout(resolve, delay));
 
+
+//ToDo Add button to disable rendering of already existing annotations which are currently not active
 class Image extends Component<ImagePropsType, ImageStateType> {
 
     constructor(props: ImagePropsType) {
@@ -137,20 +136,18 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             }
         })
 
-        const stackStartingImageIds = []
-        stackStartingImageIds.push(this.props.imageIds[0])
+        const stackStartImageIds = []
+        stackStartImageIds.push(this.props.imageIds[0])
 
         this.state = {
             activeViewportIndex: 0,
             viewports: [0],
             tools: toolsList,
             imageIdIndex: 0,
-            isPlaying: false,
-            frameRate: 22,
             correctionModeEnabled: false,
             segmentationTransparency: 0,
             currentSeriesDescription: currentSeriesDescription,
-            stackStartingImageIds: stackStartingImageIds,
+            stackStartImageIds: stackStartImageIds,
             snackbarKeyPressedOpen: false,
             keyPressedValue: undefined,
             openTooltip: false,
@@ -380,31 +377,41 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         })
     }
 
-    _deleteAnnotations = () => {
-        if (this.props.activeVariable.type === VariableType.segmentation) {
-            const {
-                state
-            } = cornerstoneTools.getModule("segmentation");
-            state.series[this.props.imageIds[0]].labelmaps3D[this.props.activeVariable.segmentationIndex].labelmaps2D = []
-            // const len = labelmap3D.labelmaps2D.length
-            // for (let i=0; i <= len; i++) {
-            //     this.handleUndoClick()
-            // }
+
+    _deleteSegmentations(stackStartImageId: string, segmentationIndex: number) {
+        const {state} = cornerstoneTools.getModule("segmentation");
+        state.series[stackStartImageId].labelmaps3D[segmentationIndex].labelmaps2D = []
+        cornerstone.updateImage(this.state.cornerstoneElement);
+    }
+
+    _deleteAnnotations = (variableType: VariableType, imageIds: string[] | undefined) => {
+        const existingToolState = toolStateManager.saveToolState();
+        const deleteAnnotations = (imageId, tool) => {
+            const annotations = existingToolState[imageId][tool]
+            if (annotations !== undefined) {
+                const annotationData = annotations.data
+                let annotationsCount = annotationData.length
+                while (annotationsCount > 0) {
+                    annotationData.pop()
+                    annotationsCount = annotationData.length
+                }
+            }
+        }
+
+        const tool = ToolType.get(variableType)
+        const imageIdsWithAnnotations = Object.keys(existingToolState)
+        if (imageIds === undefined) {
+            imageIdsWithAnnotations.forEach(imageId => {
+                deleteAnnotations(imageId, tool)
+            })
         } else {
-            const existingToolState = toolStateManager.saveToolState();
-            const keys = Object.keys(existingToolState)
-            this.props.imageIds.forEach(imageId => {
-                if (keys.includes(imageId) && this.props.activeVariable.tool in existingToolState[imageId]) {
-                    const annotations = existingToolState[imageId][this.props.activeVariable.tool].data
-                    let annotationsCount = annotations.length
-                    while (annotationsCount > 0) {
-                        annotations.pop()
-                        annotationsCount = annotations.length
-                    }
+            imageIds.forEach(imageId => {
+                if (imageIdsWithAnnotations.includes(imageId) && tool in existingToolState[imageId]) {
+                    deleteAnnotations(imageId, tool)
                 }
             })
-            cornerstoneTools.clearToolState(this.state.cornerstoneElement, this.props.activeVariable.tool);
         }
+        cornerstoneTools.clearToolState(this.state.cornerstoneElement, tool);
         cornerstone.updateImage(this.state.cornerstoneElement);
         this.setState({correctionModeEnabled: false})
     }
@@ -437,8 +444,8 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             setters.colorLUT(segmentationIndex, [[...[...colors[segmentationIndex], 255]]])
         }
         awaitTimeout(500).then(() => {
-            this._initTools()
             this._initSegmentation()
+            this._setActiveSegmentation()
             this._jumpToImage()
         })
 
@@ -450,20 +457,36 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         this.state.cornerstoneElement.removeEventListener("cornerstonenewimage", this._setCurrentImage);
     }
 
-    componentDidUpdate = (prevProps, prevState) => {
-        if (!prevState.stackStartingImageIds.includes(prevProps.imageIds[0])) {
-            prevState.stackStartingImageIds.push(prevProps.imageIds[0])
-            this._initTools()
-        }
-        if (prevProps.activeVariable.id !== this.props.activeVariable.id ||
-            prevProps.activePatient.patientID !== this.props.activePatient.patientID) {
+    componentDidUpdate = (prevProps, prevState) => { // ORDER MATTERS
+        if (!prevState.stackStartImageIds.includes(prevProps.imageIds[0])) { // If an image stack is viewed for the first time
+            prevState.stackStartImageIds.push(prevProps.imageIds[0])
             this._initSegmentation()
         }
-        if (prevProps.activePatient.patientID !== this.props.activePatient.patientID) {
-            awaitTimeout(500).then(() => {
-                this._jumpToImage()
-            })
-        } else if (prevProps.activeVariable.id !== this.props.activeVariable.id) {
+
+        if (prevProps.toolStates !== this.props.toolStates) { // If tool state changes
+            for(const type of Object.values(VariableType)) {
+                if (!isNaN(Number(type))) {
+                    if (type === VariableType.segmentation) {
+                        this.state.stackStartImageIds.forEach(stackStartImageId => {
+                            for (let segmentationIndex = 0; segmentationIndex < this.props.segmentationsCount; segmentationIndex++) {
+                                this._deleteSegmentations(stackStartImageId, segmentationIndex)
+                            }
+                        })
+                    } else {
+                        this._deleteAnnotations(type, undefined)
+                    }
+                }
+            }
+        }
+
+        if (prevProps.activeVariable.id !== this.props.activeVariable.id ||
+            prevProps.activePatient.patientID !== this.props.activePatient.patientID) { // If active cell changes
+            this._setActiveSegmentation()
+        }
+
+        if (prevProps.activePatient.patientID !== this.props.activePatient.patientID) { // If active patient changes
+            awaitTimeout(500).then(() => this._jumpToImage())
+        } else if (prevProps.activeVariable.id !== this.props.activeVariable.id) { // Or if only active variable changes within same patient
             this._jumpToImage()
         }
     }
@@ -504,8 +527,8 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         }
     }
 
-    _initTools = () => {
-        const {getters, setters, state} = cornerstoneTools.getModule("segmentation");
+    _initSegmentation = () => {
+        const {getters, setters} = cornerstoneTools.getModule("segmentation");
         this.props.toolStates.forEach(annotationToolState => {
             if (annotationToolState.length === 5) {
                 const [imageId, height, width, pixelData, segmentationIndex] = annotationToolState
@@ -535,7 +558,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         cornerstone.updateImage(this.state.cornerstoneElement);
     }
 
-    _initSegmentation = () => {
+    _setActiveSegmentation = () => {
         const {setters, configuration, getters} = cornerstoneTools.getModule("segmentation");
         const segmentationTransparency = this.state.segmentationTransparency
         configuration.fillAlpha = segmentationTransparency / 100
@@ -543,8 +566,10 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         if (segmentationIndex !== undefined) {
             setters.activeLabelmapIndex(this.state.cornerstoneElement, segmentationIndex);
             setters.colorLUTIndexForLabelmap3D(getters.labelmap3D(this.state.cornerstoneElement, segmentationIndex), segmentationIndex)
-            cornerstone.updateImage(this.state.cornerstoneElement);
+        } else {
+            setters.activeLabelmapIndex(this.state.cornerstoneElement, -1);
         }
+        cornerstone.updateImage(this.state.cornerstoneElement);
     }
 
     _setCorrectionMode = (event: Event | KeyboardEvent) => {
@@ -610,7 +635,14 @@ class Image extends Component<ImagePropsType, ImageStateType> {
     }
 
     handleResetClick = () => {
-        this._deleteAnnotations()
+        const variableType = this.props.activeVariable.type
+        if (variableType === VariableType.segmentation) {
+            const stackStartImageId = this.props.imageIds[0]
+            const segmentationIndex = this.props.activeVariable.segmentationIndex
+            this._deleteSegmentations(stackStartImageId, segmentationIndex)
+        } else {
+            this._deleteAnnotations(variableType, this.props.imageIds)
+        }
     }
 
     handleSegmentationTransparencySlider = (event: Event | number) => {
@@ -765,8 +797,8 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                         tools={this.state.tools}
                         imageIds={this.props.imageIds}
                         imageIdIndex={this.state.imageIdIndex}
-                        isPlaying={this.state.isPlaying}
-                        frameRate={this.state.frameRate}
+                        isPlaying={false}
+                        frameRate={22}
                         className={this.state.activeViewportIndex === viewportIndex ? 'active' : ''}
                         activeTool={activeTool}
                         setViewportActive={() => {

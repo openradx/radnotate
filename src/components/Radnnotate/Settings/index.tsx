@@ -14,11 +14,13 @@ import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
 import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
 import DeleteSweepOutlinedIcon from "@mui/icons-material/DeleteSweepOutlined";
+import StartIcon from '@mui/icons-material/Start';
 
 type SeetingsPropsType = {
     clearTable: Function
     colorMode: Function
     restartWorkflow: Function
+    restartAnnotating: Function
     annotationMode: boolean
 }
 
@@ -34,7 +36,8 @@ export const Settings = (props: SeetingsPropsType) => {
     useEffect(() => {
         if (props.annotationMode) {
             const additonalActions = [
-                {icon: <RestartAltOutlinedIcon/>, name: "Restart workflow"},
+                {icon: <RestartAltOutlinedIcon/>, name: "Restart from variable definition"},
+                {icon: <StartIcon/>, name: "Restart from beginning"},
                 {icon: <DeleteSweepOutlinedIcon/>, name: "Clear table"}
             ]
             additonalActions.push(actions.pop())
@@ -63,7 +66,7 @@ export const Settings = (props: SeetingsPropsType) => {
                 props.colorMode.toggleColorMode();
                 _changeColorModeIcon()
                 break;
-            case "Restart workflow":
+            case "Restart from variable definition":
                 setDialogOpen(true)
                 setDialogType("restart")
                 setDialogText("If you proceed, your annotation data and definitions will be lost. Be sure to " +
@@ -74,6 +77,9 @@ export const Settings = (props: SeetingsPropsType) => {
                 setDialogType("clear")
                 setDialogText("If you proceed, your annotation data will be lost. Be sure to export your " +
                     "annotation data before you proceed. Are you sure you want to proceed?")
+                break;
+            case "Restart from beginning":
+                props.restartAnnotating()
                 break;
         }
     }
@@ -110,10 +116,7 @@ export const Settings = (props: SeetingsPropsType) => {
             </SpeedDial>
             <Dialog
                 open={dialogOpen}
-                onClose={() => setDialogOpen(false)}
-                // aria-labelledby="alert-dialog-title"
-                // aria-describedby="alert-dialog-description"
-            >
+                onClose={() => setDialogOpen(false)}>
                 <DialogTitle id="alert-dialog-title">
                     Possible data loss
                 </DialogTitle>

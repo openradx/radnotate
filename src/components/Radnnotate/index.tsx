@@ -180,7 +180,7 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
                 })
                 let counter = 0
                 deleteIndices.forEach(deleteIndex => {
-                    rows.splice(deleteIndex-counter++,1)
+                    rows.splice(deleteIndex - counter++, 1)
                 })
                 rows.forEach((row, index) => {
                     row.id = index
@@ -381,7 +381,7 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
     }
 
     _handleCellClick = (params: GridCellParams) => {
-        if(this.state.jumpBackToPatientIndex >= 0 || this.state.jumpBackToVariableIndex >= 0) {
+        if (this.state.jumpBackToPatientIndex >= 0 || this.state.jumpBackToVariableIndex >= 0) {
             return
         }
         const activePatientIndex = Number(params.id)
@@ -465,6 +465,20 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
         })
     }
 
+    restartAnnotating = () => {
+        const activeVariable = this.state.variables[0]
+        const columns = this._variablesToColumns(0, activeVariable.name, this.state.variables, this.state.annotationLevel)
+        this.setState({
+            activePatientIndex: 0,
+            activePatient: this.state.patients.getPatient(0),
+            activeVariableIndex: 0,
+            activeVariable: activeVariable,
+            columns: columns,
+            jumpBackToVariableIndex: -1,
+            jumpBackToPatientIndex: -1
+        })
+    }
+
     render() {
         return (
             <div>
@@ -504,8 +518,11 @@ class Radnnotate extends Component<RadnnotatePropsType, RadnnotateStateType> {
                     :
                     <AnnotationForm saveAnnotationForm={this.saveAnnotationForm}/>
                 }
-                <Settings clearTable={this.clearTable} colorMode={this.props.colorMode}
-                          restartWorkflow={this.restartWorkflow} annotationMode={this.state.annotationMode}/>
+                <Settings clearTable={this.clearTable}
+                          colorMode={this.props.colorMode}
+                          restartWorkflow={this.restartWorkflow}
+                          restartAnnotating={this.restartAnnotating}
+                          annotationMode={this.state.annotationMode}/>
             </div>
         )
 
