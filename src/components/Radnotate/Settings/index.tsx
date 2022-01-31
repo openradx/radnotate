@@ -97,14 +97,19 @@ export const Settings = (props: SeetingsPropsType) => {
         setDialogOpen(false)
     }
 
+    let sx
+    if (props.annotationMode) {
+        sx = {position: 'absolute', left: 5, bottom: 8}
+    } else {
+        sx = {position: 'absolute', left: 5, top: 8}
+    }
     return (
         <div>
             <SpeedDial
                 ariaLabel="SpeedDial"
-                direction={"right"}
-                sx={{position: 'absolute', bottom: 5, left: 5}}
-                icon={<SettingsOutlinedIcon/>}
-            >
+                direction={props.annotationMode?"right":"down"}
+                sx={sx}
+                icon={<SettingsOutlinedIcon/>}>
                 {actions.map((action) => (
                     <SpeedDialAction
                         key={action.name}

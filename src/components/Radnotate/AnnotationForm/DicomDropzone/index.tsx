@@ -162,7 +162,7 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
                         <Box sx={{
                             width: 200
                         }} {...getRootProps()}>
-                            <input {...getInputProps()} directory={""} webkitdirectory={""} type={"file"}/>
+                            <input {...getInputProps()} directory={""} webkitdirectory={""} mozdirectory={""} type={"file"}/>
                             <Button sx={{minWidth: 200, minHeight: 55}} variant="outlined">
                                 {this.state.buttonText}
                             </Button>
