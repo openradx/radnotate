@@ -112,7 +112,7 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
     }
 
     getFilesFromEvent = (event: Event | DropEvent) => {
-        if (event._reactName === "onDrop") {
+        if (event._reactName === "onDrop" || event._reactName === "onChange") {
             this.props.savePatients(undefined)
             this.setState({loadingAcceptedFiles: true, progress: 0, buttonText: ""})
             return trackPromise(fromEvent(event as Event).then((acceptedFiles => {
@@ -162,7 +162,7 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
                         <Box sx={{
                             width: 200
                         }} {...getRootProps()}>
-                            <input {...getInputProps()} />
+                            <input {...getInputProps()} directory={""} webkitdirectory={""} type={"file"}/>
                             <Button sx={{minWidth: 200, minHeight: 55}} variant="outlined">
                                 {this.state.buttonText}
                             </Button>
