@@ -37,7 +37,8 @@ type AnnotationFormStateType = {
     typeError: boolean
     annotationLevel: AnnotationLevel,
     rows: Object | undefined,
-    loadAnnotations: boolean
+    loadAnnotations: boolean,
+    loadAnnotationsDisabled: boolean,
 }
 
 type AnnotationFormPropsType = {
@@ -54,7 +55,8 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
             typeError: false,
             annotationLevel: AnnotationLevel.patient,
             rows: undefined,
-            loadAnnotations: false
+            loadAnnotations: false,
+            loadAnnotationsDisabled: true,
         }
     }
 
@@ -139,6 +141,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
             const file = event.target.files[0]
             this._loadVariableDefinitions(file)
             this._loadAnnotationData(file)
+            this.setState({loadAnnotationsDisabled: false})
         }
     }
 
@@ -203,7 +206,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                     <FormControl disabled={!isActiveVariable} error={this.state.typeError && isActiveVariable}
                                  variant="filled"
                                  sx={{minWidth:175, maxWidth:175}}>
-                        <InputLabel id="demo-simple-select-filled-label">Type</InputLabel>
+                        <InputLabel id="demo-simple-select-filled-label">Variable type</InputLabel>
                         <Select
                             labelId="demo-simple-select-filled-label" id="demo-simple-select-filled"
                             onChange={(event) => this.addVariableType(event, id)} value={this.state.variables[id].type}>
@@ -250,7 +253,8 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                             </Button>
                             <CustomWidthTooltip title={"Load annotations from previous export file for validation purposes"}>
                                 <FormGroup sx={{minWidth: 140, maxWidth: 140}}>
-                                    <FormControlLabel control={<Switch checked={this.state.loadAnnotations}
+                                    <FormControlLabel control={<Switch disabled={this.state.loadAnnotationsDisabled}
+                                                                       checked={this.state.loadAnnotations}
                                                                        value={this.state.loadAnnotations}
                                                                        onChange={event => this._setLoadAnnotationsSwitch(event)}/>}
                                                       label="Load annotations"/>
