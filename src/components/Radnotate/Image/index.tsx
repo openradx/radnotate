@@ -374,7 +374,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         this.state.tools.slice(0, 6).forEach(tool => {
             if (tool.name === activeTool) {
                 tool.mode = "Active"
-                cornerstoneTools.setToolActive(tool.name);
+                cornerstoneTools.setToolActive(tool.name, {mouseButtonMask: 1});
             } else {
                 tool.mode = "Enabled"
                 cornerstoneTools.setToolEnabled(tool.name);
