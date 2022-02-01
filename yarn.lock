@@ -2523,6 +2523,13 @@
   dependencies:
     "cross-spawn" "^7.0.1"
 
+"@marshallofsound/webpack-asset-relocator-loader@0.5.0":
+  "integrity" "sha512-X50R97SiDNTpOckiplghBo63Vo8GxSsr98s3VTwEu3qyVr+TY4I91KRtKelEj2OAfgMnkTymw89+psFVq8aB1g=="
+  "resolved" "https://registry.npmjs.org/@marshallofsound/webpack-asset-relocator-loader/-/webpack-asset-relocator-loader-0.5.0.tgz"
+  "version" "0.5.0"
+  dependencies:
+    "sourcemap-codec" "^1.4.4"
+
 "@mui/base@5.0.0-alpha.59":
   "integrity" "sha512-rPgN2FW0FAjQ9+LQ+XBsq3DFcuiiMFhf8uoLJAWnnzft27IJvJqbrhfpCZ68G6l+umJLbbl5RIIbpt8ALZDDNQ=="
   "resolved" "https://registry.npmjs.org/@mui/base/-/base-5.0.0-alpha.59.tgz"

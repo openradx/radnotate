@@ -1,15 +1,16 @@
-import {Component} from "react";
+import React, {Component} from "react";
 import AnnotationForm, {AnnotationLevel} from "./AnnotationForm";
 import Variable, {ToolType, VariableType} from "./AnnotationForm/variable";
 import {Patient, Patients} from "./AnnotationForm/DicomDropzone/dicomObject";
 import Image from "./Image"
 import {GridCellParams, GridColDef, GridRowsProp,} from "@mui/x-data-grid";
 import clsx from "clsx";
-import {Box, Slider, Stack, Tooltip} from "@mui/material";
+import {Box, Divider, Stack, Tooltip} from "@mui/material";
 import {TSMap} from "typescript-map"
 import AnnotationData from "./AnnotationData";
 import {GridColumnHeaderParams, GridRenderCellParams, LicenseInfo} from "@mui/x-data-grid-pro";
 import {Settings} from "./Settings";
+import ReactDOM from "react-dom";
 
 LicenseInfo.setLicenseKey("07a54c751acde4192070a1600dac24bdT1JERVI6MCxFWFBJUlk9MTc5OTc3Njg5NjA4NCxLRVlWRVJTSU9OPTE=",);
 
@@ -39,12 +40,18 @@ type RadnotateStateType = {
     toolStates: [],
     stackIndices: Map<string, number>,
     segmentationsCount: number,
+    dividerClicked: boolean,
 }
 
 class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
 
+    dividerRef: Object
+    width: number
+
     constructor(props: RadnotatePropsType) {
         super(props);
+        this.dividerRef = React.createRef()
+        this.width = 0
         this.state = {
             annotationMode: false,
             activeVariableIndex: 0,
@@ -53,6 +60,7 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
             jumpBackToVariableIndex: -1,
             jumpBackToPatientIndex: -1,
             width: 30,
+            dividerClicked: false,
         }
     }
 
@@ -60,8 +68,35 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
         addEventListener("beforeunload", (event) => {
             event.preventDefault()
         })
+        this.width = ReactDOM.findDOMNode(this).clientWidth
     };
 
+    componentDidUpdate = (prevProps, prevState) => {
+        if (this.state.annotationMode && prevState.annotationMode === false) {
+            ReactDOM.findDOMNode(this.dividerRef.current).addEventListener("mousedown", this._handleMouse, false)
+            document.addEventListener("mouseup", this._handleMouse, false)
+            document.addEventListener("mousemove", this._handleMouse, false)
+        }
+        if (ReactDOM.findDOMNode(this).clientWidth !== this.width) {
+            this.width = ReactDOM.findDOMNode(this).clientWidth
+        }
+    }
+
+    _handleMouse = (event) => {
+        if (event.type === "mousedown") {
+            this.setState({dividerClicked: true})
+        } else if (event.type === "mouseup") {
+            this.setState({dividerClicked: false})
+        } else if (this.state.dividerClicked) {
+            let width = parseInt(100 * event.clientX / this.width)
+            if (width > 99) {
+                width = 99
+            } else if (width < 0) {
+                width = 0
+            }
+            this.setState({width: width})
+        }
+    }
 
     _variablesToColumns = (activePatientIndex: number, activeVariableName: string, variables: Variable[], annotationLevel: AnnotationLevel) => {
         const columns: GridColDef[] = []
@@ -481,28 +516,34 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
 
     render() {
         return (
-            <div>
+            <div ref={this.documentRef}>
                 {this.state.annotationMode ?
                     <Stack direction={"row"}
                            justifyContent="space-evently"
                            spacing={0}
-                           alignItems="stretch">
+                           alignItems="stretch"
+                           divider={
+                               <Divider ref={this.dividerRef}
+                                        sx={{cursor: "col-resize", borderRightWidth: 4, marginLeft: 1, marginRight: 1}}
+                                        orientation="vertical" flexItem/>
+                           }>
                         <AnnotationData width={this.state.width}
                                         rows={this.state.rows}
                                         columns={this.state.columns}
                                         handleCellClick={this._handleCellClick}
                                         activePatientIndex={this.state.activePatientIndex}
                                         activeVariableIndex={this.state.activeVariableIndex}/>
-                        <Box sx={{height: "97vh"}}>
-                            <Tooltip title={"Set width of windows"} followCursor={true}>
-                                <Slider
-                                    track={false}
-                                    orientation="vertical"
-                                    value={this.state.width}
-                                    onChange={(_, value) => this._setWidth(value as number)}
-                                />
-                            </Tooltip>
-                        </Box>
+                        {/*<Box sx={{height: "97vh"}}>*/}
+                        {/*    <Tooltip title={"Set width of windows"} followCursor={true}>*/}
+                        {/*        <Divider sx={{paddingLeft: 5, paddingRight: 5, }} orientation="vertical" flexItem/>*/}
+                        {/*        <Slider*/}
+                        {/*            track={false}*/}
+                        {/*            orientation="vertical"*/}
+                        {/*            value={this.state.width}*/}
+                        {/*            onChange={(_, value) => this._setWidth(value as number)}*/}
+                        {/*        />*/}
+                        {/*    </Tooltip>*/}
+                        {/*</Box>*/}
                         <Box sx={{width: String(100 - this.state.width) + "%"}}>
                             <Image activePatient={this.state.activePatient}
                                    activeVariable={this.state.activeVariable}
