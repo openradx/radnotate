@@ -60,6 +60,7 @@
     "nifti-reader-js": "^0.5.4",
     "papaparse": "^5.3.1",
     "path-browserify": "^1.0.1",
+    "queue-promise": "^2.2.1",
     "react": "17.0.2",
     "react-cornerstone-viewport": "^4.1.4",
     "react-dom": "17.0.2",

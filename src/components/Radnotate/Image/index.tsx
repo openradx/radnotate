@@ -28,6 +28,8 @@ import {
 import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import ReactDOM from "react-dom";
+import Queue from "queue-promise";
 
 cornerstoneTools.external.cornerstone = cornerstone;
 cornerstoneTools.external.Hammer = Hammer;
@@ -57,7 +59,7 @@ type ImageStateType = {
     activeViewportIndex: number,
     viewports: number[],
     tools: object[],
-    imageIdIndex: number,
+    currentImageIdIndex: number,
     cornerstoneElement: any,
     correctionModeEnabled: boolean,
     segmentationTransparency: number,
@@ -68,6 +70,9 @@ type ImageStateType = {
     snackbarKeyPressedText: string,
     keyPressedValue: TSMap<string, string> | undefined,
     openTooltip: boolean,
+    enableScrolling: boolean,
+    previousScrollingDirection: number,
+
 }
 
 // ToDO Since only 10 colors are provided, segmentationIndex will break whne more than 10 segmentations are wanted.
@@ -91,6 +96,7 @@ const awaitTimeout = delay =>
 
 //ToDo Add button to disable rendering of already existing annotations which are currently not active
 class Image extends Component<ImagePropsType, ImageStateType> {
+    imageIdQueue = new Queue({concurrent: 1, interval: 0, start: true})
 
     constructor(props: ImagePropsType) {
         super(props);
@@ -112,7 +118,6 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             {name: "CorrectionScissors", mode: "active", modeOptions: {mouseButtonMask: 1}},
             {name: "Eraser", mode: "active", modeOptions: {mouseButtonMask: 1}},
             {name: 'StackScrollMouseWheel', mode: 'active'},
-            {name: 'ZoomTouchPinch', mode: 'active'},
             {name: 'StackScrollMultiTouch', mode: 'active'}
         ]
 
@@ -143,7 +148,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             activeViewportIndex: 0,
             viewports: [0],
             tools: toolsList,
-            imageIdIndex: 0,
+            currentImageIdIndex: 0,
             correctionModeEnabled: false,
             segmentationTransparency: 0,
             currentSeriesDescription: currentSeriesDescription,
@@ -151,6 +156,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             snackbarKeyPressedOpen: false,
             keyPressedValue: undefined,
             openTooltip: false,
+            enableScrolling: false,
         };
 
     }
@@ -339,14 +345,14 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             const defaultValues = await this._processImage(this.state.currentImageId)
             let value = this._processBoolean(keyPressed.toLowerCase())
             value = new TSMap([...Array.from(value.entries()), ...Array.from(defaultValues.entries())])
-            this._setTools()
+            this._setToolActive(this.props.activeVariable.tool)
             let text = '"' + keyPressed + '" key was pressed. "' + String(value.get("value")) + '" successfully recognized as value. Press "Enter" key to confirm.'
             this.setState({snackbarKeyPressedOpen: true, snackbarKeyPressedText: text, keyPressedValue: value})
         } else if (this.props.activeVariable.type === VariableType.integer && (!isNaN(Number(keyPressed)))) {
             const defaultValues = await this._processImage(this.state.currentImageId)
             let value = this._processInteger(keyPressed)
             value = new TSMap([...Array.from(value.entries()), ...Array.from(defaultValues.entries())])
-            this._setTools()
+            this._setToolActive(this.props.activeVariable.tool)
             const text = '"' + keyPressed + '" key was pressed and successfully recognized as value. Press "Enter" key to confirm.'
             this.setState({snackbarKeyPressedOpen: true, snackbarKeyPressedText: text, keyPressedValue: value})
         } else if (keyPressed === "Enter") {
@@ -360,23 +366,21 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             } else {
                 this.props.nextVariable(currentValues.slice(0, currentValues.length))
             }
-            this._setTools()
+            this._setToolActive(this.props.activeVariable.tool)
         }
     }
 
-    _setTools = () => {
-        const activeTool = this.props.activeVariable.tool
+    _setToolActive = (activeTool: string) => {
         this.state.tools.slice(0, 6).forEach(tool => {
             if (tool.name === activeTool) {
                 tool.mode = "Active"
-                cornerstoneTools.setToolActive(tool.name, {mouseButtonMask: 1});
+                cornerstoneTools.setToolActive(tool.name);
             } else {
                 tool.mode = "Enabled"
                 cornerstoneTools.setToolEnabled(tool.name);
             }
         })
     }
-
 
     _deleteSegmentations(stackStartImageId: string, segmentationIndex: number) {
         const {state} = cornerstoneTools.getModule("segmentation");
@@ -429,16 +433,71 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                 this.handleUndoClick()
             } else if (event.key.toLowerCase() === "y" && event.ctrlKey) {
                 this.handleRedoClick()
+            } else if (event.key === "Control") {
+                this.setState({correctionModeEnabled: true})
+                cornerstoneTools.setToolEnabled("Wwwc");
+                cornerstoneTools.setToolActive("Pan", {mouseButtonMask: 2});
+                cornerstoneTools.setToolEnabled("Zoom");
             } else {
                 this._updateVariable(event.key)
             }
+        } else if (event.type === "keyup") {
+            if (event.key === "Control") {
+                this.setState({correctionModeEnabled: false})
+                cornerstoneTools.setToolActive("Wwwc", {mouseButtonMask: 4});
+                cornerstoneTools.setToolActive("Zoom", {mouseButtonMask: 2});
+                cornerstoneTools.setToolEnabled("Pan");
+            }
         }
-        this._setCorrectionMode(event)
+    }
+
+    _handleMouse = async (event) => {
+        if (event.type === "mousedown") {
+            if (event.button === 1) { // Scroll button, enable
+                this.setState({enableScrolling: true})
+            }
+        } else if (event.type === "mouseup") {
+            if (event.button === 1) { // Scroll button, disable
+                this.setState({enableScrolling: false})
+            }
+        } else {
+            if (this.state.enableScrolling && event.ctrlKey) {
+                const scrolled = event.movementY
+                if (Math.abs(scrolled)) {
+                    const currentDirection = scrolled > 0 ? 1 : -1
+                    if (this.state.previousScrollingDirection !== currentDirection) {
+                        this.imageIdQueue.clear()
+                    }
+                    this.imageIdQueue.enqueue(() => new Promise(resolve => {
+                        let currentImageIdIndex = this.state.currentImageIdIndex
+                        const threshold = 3
+                        let movement = 0
+                        if (scrolled > threshold) {
+                            movement = Math.abs(scrolled) >= 15 ? 5 : 1
+                            this.setState({previousScrollingDirection: 1})
+                        } else if (scrolled < -1*threshold) {
+                            movement = Math.abs(scrolled) >= 15 ? -5 : -1
+                            this.setState({previousScrollingDirection: -1})
+                        }
+                        currentImageIdIndex = currentImageIdIndex + movement
+                        if (currentImageIdIndex >= 0 &&
+                            currentImageIdIndex < this.props.imageIds.length) {
+                            const currentImageId = this.props.imageIds[currentImageIdIndex]
+                            this._setCurrentImage(currentImageId)
+                        }
+                        resolve(true)
+                    }))
+                }
+            }
+        }
     }
 
     componentDidMount = async () => {
         document.addEventListener("keydown", this._handleKeyPress, false)
         document.addEventListener("keyup", this._handleKeyPress, false)
+        awaitTimeout(500).then(() => ReactDOM.findDOMNode(this.state.cornerstoneElement).addEventListener("mousedown", this._handleMouse, false))
+        awaitTimeout(500).then(() => ReactDOM.findDOMNode(this.state.cornerstoneElement).addEventListener("mouseup", this._handleMouse, false))
+        awaitTimeout(500).then(() => ReactDOM.findDOMNode(this.state.cornerstoneElement).addEventListener("mousemove", this._handleMouse, false))
         const {setters} = cornerstoneTools.getModule("segmentation");
         for (let segmentationIndex = 0; segmentationIndex < this.props.segmentationsCount; segmentationIndex++) {
             setters.colorLUT(segmentationIndex, [[...[...colors[segmentationIndex], 255]]])
@@ -451,7 +510,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
 
     };
 
-    componentWillUnmount = () => {
+    componentWillUnmount = async () => {
         document.removeEventListener("keydown", this._handleKeyPress, false)
         document.addEventListener("keyup", this._handleKeyPress, false)
         this.state.cornerstoneElement.removeEventListener("cornerstonenewimage", this._setCurrentImage);
@@ -464,7 +523,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         }
 
         if (prevProps.toolStates !== this.props.toolStates) { // If tool state changes
-            for(const type of Object.values(VariableType)) {
+            for (const type of Object.values(VariableType)) {
                 if (!isNaN(Number(type))) {
                     if (type === VariableType.segmentation) {
                         this.state.stackStartImageIds.forEach(stackStartImageId => {
@@ -572,29 +631,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         cornerstone.updateImage(this.state.cornerstoneElement);
     }
 
-    _setCorrectionMode = (event: Event | KeyboardEvent) => {
-        if (event.key === "Control") {
-            if (event.type === "keydown") {
-                this.setState({correctionModeEnabled: true})
-            } else {
-                this.setState({correctionModeEnabled: false})
-            }
-        } else if (event.type === "change") {
-            if (event.target.checked) {
-                this.setState({correctionModeEnabled: true})
-            } else {
-                this.setState({correctionModeEnabled: false})
-            }
-        }
-    }
-
-    _setCurrentImage = (event: Event | string) => {
-        let currentImageId: string
-        if (typeof event === "string") {
-            currentImageId = event
-        } else {
-            currentImageId = event.detail.image.imageId
-        }
+    _setCurrentImage = (currentImageId: string) => {
         let currentSeriesDescription: string
         this.props.seriesDescriptions.keys().forEach(seriesDescription => {
             this.props.seriesDescriptions.get(seriesDescription).forEach(imageId => {
@@ -611,9 +648,10 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         })
         this.setState({
             currentImageId: currentImageId,
-            imageIdIndex: currentImageIndex,
+            currentImageIdIndex: currentImageIndex,
             currentSeriesDescription: currentSeriesDescription,
         })
+        cornerstone.updateImage(this.state.cornerstoneElement);
     }
 
     handleUndoClick = () => {
@@ -671,39 +709,46 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         cornerstone.displayImage(this.state.cornerstoneElement, image)
         this.setState({
             currentSeriesDescription: currentSeriesDescription,
-            imageIdIndex: imageIdIndex,
+            currentImageIdIndex: imageIdIndex,
             openTooltip: false
         })
     }
 
     renderSeriesSelection = () => {
         return (
-                <div>
-                    <Tooltip title={"Select series by series description"} followCursor={true} disableTouchListener={true}
-                             disableFocusListener={true} disableInteractive={true} open={this.state.openTooltip}>
-                        <FormControl sx={{width: 250}} size={"small"}>
-                            <Select value={this.state.currentSeriesDescription}
-                                    onOpen={() => this.setState({openTooltip: true})}
-                                    onChange={event => this.handleSeriesSelection(event)}
-                                    onClose={() => {
-                                        this.setState({openTooltip: false})
-                                        setTimeout(() => {
-                                            document.activeElement.blur();
-                                        }, 0);
-                                    }}>
-                                {this.props.seriesDescriptions.keys().map((seriesDescription) => (
-                                    <MenuItem key={seriesDescription} value={seriesDescription}>
-                                        {seriesDescription}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                    </Tooltip>
-                </div>
+            <div>
+                <Tooltip title={"Select series by series description"} followCursor={true} disableTouchListener={true}
+                         disableFocusListener={true} disableInteractive={true} open={this.state.openTooltip}>
+                    <FormControl sx={{width: 250}} size={"small"}>
+                        <Select value={this.state.currentSeriesDescription}
+                                onOpen={() => this.setState({openTooltip: true})}
+                                onChange={event => this.handleSeriesSelection(event)}
+                                onClose={() => {
+                                    this.setState({openTooltip: false})
+                                    setTimeout(() => {
+                                        document.activeElement.blur();
+                                    }, 0);
+                                }}>
+                            {this.props.seriesDescriptions.keys().map((seriesDescription) => (
+                                <MenuItem key={seriesDescription} value={seriesDescription}>
+                                    {seriesDescription}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                </Tooltip>
+            </div>
         )
     }
 
     renderImageSettings = () => {
+        const setCorrectionMode = (event) => {
+            if (event.target.checked) {
+                this.setState({correctionModeEnabled: true})
+            } else {
+                this.setState({correctionModeEnabled: false})
+            }
+        }
         if (this.props.activeVariable.type === VariableType.segmentation) {
             return (
                 <Stack direction={"row"} sx={{marginBottom: 1}}
@@ -717,7 +762,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                         <FormGroup sx={{minWidth: 160}}>
                             <FormControlLabel control={<Switch checked={this.state.correctionModeEnabled}
                                                                value={this.state.correctionModeEnabled}
-                                                               onChange={event => this._setCorrectionMode(event)}/>}
+                                                               onChange={setCorrectionMode}/>}
                                               label="Correction mode"/>
                         </FormGroup>
                     </Tooltip>
@@ -758,7 +803,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                         <FormGroup sx={{minWidth: 160}}>
                             <FormControlLabel control={<Switch checked={this.state.correctionModeEnabled}
                                                                value={this.state.correctionModeEnabled}
-                                                               onChange={this._setCorrectionMode}/>}
+                                                               onChange={setCorrectionMode}/>}
                                               label="Deletion mode"/>
                         </FormGroup>
                     </Tooltip>
@@ -796,7 +841,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                         style={{height: "91.5vh"}}
                         tools={this.state.tools}
                         imageIds={this.props.imageIds}
-                        imageIdIndex={this.state.imageIdIndex}
+                        imageIdIndex={this.state.currentImageIdIndex}
                         isPlaying={false}
                         frameRate={22}
                         className={this.state.activeViewportIndex === viewportIndex ? 'active' : ''}
@@ -810,7 +855,10 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                         onElementEnabled={elementEnabledEvt => {
                             const cornerstoneElement = elementEnabledEvt.detail.element;
                             this.setState({cornerstoneElement: cornerstoneElement});
-                            cornerstoneElement.addEventListener("cornerstonenewimage", (event: Event) => this._setCurrentImage(event))
+                            cornerstoneElement.addEventListener("cornerstonenewimage", async (event: Event) => {
+                                const currentImageId = event.detail.image.imageId
+                                this._setCurrentImage(currentImageId)
+                            })
                         }}
                     />
                 ))}
