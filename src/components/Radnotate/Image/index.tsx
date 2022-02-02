@@ -239,7 +239,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
 
     _processBoolean = (keyPressed: string) => {
         const seed = new TSMap<string, boolean>()
-        if (keyPressed === "t") {
+        if (keyPressed === "t" || keyPressed === "1") {
             seed.set("value", true)
         } else {
             seed.set("value", false)
@@ -341,7 +341,11 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             this.props.activeVariable.type !== VariableType.integer) {
             currentValues = await this._resolveAnnotations()
         }
-        if (this.props.activeVariable.type === VariableType.boolean && (keyPressed.toLowerCase() === "t" || keyPressed.toLowerCase() === "f")) {
+        if (this.props.activeVariable.type === VariableType.boolean &&
+               (keyPressed.toLowerCase() === "t" ||
+                keyPressed.toLowerCase() === "f" ||
+                keyPressed === "0" ||
+                keyPressed === "1")) {
             const defaultValues = await this._processImage(this.state.currentImageId)
             let value = this._processBoolean(keyPressed.toLowerCase())
             value = new TSMap([...Array.from(value.entries()), ...Array.from(defaultValues.entries())])
