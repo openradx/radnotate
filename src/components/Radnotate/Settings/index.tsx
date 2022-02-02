@@ -15,6 +15,7 @@ import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
 import DeleteSweepOutlinedIcon from "@mui/icons-material/DeleteSweepOutlined";
 import StartIcon from '@mui/icons-material/Start';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
 type SeetingsPropsType = {
     clearTable: Function
@@ -26,12 +27,16 @@ type SeetingsPropsType = {
 
 export const Settings = (props: SeetingsPropsType) => {
     const [actions, setActions] = useState([
-            {icon: <LightModeOutlinedIcon/>, name: 'Light mode'},
+            {icon: <HelpOutlineIcon/>, name: "Help"},
+            {icon: <LightModeOutlinedIcon/>, name: 'Light mode'}
         ]
     )
-    const [dialogOpen, setDialogOpen] = useState(false)
-    const [dialogText, setDialogText] = useState<string>()
-    const [dialogType, setDialogType] = useState<string>()
+    const [alertDialogOpen, setAlertDialogOpen] = useState(false)
+    const [alertDialogText, setAlertDialogText] = useState<string>()
+    const [alertDialogType, setAlertDialogType] = useState<string>()
+
+    const [helpDialogOpen, setHelpDialogOpen] = useState(false)
+    const [helpDialogText, setHelpDialogText] = useState<string>()
 
     useEffect(() => {
         if (props.annotationMode) {
@@ -40,10 +45,16 @@ export const Settings = (props: SeetingsPropsType) => {
                 {icon: <StartIcon/>, name: "Restart from beginning"},
                 {icon: <DeleteSweepOutlinedIcon/>, name: "Clear table"}
             ]
-            additonalActions.push(actions.pop())
+            additonalActions.push(...actions)
             setActions(additonalActions)
+            setHelpDialogText("Some help for annotation mode coming soon...")
         } else {
-            setActions([actions.pop()])
+            if (actions.length > 2) {
+                setActions([...actions.slice(3,5)])
+            } else {
+                setActions([...actions.slice(0,2)])
+            }
+            setHelpDialogText("Some help for start page coming soon...")
         }
     }, [props.annotationMode]);
 
@@ -67,34 +78,36 @@ export const Settings = (props: SeetingsPropsType) => {
                 _changeColorModeIcon()
                 break;
             case "Restart from variable definition":
-                setDialogOpen(true)
-                setDialogType("restart")
-                setDialogText("If you proceed, your annotation data and definitions will be lost. Be sure to " +
+                setAlertDialogOpen(true)
+                setAlertDialogType("restart")
+                setAlertDialogText("If you proceed, your annotation data and definitions will be lost. Be sure to " +
                     "export your annotation data before you proceed. Are you sure you want to proceed?")
                 break;
             case "Clear table":
-                setDialogOpen(true)
-                setDialogType("clear")
-                setDialogText("If you proceed, your annotation data will be lost. Be sure to export your " +
+                setAlertDialogOpen(true)
+                setAlertDialogType("clear")
+                setAlertDialogText("If you proceed, your annotation data will be lost. Be sure to export your " +
                     "annotation data before you proceed. Are you sure you want to proceed?")
                 break;
             case "Restart from beginning":
                 props.restartAnnotating()
                 break;
+            case "Help":
+                setHelpDialogOpen(true)
+                break;
         }
     }
 
-    const _handleDialogClose = () => {
-        switch (dialogType) {
+    const _handleAlertDialogClose = () => {
+        switch (alertDialogType) {
             case "restart":
-                setActions([actions.pop()])
                 props.restartWorkflow()
                 break;
             case "clear":
                 props.clearTable()
                 break;
         }
-        setDialogOpen(false)
+        setAlertDialogOpen(false)
     }
 
     let sx
@@ -120,21 +133,36 @@ export const Settings = (props: SeetingsPropsType) => {
                 ))}
             </SpeedDial>
             <Dialog
-                open={dialogOpen}
-                onClose={() => setDialogOpen(false)}>
+                open={alertDialogOpen}
+                onClose={() => setAlertDialogOpen(false)}>
                 <DialogTitle id="alert-dialog-title">
                     Possible data loss
                 </DialogTitle>
                 <DialogContent>
                     <DialogContentText id="alert-dialog-description">
-                        {dialogText}
+                        {alertDialogText}
                     </DialogContentText>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={() => _handleDialogClose()} autoFocus>
+                    <Button onClick={() => setAlertDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={() => _handleAlertDialogClose()} autoFocus>
                         Yes
                     </Button>
+                </DialogActions>
+            </Dialog>
+            <Dialog
+                open={helpDialogOpen}
+                onClose={() => setHelpDialogOpen(false)}>
+                <DialogTitle id="help-dialog-title">
+                    Help
+                </DialogTitle>
+                <DialogContent>
+                    <DialogContentText id="help-dialog-description">
+                        {helpDialogText}
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setHelpDialogOpen(false)}>Ok</Button>
                 </DialogActions>
             </Dialog>
         </div>
