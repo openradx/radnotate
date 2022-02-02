@@ -342,7 +342,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             currentValues = await this._resolveAnnotations()
         }
         if (this.props.activeVariable.type === VariableType.boolean &&
-               (keyPressed.toLowerCase() === "t" ||
+            (keyPressed.toLowerCase() === "t" ||
                 keyPressed.toLowerCase() === "f" ||
                 keyPressed === "0" ||
                 keyPressed === "1")) {
@@ -440,8 +440,10 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             } else if (event.key === "Control") {
                 this.setState({correctionModeEnabled: true})
                 cornerstoneTools.setToolEnabled("Wwwc");
-                cornerstoneTools.setToolActive("Pan", {mouseButtonMask: 2});
-                cornerstoneTools.setToolEnabled("Zoom");
+                if (this.props.activeVariable.type !== VariableType.integer && this.props.activeVariable.type !== VariableType.boolean) {
+                    cornerstoneTools.setToolActive("Pan", {mouseButtonMask: 2});
+                    cornerstoneTools.setToolEnabled("Zoom");
+                }
             } else {
                 this._updateVariable(event.key)
             }
@@ -449,8 +451,10 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             if (event.key === "Control") {
                 this.setState({correctionModeEnabled: false})
                 cornerstoneTools.setToolActive("Wwwc", {mouseButtonMask: 4});
-                cornerstoneTools.setToolActive("Zoom", {mouseButtonMask: 2});
-                cornerstoneTools.setToolEnabled("Pan");
+                if (this.props.activeVariable.type !== VariableType.integer && this.props.activeVariable.type !== VariableType.boolean) {
+                    cornerstoneTools.setToolActive("Zoom", {mouseButtonMask: 2});
+                    cornerstoneTools.setToolEnabled("Pan");
+                }
             }
         }
     }
@@ -479,7 +483,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                         if (scrolled > threshold) {
                             movement = Math.abs(scrolled) >= 15 ? 5 : 1
                             this.setState({previousScrollingDirection: 1})
-                        } else if (scrolled < -1*threshold) {
+                        } else if (scrolled < -1 * threshold) {
                             movement = Math.abs(scrolled) >= 15 ? -5 : -1
                             this.setState({previousScrollingDirection: -1})
                         }
