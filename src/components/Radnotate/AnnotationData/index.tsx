@@ -1,10 +1,16 @@
-import React from "react";
-import {Box, gridClasses} from "@mui/material";
+import React, {useRef, useState} from "react";
+import {Box, Button, gridClasses, IconButton, Stack} from "@mui/material";
 import {
     DataGridPro, GridColDef, GridRowsProp, GridToolbarContainer, GridToolbarExport,
     gridVisibleSortedRowIdsSelector, useGridApiRef, visibleGridColumnsSelector
 } from '@mui/x-data-grid-pro';
 import {CustomWidthTooltip} from "../styles";
+import {CSVDownload, CSVLink} from "react-csv";
+import FileSaver from "file-saver";
+import ReactDOM from "react-dom";
+import SaveAltIcon from '@mui/icons-material/SaveAlt';
+import {GridCellParams} from "@mui/x-data-grid";
+import clsx from "clsx";
 
 type AnnotationDataProps = {
     columns: GridColDef[],
@@ -17,19 +23,19 @@ type AnnotationDataProps = {
 
 
 const AnnotationData = (props: AnnotationDataProps) => {
+    const csvLinkRef = useRef<CSVLink & HTMLAnchorElement & { link: HTMLAnchorElement }>(null)
     const apiRef = useGridApiRef();
 
-    const exportAnnotationsToolbar = () => {
-        return (
-            <GridToolbarContainer className={gridClasses.toolbarContainer}>
-                <CustomWidthTooltip title={"CAUTION: Exporting only selected rows. Be sure to selected all desired rows."} followCursor={true}>
-                    <GridToolbarExport printOptions={{disableToolbarButton: true}}/>
-                </CustomWidthTooltip>
-            </GridToolbarContainer>
-        );
-    }
+    const [csvData, setCsvData] = useState([]);
+
 
     React.useEffect(() => {
+        const data = props.rows.map(row => {return {...row}})
+        data.forEach(row => {
+            delete row.id
+        })
+        setCsvData(data)
+
         if (typeof apiRef.current !== "undefined" && apiRef.current !== null) {
             try {
                 const coordinates = {
@@ -46,23 +52,37 @@ const AnnotationData = (props: AnnotationDataProps) => {
         }
     }, [apiRef, props]);
 
+    const handleExportButton = () => {
+        csvLinkRef?.current?.link.click();
+    };
 
     return (
-        <Box sx={{
-            maxHeight: "100%",
-            width: String(props.width) + "%",
-            overflow: "auto",
-            '& .cell.isActive': {
-                backgroundColor: "#de751a"
-            },
-        }}>
-            <DataGridPro apiRef={apiRef}
-                         components={{Toolbar: exportAnnotationsToolbar}}
-                         columns={props.columns}
-                         rows={props.rows}
-                         initialState={{pinnedColumns: {left: [props.columns[0].field]}}}
-                         onCellDoubleClick={(params) => props.handleCellClick(params)}
-            />
+        <Box sx={{width: String(props.width) + "%", height: "100vh"}}>
+            <Stack direction={"column"}>
+                <Stack sx={{marginBottom: 1}}>
+                    <Box sx={{width: 80}}>
+                        <CSVLink ref={csvLinkRef} data={csvData}>
+                        </CSVLink>
+                        <Button href="#text-buttons" color="primary" variant="outlined" startIcon={<SaveAltIcon/>} onClick={handleExportButton}>
+                            Export
+                        </Button>
+                    </Box>
+                </Stack>
+                <Box sx={{
+                    height:"92vh",
+                    overflow: "auto",
+                    '& .isActive': {
+                       backgroundColor: "#de751a"
+                    },
+                }}>
+                    <DataGridPro apiRef={apiRef}
+                                 columns={props.columns}
+                                 rows={props.rows}
+                                 initialState={{pinnedColumns: {left: [props.columns[0].field]}}}
+                                 onCellDoubleClick={(params) => props.handleCellClick(params)}
+                    />
+                </Box>
+            </Stack>
         </Box>
     )
 }
