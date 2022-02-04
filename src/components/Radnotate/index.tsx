@@ -310,7 +310,6 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
             const fields = Object.keys(row)
             fields.forEach((field, variableIndex) => {
                 if (field !== "PatientID" && field !== "id") {
-                    // ToDo Fix parsing empty string
                     if (row[field] !== "") {
                         const currentValues = JSON.parse(row[field])
                         const type = JSON.parse(field).type
@@ -328,6 +327,8 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
                             }
                             sopInstanceUIDs.push(sopInstanceUID)
                         })
+                    } else {
+                        // ToDo If empty, than also set this as new start patient and variable, since the user maybe wants to proceed here
                     }
                 }
             })

@@ -58,7 +58,7 @@ const AnnotationData = (props: AnnotationDataProps) => {
             <Stack direction={"column"}>
                 <Stack sx={{marginBottom: 1}}>
                     <Box sx={{width: 80}}>
-                        <CSVLink ref={csvLinkRef} data={csvData} separator={";"} enclosingCharacter={""}>
+                        <CSVLink ref={csvLinkRef} data={csvData} filename={"Radnotate.csv"} separator={";"} enclosingCharacter={""}>
                         </CSVLink>
                         <Button href="#text-buttons" color="primary" variant="outlined" startIcon={<SaveAltIcon/>}
                                 onClick={handleExportButton}>
