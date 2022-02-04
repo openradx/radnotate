@@ -188,7 +188,6 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
                 variable.segmentationIndex = segmentationIndex++
             }
         })
-        let activePatient: Patient
         if (annotationLevel === AnnotationLevel.patient) {
             if (rows !== undefined) {
                 const imagePatientIDs = []
@@ -224,47 +223,16 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
                     row.id = index
                 })
             }
-            activePatient = patients.getPatient(0)
-        } else {
-            activePatient = patients.getPatientStudy(0, 0)
         }
-        const {imageIds, instanceNumbers, seriesDescriptions} = this._updateImageIds(activePatient)
-        const rowNames = this._defineRowNames(patients, annotationLevel)
-
-        const activeVariable = variables.slice(0, 1).pop()
-        const columns = this._variablesToColumns(0, activeVariable.name, variables, annotationLevel);
-
-        let initialRows = []
-        let existingToolStates = []
-        if (rows === undefined) {
-            rowNames.forEach((rowName, index) => {
-                let row = {}
-                row[columns[0].field] = rowName
-                row.id = index
-                initialRows.push(row)
-            })
-        } else {
-            initialRows = rows
-            existingToolStates = this._setInitialToolState(patients, rows)
-        }
+        this._init(patients, variables, rows, annotationLevel)
         this.setState({
-            activePatientIndex: 0,
-            activeVariableIndex: 0,
             activeStudyIndex: 0,
-            activePatient: activePatient,
-            activeVariable: activeVariable,
             variables: variables,
             patients: patients,
             annotationLevel: annotationLevel,
             annotationMode: true,
-            imageIds: imageIds,
-            instanceNumbers: instanceNumbers,
-            columns: columns,
-            rows: initialRows,
             jumpBackToPatientIndex: -1,
             jumpBackToVariableIndex: -1,
-            seriesDescriptions: seriesDescriptions,
-            toolStates: existingToolStates,
             segmentationsCount: segmentationIndex,
         })
     }
@@ -303,59 +271,96 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
         })
     }
 
-    _setInitialToolState = (patients: Patients, rows: Object) => {
-        const annotations = []
-        let sopInstanceUIDs = []
-        rows.forEach(row => {
-            const fields = Object.keys(row)
-            fields.forEach((field, variableIndex) => {
-                if (field !== "PatientID" && field !== "id") {
-                    if (row[field] !== "") {
-                        const currentValues = JSON.parse(row[field])
-                        const type = JSON.parse(field).type
-                        currentValues.forEach(currentValue => {
-                            const sopInstanceUID = currentValue.sopUid
-                            let annotation
-                            if (type === VariableType.segmentation) {
-                                const pixelData = new Uint8Array(atob(currentValue.pixelData).split("").map(function (c) {
-                                    return c.charCodeAt(0);
-                                }));
-                                annotations.push([sopInstanceUID, variableIndex - 1, currentValue.height, currentValue.width, pixelData, currentValue.segmentationIndex])
-                            } else if (type !== VariableType.boolean && type !== VariableType.integer) {
-                                annotation = currentValue.data
-                                annotations.push([sopInstanceUID, variableIndex - 1, ToolType.get(type), annotation])
-                            }
-                            sopInstanceUIDs.push(sopInstanceUID)
-                        })
-                    } else {
-                        // ToDo If empty, than also set this as new start patient and variable, since the user maybe wants to proceed here
-                    }
-                }
-            })
-        })
-        const toolStates = []
-        sopInstanceUIDs = [...new Set(sopInstanceUIDs)]
+    // ToDo Refactor this and save annotation form method
+    _init = (patients: Patients, variables: Variable[], rows: Object, annotationLevel: AnnotationLevel) => {
+        let activePatient = patients.getPatient(0)
+        let activePatientIndex = 0
+        let activeVariable = variables[0]
+        let activeVariableIndex = 0
+
         const stackIndices = new Map<string, number>()
-        let stackCounter = 0
-        patients.patients.forEach(patient => {
-            patient.studies.forEach(study => {
-                study.series.forEach(series => {
-                    series.images.forEach(image => {
-                        stackIndices.set(image.imageID, stackCounter++)
-                        if (sopInstanceUIDs.includes(image.sopInstanceUID)) {
-                            annotations.forEach(annotation => {
-                                const annotationSopUid = annotation[0]
-                                if (annotationSopUid === image.sopInstanceUID) {
-                                    toolStates.push([image.imageID, patient.patientID, ...annotation.slice(1, annotation.length)])
+        const toolStates = []
+        let initialRows = []
+
+        const rowNames = this._defineRowNames(patients, annotationLevel)
+        if (rows === undefined) {
+            rowNames.forEach((rowName, index) => {
+                let row = {}
+                row["PatientID"] = rowName
+                row.id = index
+                initialRows.push(row)
+            })
+        } else {
+            initialRows = rows
+            const annotations = []
+            let sopInstanceUIDs = []
+            let isFirst = true
+            rows.forEach((row, patientIndex) => {
+                const fields = Object.keys(row)
+                fields.forEach((field, variableIndex) => {
+                    if (field !== "PatientID" && field !== "id") {
+                        if (row[field] !== "") {
+                            const currentValues = JSON.parse(row[field])
+                            const type = JSON.parse(field).type
+                            currentValues.forEach(currentValue => {
+                                const sopInstanceUID = currentValue.sopUid
+                                let annotation
+                                if (type === VariableType.segmentation) {
+                                    const pixelData = new Uint8Array(atob(currentValue.pixelData).split("").map(function (c) {
+                                        return c.charCodeAt(0);
+                                    }));
+                                    annotations.push([sopInstanceUID, variableIndex - 1, currentValue.height, currentValue.width, pixelData, currentValue.segmentationIndex])
+                                } else if (type !== VariableType.boolean && type !== VariableType.integer) {
+                                    annotation = currentValue.data
+                                    annotations.push([sopInstanceUID, variableIndex - 1, ToolType.get(type), annotation])
                                 }
+                                sopInstanceUIDs.push(sopInstanceUID)
                             })
+                        } else if (isFirst) {
+                            isFirst = false
+                            activeVariableIndex = variableIndex-1
+                            activePatientIndex = patientIndex
+                            activePatient = patients.getPatient(activePatientIndex)
+                            activeVariable = variables[activeVariableIndex]
                         }
+                    }
+                })
+            })
+            sopInstanceUIDs = [...new Set(sopInstanceUIDs)]
+            let stackCounter = 0
+            patients.patients.forEach(patient => {
+                patient.studies.forEach(study => {
+                    study.series.forEach(series => {
+                        series.images.forEach(image => {
+                            stackIndices.set(image.imageID, stackCounter++)
+                            if (sopInstanceUIDs.includes(image.sopInstanceUID)) {
+                                annotations.forEach(annotation => {
+                                    const annotationSopUid = annotation[0]
+                                    if (annotationSopUid === image.sopInstanceUID) {
+                                        toolStates.push([image.imageID, patient.patientID, ...annotation.slice(1, annotation.length)])
+                                    }
+                                })
+                            }
+                        })
                     })
                 })
             })
+        }
+        const columns = this._variablesToColumns(activePatientIndex, activeVariable.name, variables, annotationLevel);
+        const {imageIds, instanceNumbers, seriesDescriptions} = this._updateImageIds(activePatient)
+        this.setState({
+            activePatientIndex: activePatientIndex,
+            activeVariableIndex: activeVariableIndex,
+            activePatient: activePatient,
+            activeVariable: activeVariable,
+            rows: initialRows,
+            columns: columns,
+            toolStates: toolStates,
+            stackIndices: stackIndices,
+            imageIds: imageIds,
+            instanceNumbers: instanceNumbers,
+            seriesDescriptions: seriesDescriptions,
         })
-        this.setState({stackIndices: stackIndices})
-        return toolStates
     }
 
     _nextPatient = () => {
@@ -370,6 +375,7 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
         if (activePatientIndex === this.state.patients.patients.length) {
             this.setState({
                 activePatientIndex: -1,
+                imageIds: [],
                 imageIds: [],
                 jumpBackToPatientIndex: -1
             })
@@ -508,15 +514,20 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
 
     restartAnnotating = () => {
         const activeVariable = this.state.variables[0]
+        const activePatient = this.state.patients.getPatient(0)
         const columns = this._variablesToColumns(0, activeVariable.name, this.state.variables, this.state.annotationLevel)
+        const {imageIds, instanceNumbers, seriesDescriptions} = this._updateImageIds(activePatient)
         this.setState({
             activePatientIndex: 0,
-            activePatient: this.state.patients.getPatient(0),
+            activePatient: activePatient,
             activeVariableIndex: 0,
             activeVariable: activeVariable,
             columns: columns,
             jumpBackToVariableIndex: -1,
-            jumpBackToPatientIndex: -1
+            jumpBackToPatientIndex: -1,
+            imageIds: imageIds,
+            instanceNumbers: instanceNumbers,
+            seriesDescriptions: seriesDescriptions
         })
     }
 
@@ -539,17 +550,6 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
                                         handleCellClick={this._handleCellClick}
                                         activePatientIndex={this.state.activePatientIndex}
                                         activeVariableIndex={this.state.activeVariableIndex}/>
-                        {/*<Box sx={{height: "97vh"}}>*/}
-                        {/*    <Tooltip title={"Set width of windows"} followCursor={true}>*/}
-                        {/*        <Divider sx={{paddingLeft: 5, paddingRight: 5, }} orientation="vertical" flexItem/>*/}
-                        {/*        <Slider*/}
-                        {/*            track={false}*/}
-                        {/*            orientation="vertical"*/}
-                        {/*            value={this.state.width}*/}
-                        {/*            onChange={(_, value) => this._setWidth(value as number)}*/}
-                        {/*        />*/}
-                        {/*    </Tooltip>*/}
-                        {/*</Box>*/}
                         <Box sx={{width: String(100 - this.state.width) + "%"}}>
                             <Image activePatient={this.state.activePatient}
                                    activeVariable={this.state.activeVariable}

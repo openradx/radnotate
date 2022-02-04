@@ -60,7 +60,7 @@ const AnnotationData = (props: AnnotationDataProps) => {
                     <Box sx={{width: 80}}>
                         <CSVLink ref={csvLinkRef} data={csvData} filename={"Radnotate.csv"} separator={";"} enclosingCharacter={""}>
                         </CSVLink>
-                        <Button href="#text-buttons" color="primary" variant="outlined" startIcon={<SaveAltIcon/>}
+                        <Button color="primary" variant="outlined" startIcon={<SaveAltIcon/>}
                                 onClick={handleExportButton}>
                             Export
                         </Button>
