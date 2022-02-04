@@ -1,16 +1,11 @@
 import React, {useRef, useState} from "react";
-import {Box, Button, gridClasses, IconButton, Stack} from "@mui/material";
+import {Box, Button, Stack} from "@mui/material";
 import {
-    DataGridPro, GridColDef, GridRowsProp, GridToolbarContainer, GridToolbarExport,
+    DataGridPro, GridColDef, GridRowsProp,
     gridVisibleSortedRowIdsSelector, useGridApiRef, visibleGridColumnsSelector
 } from '@mui/x-data-grid-pro';
-import {CustomWidthTooltip} from "../styles";
-import {CSVDownload, CSVLink} from "react-csv";
-import FileSaver from "file-saver";
-import ReactDOM from "react-dom";
+import {CSVLink} from "react-csv";
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
-import {GridCellParams} from "@mui/x-data-grid";
-import clsx from "clsx";
 
 type AnnotationDataProps = {
     columns: GridColDef[],
@@ -30,7 +25,9 @@ const AnnotationData = (props: AnnotationDataProps) => {
 
 
     React.useEffect(() => {
-        const data = props.rows.map(row => {return {...row}})
+        const data = props.rows.map(row => {
+            return {...row}
+        })
         data.forEach(row => {
             delete row.id
         })
@@ -61,18 +58,19 @@ const AnnotationData = (props: AnnotationDataProps) => {
             <Stack direction={"column"}>
                 <Stack sx={{marginBottom: 1}}>
                     <Box sx={{width: 80}}>
-                        <CSVLink ref={csvLinkRef} data={csvData}>
+                        <CSVLink ref={csvLinkRef} data={csvData} separator={";"} enclosingCharacter={""}>
                         </CSVLink>
-                        <Button href="#text-buttons" color="primary" variant="outlined" startIcon={<SaveAltIcon/>} onClick={handleExportButton}>
+                        <Button href="#text-buttons" color="primary" variant="outlined" startIcon={<SaveAltIcon/>}
+                                onClick={handleExportButton}>
                             Export
                         </Button>
                     </Box>
                 </Stack>
                 <Box sx={{
-                    height:"92vh",
+                    height: "92vh",
                     overflow: "auto",
                     '& .isActive': {
-                       backgroundColor: "#de751a"
+                        backgroundColor: "#de751a"
                     },
                 }}>
                     <DataGridPro apiRef={apiRef}

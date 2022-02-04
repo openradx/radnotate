@@ -72,7 +72,6 @@ type ImageStateType = {
     openTooltip: boolean,
     enableScrolling: boolean,
     previousScrollingDirection: number,
-
 }
 
 // ToDO Since only 10 colors are provided, segmentationIndex will break whne more than 10 segmentations are wanted.
@@ -97,6 +96,7 @@ const awaitTimeout = delay =>
 //ToDo Add button to disable rendering of already existing annotations which are currently not active
 class Image extends Component<ImagePropsType, ImageStateType> {
     imageIdQueue = new Queue({concurrent: 1, interval: 0, start: true})
+    existingAnnotationsCount = new TSMap<string, Object>()
 
     constructor(props: ImagePropsType) {
         super(props);
@@ -134,10 +134,13 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         })
 
         this.props.toolStates.forEach(annotationToolState => {
-            if (annotationToolState.length === 3) {
-                const [imageId, tool, data] = annotationToolState
-                data.activate = true
+            if (annotationToolState.length === 5) {
+                const [imageId, patientID, variableID, tool, data] = annotationToolState
                 toolStateManager.addImageIdToolState(imageId, tool, data)
+                this.existingAnnotationsCount.set(data.uuid, {
+                    patientId: patientID,
+                    variableId: variableID,
+                })
             }
         })
 
@@ -302,10 +305,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             const imageId = this.props.imageIds[i]
             if (keys.includes(imageId) && this.props.activeVariable.tool in existingToolState[imageId]) {
                 const annotations = existingToolState[imageId][this.props.activeVariable.tool].data
-                let instanceNumber: number
-                if (this.props.instanceNumbers.has(imageId)) {
-                    instanceNumber = this.props.instanceNumbers.get(imageId)
-                }
+                const instanceNumber = this.props.instanceNumbers.get(imageId)
                 for (let j = 0; j < annotations.length; j++) {
                     const data = annotations[j]
                     let value
@@ -326,7 +326,19 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                     const defaultValues = await this._processImage(imageId)
                     value = new TSMap([...Array.from(value.entries()), ...Array.from(defaultValues.entries())])
                     value.set("data", data)
-                    currentValues.push(value)
+                    const uuid = data.uuid
+                    if (!this.existingAnnotationsCount.has(uuid)) {
+                        this.existingAnnotationsCount.set(uuid, {
+                            variableId: this.props.activeVariable.id,
+                            patientId: this.props.activePatient.patientID
+                        })
+                        currentValues.push(value)
+                    } else {
+                        const {variableId, patientId} = this.existingAnnotationsCount.get(uuid)
+                        if (variableId === this.props.activeVariable.id && patientId === this.props.activePatient.patientID) {
+                            currentValues.push(value)
+                        }
+                    }
                 }
             }
         }
@@ -544,6 +556,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                     }
                 }
             }
+            this.existingAnnotationsCount = new TSMap<string, Object>()
         }
 
         if (prevProps.activeVariable.id !== this.props.activeVariable.id ||
@@ -597,8 +610,8 @@ class Image extends Component<ImagePropsType, ImageStateType> {
     _initSegmentation = () => {
         const {getters, setters} = cornerstoneTools.getModule("segmentation");
         this.props.toolStates.forEach(annotationToolState => {
-            if (annotationToolState.length === 5) {
-                const [imageId, height, width, pixelData, segmentationIndex] = annotationToolState
+            if (annotationToolState.length === 7) {
+                const [imageId, patientID, variableID, height, width, pixelData, segmentationIndex] = annotationToolState
                 let imageIdIndex
                 this.props.imageIds.forEach((currentImageId, index) => {
                     if (currentImageId === imageId) {

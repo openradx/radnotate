@@ -189,6 +189,9 @@ export class Patients {
             })
             if (!isSame) {
                 this.patients.push(newPatient)
+                this.patients.sort((a, b) => {
+                    return a.patientID.localeCompare(b.patientID);
+                })
                 this.treeNode.children?.push(newPatient.treeNode)
             }
         }

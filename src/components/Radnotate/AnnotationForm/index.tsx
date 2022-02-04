@@ -147,13 +147,14 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
 
     _loadVariableDefinitions = (file: File) => {
         const loadHeader = new Promise((resolve) => {
-                Papa.parse(file, {
-                    header: true,
-                    complete: results => {
-                        resolve(results.meta.fields?.slice(1,))
-                    }
-                })
+            Papa.parse(file, {
+                header: true,
+                delimiter: ";",
+                complete: results => {
+                    resolve(results.meta.fields?.slice(1,))
+                }
             })
+        })
         loadHeader.then((headers) => {
             const variables: Variable[] = []
             headers.forEach((header) => {
@@ -169,8 +170,12 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
         const loadData = new Promise((resolve) => {
             Papa.parse(file, {
                 header: true,
+                delimiter: ";",
                 complete: results => {
                     const data = results.data
+                    data.sort((a, b) => {
+                        return a.PatientID.localeCompare(b.PatientID);
+                    })
                     data.forEach((row, index) => {
                         row.id = index
                     })
@@ -205,7 +210,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                                value={this.state.variables[id].name}/>
                     <FormControl disabled={!isActiveVariable} error={this.state.typeError && isActiveVariable}
                                  variant="filled"
-                                 sx={{minWidth:175, maxWidth:175}}>
+                                 sx={{minWidth: 175, maxWidth: 175}}>
                         <InputLabel id="demo-simple-select-filled-label">Variable type</InputLabel>
                         <Select
                             labelId="demo-simple-select-filled-label" id="demo-simple-select-filled"
@@ -247,11 +252,13 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                         <Stack direction="row" divider={<Divider orientation="vertical" flexItem/>}
                                spacing={2} alignItems={"center"}>
                             <DicomDropzone savePatients={this.savePatients}/>
-                            <Button sx={{minWidth: 175, maxWidth: 175, textAlign:"center"}} variant="outlined" component="label">
+                            <Button sx={{minWidth: 175, maxWidth: 175, textAlign: "center"}} variant="outlined"
+                                    component="label">
                                 Load previous export file
                                 <input type="file" hidden={true} onInput={(event => this._loadExport(event))}/>
                             </Button>
-                            <CustomWidthTooltip title={"Load annotations from previous export file for validation purposes"}>
+                            <CustomWidthTooltip
+                                title={"Load annotations from previous export file for validation purposes"}>
                                 <FormGroup sx={{minWidth: 140, maxWidth: 140}}>
                                     <FormControlLabel control={<Switch disabled={this.state.loadAnnotationsDisabled}
                                                                        checked={this.state.loadAnnotations}
@@ -279,7 +286,8 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                                     return this.renderVariableInput(index)
                                 })
                             }
-                            <Button sx={{minWidth: 200, maxWidth: 200, minHeight: 55}} color="primary" variant="outlined" startIcon={<SendIcon/>}
+                            <Button sx={{minWidth: 200, maxWidth: 200, minHeight: 55}} color="primary"
+                                    variant="outlined" startIcon={<SendIcon/>}
                                     onClick={() => {
                                         let variables = this.state.variables
                                         variables = variables.slice(0, variables.length - 1)
@@ -294,7 +302,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                             </Button>
                         </Stack>
                     </Stack>
-                    <Box sx={{marginLeft: 10, paddingRight:8, minWidth: 400}}>
+                    <Box sx={{marginLeft: 10, paddingRight: 8, minWidth: 400}}>
                         <Typography variant="body1" align={"justify"}>
                             Dear colleagues,<br/><br/>
                             Radnotate is a radiological annotation tool for DICOM data for a fast and convenient

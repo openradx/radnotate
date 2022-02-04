@@ -105,12 +105,14 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
                 field: "PatientID",
                 filterable: false,
                 disableReorder: true,
+                sortable: false,
             })
         } else {
             columns.push({
                 field: "Study",
                 filterable: false,
                 disableReorder: true,
+                sortable: false,
             })
         }
         variables?.forEach((variable: Variable) => {
@@ -118,6 +120,7 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
                 field: variable.toString(),
                 filterable: false,
                 disableReorder: true,
+                sortable: false,
                 cellClassName: (params: GridCellParams) => {
                     return (clsx('cell', {
                         isActive: (params.row.id === activePatientIndex && JSON.parse(params.field).name === activeVariableName),
@@ -305,25 +308,27 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
         let sopInstanceUIDs = []
         rows.forEach(row => {
             const fields = Object.keys(row)
-            fields.forEach(field => {
+            fields.forEach((field, variableIndex) => {
                 if (field !== "PatientID" && field !== "id") {
                     // ToDo Fix parsing empty string
-                    const currentValues = JSON.parse(row[field])
-                    const type = JSON.parse(field).type
-                    currentValues.forEach(currentValue => {
-                        const sopInstanceUID = currentValue.sopUid
-                        let annotation
-                        if (type === VariableType.segmentation) {
-                            const pixelData = new Uint8Array(atob(currentValue.pixelData).split("").map(function (c) {
-                                return c.charCodeAt(0);
-                            }));
-                            annotations.push([sopInstanceUID, currentValue.height, currentValue.width, pixelData, currentValue.segmentationIndex])
-                        } else if (type !== VariableType.boolean && type !== VariableType.integer) {
-                            annotation = currentValue.data
-                            annotations.push([sopInstanceUID, ToolType.get(type), annotation])
-                        }
-                        sopInstanceUIDs.push(sopInstanceUID)
-                    })
+                    if (row[field] !== "") {
+                        const currentValues = JSON.parse(row[field])
+                        const type = JSON.parse(field).type
+                        currentValues.forEach(currentValue => {
+                            const sopInstanceUID = currentValue.sopUid
+                            let annotation
+                            if (type === VariableType.segmentation) {
+                                const pixelData = new Uint8Array(atob(currentValue.pixelData).split("").map(function (c) {
+                                    return c.charCodeAt(0);
+                                }));
+                                annotations.push([sopInstanceUID, variableIndex - 1, currentValue.height, currentValue.width, pixelData, currentValue.segmentationIndex])
+                            } else if (type !== VariableType.boolean && type !== VariableType.integer) {
+                                annotation = currentValue.data
+                                annotations.push([sopInstanceUID, variableIndex - 1, ToolType.get(type), annotation])
+                            }
+                            sopInstanceUIDs.push(sopInstanceUID)
+                        })
+                    }
                 }
             })
         })
@@ -340,7 +345,7 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
                             annotations.forEach(annotation => {
                                 const annotationSopUid = annotation[0]
                                 if (annotationSopUid === image.sopInstanceUID) {
-                                    toolStates.push([image.imageID, ...annotation.slice(1, annotation.length)])
+                                    toolStates.push([image.imageID, patient.patientID, ...annotation.slice(1, annotation.length)])
                                 }
                             })
                         }
