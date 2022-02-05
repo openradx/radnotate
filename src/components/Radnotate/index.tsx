@@ -541,7 +541,7 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
                            alignItems="stretch"
                            divider={
                                <Divider ref={this.dividerRef}
-                                        sx={{cursor: "col-resize", borderRightWidth: 4, marginLeft: 1, marginRight: 1}}
+                                        sx={{cursor: "col-resize", borderRightWidth: 4, marginLeft: 1, marginRight: 1, height: "96.5vh"}}
                                         orientation="vertical" flexItem/>
                            }>
                         <AnnotationData width={this.state.width}

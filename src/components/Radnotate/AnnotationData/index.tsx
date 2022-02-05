@@ -23,7 +23,6 @@ const AnnotationData = (props: AnnotationDataProps) => {
 
     const [csvData, setCsvData] = useState([]);
 
-
     React.useEffect(() => {
         const data = props.rows.map(row => {
             return {...row}
@@ -53,12 +52,20 @@ const AnnotationData = (props: AnnotationDataProps) => {
         csvLinkRef?.current?.link.click();
     };
 
+    const getNow = () => {
+        const now = new Date()
+        const date = now.getFullYear() + '-' + (now.getMonth() + 1) + '-' + now.getDate();
+        const time = now.getHours() + "-" + now.getMinutes() + "-" + now.getSeconds();
+        return date + "_" + time
+    }
+
     return (
         <Box sx={{width: String(props.width) + "%", height: "100vh"}}>
             <Stack direction={"column"}>
                 <Stack sx={{marginBottom: 1}}>
                     <Box sx={{width: 80}}>
-                        <CSVLink ref={csvLinkRef} data={csvData} filename={"Radnotate.csv"} separator={";"} enclosingCharacter={""}>
+                        <CSVLink ref={csvLinkRef} data={csvData} filename={"radnotate_" + getNow() + ".csv"}
+                                 separator={";"} enclosingCharacter={""}>
                         </CSVLink>
                         <Button color="primary" variant="outlined" startIcon={<SaveAltIcon/>}
                                 onClick={handleExportButton}>
