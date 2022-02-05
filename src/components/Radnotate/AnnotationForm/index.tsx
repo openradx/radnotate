@@ -24,6 +24,8 @@ import DicomDropzone from "./DicomDropzone";
 import {Patients} from "./DicomDropzone/dicomObject";
 import Papa from "papaparse";
 import {CustomWidthTooltip} from "../styles";
+import dir_logo from "./dir_logo.png";
+import ukhd_logo from "./ukhd_logo.png";
 
 export enum AnnotationLevel {
     patient,
@@ -303,19 +305,35 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                         </Stack>
                     </Stack>
                     <Box sx={{marginLeft: 10, paddingRight: 8, minWidth: 400}}>
-                        <Typography variant="body1" align={"justify"}>
-                            Dear colleagues,<br/><br/>
-                            Radnotate is a radiological annotation tool for DICOM data for a fast and convenient
-                            annotation workflow. The development took place in my spare time. Primary goal was
-                            to simplify the annotation work flow, automating as much as possible, which is especially
-                            useful if you have a large amount of data. Compared to tools like MITK, the tool set is
-                            reduced. The strength of Radnotate rather lies in doing simple things faster. I developed
-                            it for my personal research needs, but naturally I hope to provide a benefit for all my
-                            colleagues. If Radnotate helps you to focus more of your time on your actual scientific
-                            project, then please consider me, when possible, in your publications.<br/><br/>
-                            Kind regards,<br/>
-                            Manuel Debić
-                        </Typography>
+                        <Stack direction={"column"} spacing={5}>
+                            <Typography variant="body1" align={"justify"}>
+                                Dear colleagues,<br/><br/>
+                                Radnotate is a radiological annotation tool for DICOM data for a fast and convenient
+                                annotation workflow. The development took place in my spare time. Primary goal was
+                                to simplify the annotation work flow, automating as much as possible, which is
+                                especially
+                                useful if you have a large amount of data. Compared to tools like MITK, the tool set is
+                                reduced. The strength of Radnotate rather lies in doing simple things faster. I
+                                developed
+                                it for my personal research needs, but naturally I hope to provide a benefit for all my
+                                colleagues. If Radnotate helps you to focus more of your time on your actual scientific
+                                project, then please consider me, when possible, in your publications.<br/><br/>
+                                Kind regards,<br/>
+                                Manuel Debić
+                            </Typography>
+                            <Stack direction={"row"} spacing={5} alignItems={"center"} justifyContent={"space-evenly"} flexWrap={"wrap"}>
+                                <Box
+                                    component={"img"}
+                                    sx={{width: 300}}
+                                    src={dir_logo}
+                                />
+                                <Box
+                                    component={"img"}
+                                    sx={{width: 300}}
+                                    src={ukhd_logo}
+                                />
+                            </Stack>
+                        </Stack>
                     </Box>
                 </Stack>
             </Box>
