@@ -17,7 +17,7 @@ import DeleteSweepOutlinedIcon from "@mui/icons-material/DeleteSweepOutlined";
 import StartIcon from '@mui/icons-material/Start';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
-type SeetingsPropsType = {
+type SettingsPropsType = {
     clearTable: Function
     colorMode: Function
     restartWorkflow: Function
@@ -25,7 +25,7 @@ type SeetingsPropsType = {
     annotationMode: boolean
 }
 
-export const Settings = (props: SeetingsPropsType) => {
+export const Settings = (props: SettingsPropsType) => {
     const [actions, setActions] = useState([
             {icon: <HelpOutlineIcon/>, name: "Help"},
             {icon: <LightModeOutlinedIcon/>, name: 'Light mode'}

@@ -5,7 +5,9 @@ import {
     gridVisibleSortedRowIdsSelector, useGridApiRef, visibleGridColumnsSelector
 } from '@mui/x-data-grid-pro';
 import {CSVLink} from "react-csv";
+import exportFromJSON from "export-from-json";
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
+import {VariableType} from "../AnnotationForm/variable";
 
 type AnnotationDataProps = {
     columns: GridColDef[],
@@ -21,6 +23,7 @@ const AnnotationData = (props: AnnotationDataProps) => {
     const csvLinkRef = useRef<CSVLink & HTMLAnchorElement & { link: HTMLAnchorElement }>(null)
     const apiRef = useGridApiRef();
 
+    const [data, setData] = useState([]);
     const [csvData, setCsvData] = useState([]);
 
     React.useEffect(() => {
@@ -30,8 +33,7 @@ const AnnotationData = (props: AnnotationDataProps) => {
         data.forEach(row => {
             delete row.id
         })
-        setCsvData(data)
-
+        setData(data)
         if (typeof apiRef.current !== "undefined" && apiRef.current !== null) {
             try {
                 const coordinates = {
@@ -49,8 +51,48 @@ const AnnotationData = (props: AnnotationDataProps) => {
     }, [apiRef, props]);
 
     const handleExportButton = () => {
+        setCsvData(data)
         csvLinkRef?.current?.link.click();
     };
+
+    const handleExportXLSButton = async () => {
+        let newData = data.map(row => {
+            return {...row}
+        })
+        props.columns.slice(1, props.columns.length).forEach(column => {
+            const field = column.field
+            const variable = JSON.parse(field)
+            newData = newData.map(row => {
+                if (!(field in row)) {
+                    const tmp = {}
+                    tmp[variable.name] = ""
+                    delete row[field]
+                    return  {...row, ...tmp}
+                } else {
+                    const newCell = []
+                    const cell = JSON.parse(row[field])
+                    cell.forEach(annotation => {
+                        switch (variable.type) {
+                            case VariableType.boolean:
+                                newCell.push(annotation.value)
+                                break;
+                            case VariableType.integer:
+                                newCell.push(annotation.value)
+                                break;
+                            case VariableType.length:
+                                newCell.push(annotation.length)
+                                break;
+                        }
+                    })
+                    const tmp = {}
+                    tmp[variable.name] = newCell.toString()
+                    delete row[field]
+                    return  {...row, ...tmp}
+                }
+            })
+        })
+        exportFromJSON({data: newData, fileName: "radnotate_" + getNow(), extension: "xls", exportType: "xls"})
+    }
 
     const getNow = () => {
         const now = new Date()
@@ -62,16 +104,19 @@ const AnnotationData = (props: AnnotationDataProps) => {
     return (
         <Box sx={{width: String(props.width) + "%", height: "100vh"}}>
             <Stack direction={"column"}>
-                <Stack sx={{marginBottom: 1}}>
-                    <Box sx={{width: 80}}>
+                <Stack direction={"row"} spacing={2} sx={{marginBottom: 1}}>
+                    <Box sx={{width: 130, minWidth:70}}>
                         <CSVLink ref={csvLinkRef} data={csvData} filename={"radnotate_" + getNow() + ".csv"}
                                  separator={";"} enclosingCharacter={""}>
                         </CSVLink>
-                        <Button color="primary" variant="outlined" startIcon={<SaveAltIcon/>}
+                        <Button variant={"outlined"} startIcon={<SaveAltIcon/>}
                                 onClick={handleExportButton}>
-                            Export
+                            Export CSV
                         </Button>
                     </Box>
+                    <Button variant={"outlined"} component={"label"} sx={{width:130, minWidth:70}} startIcon={<SaveAltIcon/>} onClick={()=> {handleExportXLSButton()}}>
+                        Export XLS
+                    </Button>
                 </Stack>
                 <Box sx={{
                     height: "92vh",

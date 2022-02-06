@@ -256,11 +256,11 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                             <DicomDropzone savePatients={this.savePatients}/>
                             <Button sx={{minWidth: 175, maxWidth: 175, textAlign: "center"}} variant="outlined"
                                     component="label">
-                                Load previous export file
+                                Load previous export CSV file
                                 <input type="file" hidden={true} onInput={(event => this._loadExport(event))}/>
                             </Button>
                             <CustomWidthTooltip
-                                title={"Load annotations from previous export file for validation purposes"}>
+                                title={"Load annotations from previous export CSV file for validation purposes"}>
                                 <FormGroup sx={{minWidth: 140, maxWidth: 140}}>
                                     <FormControlLabel control={<Switch disabled={this.state.loadAnnotationsDisabled}
                                                                        checked={this.state.loadAnnotations}
@@ -324,12 +324,12 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                             <Stack direction={"row"} spacing={5} alignItems={"center"} justifyContent={"space-evenly"} flexWrap={"wrap"}>
                                 <Box
                                     component={"img"}
-                                    sx={{width: 300}}
+                                    sx={{width: 225, paddingBottom:5}}
                                     src={dir_logo}
                                 />
                                 <Box
                                     component={"img"}
-                                    sx={{width: 300}}
+                                    sx={{width: 200, paddingBottom:5}}
                                     src={ukhd_logo}
                                 />
                             </Stack>

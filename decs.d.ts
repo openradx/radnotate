@@ -11,3 +11,4 @@ declare module "nifti-reader-js";
 declare module "cornerstone-file-image-loader";
 declare module "queue-promise";
 declare module "*.png"
+declare module "export-from-json"
