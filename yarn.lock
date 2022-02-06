@@ -8195,6 +8195,11 @@
     "jest-matcher-utils" "^27.4.6"
     "jest-message-util" "^27.4.6"
 
+"export-from-json@^1.5.1":
+  "integrity" "sha512-s7iaWM56OZEO16eaXrFoCS443ycox4NgdqvEOkf+pV66/TVGJZLiFnPPbRoy6hNrjmDK+2H1GsHx6mCoHJCGTQ=="
+  "resolved" "https://registry.npmjs.org/export-from-json/-/export-from-json-1.5.1.tgz"
+  "version" "1.5.1"
+
 "express-ws@^4.0.0":
   "integrity" "sha512-KEyUw8AwRET2iFjFsI1EJQrJ/fHeGiJtgpYgEWG3yDv4l/To/m3a2GaYfeGyB3lsWdvbesjF5XCMx+SVBgAAYw=="
   "resolved" "https://registry.npmjs.org/express-ws/-/express-ws-4.0.0.tgz"
@@ -16803,6 +16808,11 @@
   "integrity" "sha512-Kbk4Nxyq7/ZWqr/tarI9yIt/+iNNFOjBXEWgTb4ydaNHBNGgvf2QHbS9fdfsndfjFlFwEd4Al+mw83YkaD10ZA=="
   "resolved" "https://registry.npmjs.org/ws/-/ws-8.4.2.tgz"
   "version" "8.4.2"
+
+"xlsexport@^1.5.2":
+  "integrity" "sha512-cyyDdZBjlxNl7IIz3/v8CeYwRxb5dXCclDJAv42mrjbUER1ILlWP33zXj7Q/lUc9RUOF5cU4L7iSzQVXSrq8oA=="
+  "resolved" "https://registry.npmjs.org/xlsexport/-/xlsexport-1.5.2.tgz"
+  "version" "1.5.2"
 
 "xml-name-validator@^3.0.0":
   "integrity" "sha512-A5CUptxDsvxKJEU3yO6DuWBSJz/qizqzJKOMIfUJHETbBw/sFaDxgd6fxm1ewUaM0jZ444Fc5vC5ROYurg/4Pw=="
