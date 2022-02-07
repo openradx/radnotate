@@ -1,7 +1,7 @@
 services:
 
-  radnnotate:
-    container_name: radnnotate
+  radnotate:
+    container_name: radnotate
     build:
       context: .
       dockerfile: Dockerfile
