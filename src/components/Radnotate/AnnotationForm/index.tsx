@@ -324,7 +324,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                             <Stack direction={"row"} spacing={5} alignItems={"center"} justifyContent={"space-evenly"} flexWrap={"wrap"}>
                                 <Box
                                     component={"img"}
-                                    sx={{width: 225, paddingBottom:5}}
+                                    sx={{width: 300}}
                                     src={dir_logo}
                                 />
                                 <Box

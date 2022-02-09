@@ -77,7 +77,7 @@ type ImageStateType = {
 // ToDO Since only 10 colors are provided, segmentationIndex will break whne more than 10 segmentations are wanted.
 //  Unlikely, but still needs to be handled in the future
 const colors = [
-    [222, 117, 26], // orange
+    [232, 88, 24], // orange
     [0, 55, 109], //blue
     [0, 255, 0], //lime green
     [255, 255, 0], //yellow

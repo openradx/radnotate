@@ -15,15 +15,15 @@ export const getTheme = (mode: PaletteMode) => ({
                     main: '#00376d',
                 },
                 secondary: {
-                    main: '#de751a',
+                    main: '#e85818',
                 },
             }
             : {
                 primary: {
-                    main: '#de751a',
+                    main: '#e85818',//'#de751a'
                 },
                 secondary: {
-                    main: '#de751a',
+                    main: '#e85818',
                 },
             }),
     },

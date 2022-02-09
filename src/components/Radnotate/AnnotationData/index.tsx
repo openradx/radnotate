@@ -134,7 +134,7 @@ const AnnotationData = (props: AnnotationDataProps) => {
                     height: "92vh",
                     overflow: "auto",
                     '& .isActive': {
-                        backgroundColor: "#de751a"
+                        backgroundColor: "#e85818"
                     },
                 }}>
                     <DataGridPro apiRef={apiRef}
