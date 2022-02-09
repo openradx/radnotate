@@ -112,7 +112,7 @@ export const Settings = (props: SettingsPropsType) => {
 
     let sx
     if (props.annotationMode) {
-        sx = {position: 'absolute', left: 5, bottom: 5}
+        sx = {position: 'absolute', left: 5, bottom: 8}
     } else {
         sx = {position: 'absolute', left: 5, top: 8}
     }

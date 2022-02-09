@@ -114,7 +114,7 @@ const AnnotationData = (props: AnnotationDataProps) => {
         <Box sx={{width: String(props.width) + "%", height: "100vh"}}>
             <Stack direction={"column"}>
                 <Stack direction={"row"} spacing={2} sx={{marginBottom: 1}}>
-                    <Box sx={{width: 130, minWidth: 70}}>
+                    <Box sx={{width: 140, minWidth: 70}}>
                         <CSVLink ref={csvLinkRef} data={csvData} filename={"radnotate_" + getNow() + ".csv"}
                                  separator={";"} enclosingCharacter={""}>
                         </CSVLink>
@@ -123,7 +123,7 @@ const AnnotationData = (props: AnnotationDataProps) => {
                             Export CSV
                         </Button>
                     </Box>
-                    <Button variant={"outlined"} component={"label"} sx={{width: 130, minWidth: 70}}
+                    <Button variant={"outlined"} component={"label"} sx={{width: 140, minWidth: 70}}
                             startIcon={<SaveAltIcon/>} onClick={() => {
                         handleExportXLSButton()
                     }}>
@@ -131,7 +131,7 @@ const AnnotationData = (props: AnnotationDataProps) => {
                     </Button>
                 </Stack>
                 <Box sx={{
-                    height: "92vh",
+                    height: "90vh",
                     overflow: "auto",
                     '& .isActive': {
                         backgroundColor: "#e85818"
