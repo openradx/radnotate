@@ -16,6 +16,7 @@ import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
 import DeleteSweepOutlinedIcon from "@mui/icons-material/DeleteSweepOutlined";
 import StartIcon from '@mui/icons-material/Start';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import {helpAnnotationMode, helpStartPage} from "./help";
 
 type SettingsPropsType = {
     clearTable: Function
@@ -47,14 +48,14 @@ export const Settings = (props: SettingsPropsType) => {
             ]
             additonalActions.push(...actions)
             setActions(additonalActions)
-            setHelpDialogText("Some help for annotation mode coming soon...")
+            setHelpDialogText(helpAnnotationMode)
         } else {
             if (actions.length > 2) {
                 setActions([...actions.slice(3,5)])
             } else {
                 setActions([...actions.slice(0,2)])
             }
-            setHelpDialogText("Some help for start page coming soon...")
+            setHelpDialogText(helpStartPage)
         }
     }, [props.annotationMode]);
 
@@ -81,13 +82,13 @@ export const Settings = (props: SettingsPropsType) => {
                 setAlertDialogOpen(true)
                 setAlertDialogType("restart")
                 setAlertDialogText("If you proceed, your annotation data and definitions will be lost. Be sure to " +
-                    "export your annotation data before you proceed. Are you sure you want to proceed?")
+                    "export your annotation data before you proceed. Always export your annotations as CSV. Are you sure you want to proceed?")
                 break;
             case "Clear table":
                 setAlertDialogOpen(true)
                 setAlertDialogType("clear")
                 setAlertDialogText("If you proceed, your annotation data will be lost. Be sure to export your " +
-                    "annotation data before you proceed. Are you sure you want to proceed?")
+                    "annotation data before you proceed. Always export your annotations as CSV. Are you sure you want to proceed?")
                 break;
             case "Restart from beginning":
                 props.restartAnnotating()
@@ -154,7 +155,7 @@ export const Settings = (props: SettingsPropsType) => {
                 open={helpDialogOpen}
                 onClose={() => setHelpDialogOpen(false)}>
                 <DialogTitle id="help-dialog-title">
-                    Help
+                    How to use Radnotate
                 </DialogTitle>
                 <DialogContent>
                     <DialogContentText id="help-dialog-description">

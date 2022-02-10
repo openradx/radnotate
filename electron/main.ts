@@ -29,7 +29,7 @@ function createWindow() {
             dialog.showMessageBox({
                 title: "Possible data loss",
                 message: "If you close the window, your annotation data will be lost. Be sure to export your " +
-                    "annotation data before you proceed. Are you sure you want to proceed?",
+                    "annotation data before you proceed. Always export your annotations as CSV. Are you sure you want to proceed?",
                 buttons: ["Cancel", "Yes"]
             }).then(result => {
                 if (result.response === 1) {

@@ -3,7 +3,6 @@ import {TSMap} from "typescript-map";
 export enum VariableType {
     boolean,
     integer,
-    decimal, // Not implemented
     seed,
     rectangleRoi,
     ellipticalRoi,

@@ -219,7 +219,6 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                             onChange={(event) => this.addVariableType(event, id)} value={this.state.variables[id].type}>
                             <MenuItem value={VariableType.boolean}>boolean</MenuItem>
                             <MenuItem value={VariableType.integer}>integer number</MenuItem>
-                            {/*<MenuItem value={VariableType.decimal}>decimal number</MenuItem>*/}
                             <MenuItem value={VariableType.seed}>seed</MenuItem>
                             <MenuItem value={VariableType.length}>length</MenuItem>
                             <MenuItem value={VariableType.segmentation}>segmentation</MenuItem>
@@ -311,17 +310,18 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                                 Radnotate is a radiological annotation tool for DICOM data for a fast and convenient
                                 annotation workflow. The development took place in my spare time. Primary goal was
                                 to simplify the annotation work flow, automating as much as possible, which is
-                                especially
-                                useful if you have a large amount of data. Compared to tools like MITK, the tool set is
-                                reduced. The strength of Radnotate rather lies in doing simple things faster. I
-                                developed
-                                it for my personal research needs, but naturally I hope to provide a benefit for all my
-                                colleagues. If Radnotate helps you to focus more of your time on your actual scientific
-                                project, then please consider me, when possible, in your publications.<br/><br/>
+                                especially useful if you have a large amount of data. Compared to tools like MITK, the
+                                tool set is reduced. The strength of Radnotate rather lies in doing simple things
+                                faster. I developed it for my personal research needs, but naturally I hope to provide a
+                                benefit for all my colleagues. If Radnotate helps you to focus more of your time on your
+                                actual scientific project, then please consider me, when possible, in your publications.
+                                For a detailed explanation on how to use Radnotate, see the help section in the settings
+                                menu. If you have any questions, don't hesitate to write me an email.<br/><br/>
                                 Kind regards,<br/>
                                 Manuel Debić
                             </Typography>
-                            <Stack direction={"row"} spacing={5} alignItems={"center"} justifyContent={"space-evenly"} flexWrap={"wrap"}>
+                            <Stack direction={"row"} spacing={5} alignItems={"center"} justifyContent={"space-evenly"}
+                                   flexWrap={"wrap"}>
                                 <Box
                                     component={"img"}
                                     sx={{width: 300}}
@@ -329,7 +329,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                                 />
                                 <Box
                                     component={"img"}
-                                    sx={{width: 200, paddingBottom:5}}
+                                    sx={{width: 200, paddingBottom: 5}}
                                     src={ukhd_logo}
                                 />
                             </Stack>
