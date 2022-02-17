@@ -316,7 +316,7 @@ class AnnotationForm extends Component<AnnotationFormPropsType, AnnotationFormSt
                                 benefit for all my colleagues. If Radnotate helps you to focus more of your time on your
                                 actual scientific project, then please consider me, when possible, in your publications.
                                 For a detailed explanation on how to use Radnotate, see the help section in the settings
-                                menu. If you have any questions, don't hesitate to write me an email.<br/><br/>
+                                menu.<br/><br/>
                                 Kind regards,<br/>
                                 Manuel Debić
                             </Typography>

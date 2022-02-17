@@ -1,6 +1,6 @@
-declare module "cornerstone-tools"
-declare module "cornerstone"
-declare module "cornerstone-math"
+declare module "cornerstone-tools";
+declare module "cornerstone";
+declare module "cornerstone-math";
 declare module "cornerstone-web-image-loader";
 declare module "react-cornerstone-viewport";
 declare module "cornerstone-wado-image-loader";
@@ -10,5 +10,5 @@ declare module "react-promise-tracker";
 declare module "nifti-reader-js";
 declare module "cornerstone-file-image-loader";
 declare module "queue-promise";
-declare module "*.png"
-declare module "export-from-json"
+declare module "*.png";
+declare module "export-from-json";
