@@ -1,18 +1,34 @@
-import React, {Component} from "react";
-import AnnotationForm, {AnnotationLevel} from "./AnnotationForm";
-import Variable, {ToolType, VariableType} from "./AnnotationForm/variable";
-import {Patient, Patients} from "./AnnotationForm/DicomDropzone/dicomObject";
-import Image from "./Image"
+import {Component, ReactElement, ReactNode} from "react";
+import AnnotationForm, {AnnotationLevel} from "./Form";
+import Variable, {ToolType, VariableType} from "./Form/variable";
+import {Patient, Patients} from "./Form/DicomDropzone/dicomObject";
 import {GridCellParams, GridColDef, GridRowsProp,} from "@mui/x-data-grid";
 import clsx from "clsx";
-import {Box, Divider, Stack, Tooltip} from "@mui/material";
+import {Box, Tooltip} from "@mui/material";
 import {TSMap} from "typescript-map"
-import AnnotationData from "./AnnotationData";
 import {GridColumnHeaderParams, GridRenderCellParams, LicenseInfo} from "@mui/x-data-grid-pro";
 import {Settings} from "./Settings";
-import ReactDOM from "react-dom";
+import Annotation from "./Annotation";
 
 LicenseInfo.setLicenseKey("07a54c751acde4192070a1600dac24bdT1JERVI6MCxFWFBJUlk9MTc5OTc3Njg5NjA4NCxLRVlWRVJTSU9OPTE=",);
+
+export type SegmentationToolStateType = {
+    patientID: string,
+    variableID: number,
+    imageId: string,
+    height: number,
+    width: number,
+    pixelData: Uint8Array,
+    segmentationIndex: number
+}
+
+export type AnnotationToolStateType = {
+    patientID: string,
+    variableID: number,
+    imageId: string,
+    tool: string,
+    data: Object
+}
 
 type RadnotatePropsType = {
     colorMode: Function
@@ -21,84 +37,33 @@ type RadnotatePropsType = {
 type RadnotateStateType = {
     patients: Patients,
     variables: Variable[],
+    rows: GridRowsProp,
+
+    columns: GridColDef[],
     annotationMode: boolean,
     annotationLevel: AnnotationLevel,
-    activePatient: Patient,
-    activeVariable: Variable,
-    activeVariableIndex: number,
-    activePatientIndex: number,
-    activeStudyIndex: number,
     imageIds: string[],
     instanceNumbers: Map<string, number>,
-    columns: GridColDef[],
-    rowNames: String[],
-    rows: GridRowsProp,
-    jumpBackToVariableIndex: number,
-    jumpBackToPatientIndex: number,
-    width: number,
+    rowNames: string[],
     seriesDescriptions: TSMap<string, Array<string>>,
-    toolStates: [],
+    toolStates: (AnnotationToolStateType | SegmentationToolStateType)[],
     stackIndices: Map<string, number>,
     segmentationsCount: number,
-    dividerClicked: boolean,
 }
 
 class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
 
-    dividerRef: Object
-    width: number
-
     constructor(props: RadnotatePropsType) {
         super(props);
-        this.dividerRef = React.createRef()
-        this.width = 0
         this.state = {
+            patients: new Patients(),
+            segmentationsCount: 0,
+            variables: [],
             annotationMode: false,
-            activeVariableIndex: 0,
-            activePatientIndex: 0,
-            activeStudyIndex: 0,
-            jumpBackToVariableIndex: -1,
-            jumpBackToPatientIndex: -1,
-            width: 30,
-            dividerClicked: false,
         }
     }
 
-    componentDidMount = () => {
-        addEventListener("beforeunload", (event) => {
-            event.preventDefault()
-        })
-        this.width = ReactDOM.findDOMNode(this).clientWidth
-    };
-
-    componentDidUpdate = (prevProps, prevState) => {
-        if (this.state.annotationMode && prevState.annotationMode === false) {
-            ReactDOM.findDOMNode(this.dividerRef.current).addEventListener("mousedown", this._handleMouse, false)
-            document.addEventListener("mouseup", this._handleMouse, false)
-            document.addEventListener("mousemove", this._handleMouse, false)
-        }
-        if (ReactDOM.findDOMNode(this).clientWidth !== this.width) {
-            this.width = ReactDOM.findDOMNode(this).clientWidth
-        }
-    }
-
-    _handleMouse = (event) => {
-        if (event.type === "mousedown") {
-            this.setState({dividerClicked: true})
-        } else if (event.type === "mouseup") {
-            this.setState({dividerClicked: false})
-        } else if (this.state.dividerClicked) {
-            let width = parseInt(100 * event.clientX / this.width)
-            if (width > 99) {
-                width = 99
-            } else if (width < 0) {
-                width = 0
-            }
-            this.setState({width: width})
-        }
-    }
-
-    _variablesToColumns = (activePatientIndex: number, activeVariableName: string, variables: Variable[], annotationLevel: AnnotationLevel) => {
+    variablesToColumns = (activePatientIndex: number, activeVariableName: string, variables: Variable[], annotationLevel: AnnotationLevel): GridColDef[] => {
         const columns: GridColDef[] = []
         if (annotationLevel === AnnotationLevel.patient) {
             columns.push({
@@ -126,22 +91,23 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
                         isActive: (params.row.id === activePatientIndex && JSON.parse(params.field).name === activeVariableName),
                     }))
                 },
-                renderCell: (params: GridRenderCellParams) => {
+                // @ts-ignore
+                renderCell: (params: GridRenderCellParams): ReactNode => {
                     let value = params.value
                     if (value === undefined) {
                         value = ""
                     }
-                    const variable: Object = JSON.parse(params.field)
+                    const variable: Variable = JSON.parse(params.field)
                     if (variable.type === VariableType.segmentation && value !== "") {
                         value = JSON.parse(value)
-                        value.forEach(element => {
+                        value.forEach((element: { pixelData: string }) => {
                             element.pixelData = "B64EncodedImage"
                         })
                         value = JSON.stringify(value)
                     }
                     if (value !== "") {
                         value = JSON.parse(value)
-                        value.forEach(element => {
+                        value.forEach((element: { studyUid?: string, seriesUid?: string, sopUid?: string, data?: Object }) => {
                             delete element.studyUid
                             delete element.seriesUid
                             delete element.sopUid
@@ -154,8 +120,9 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
                         </Tooltip>
                     )
                 },
-                renderHeader: (params: GridColumnHeaderParams) => {
-                    const value: Object = JSON.parse(params.field)
+                // @ts-ignore
+                renderHeader: (params: GridColumnHeaderParams): ReactNode => {
+                    const value: { name: string } = JSON.parse(params.field)
                     return (
                         value.name
                     )
@@ -165,8 +132,8 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
         return columns
     }
 
-    _defineRowNames = (patients: Patients, annotationLevel: AnnotationLevel) => {
-        const rowNames: String[] = []
+    _defineRowNames = (patients: Patients, annotationLevel: AnnotationLevel): string[] => {
+        const rowNames: string[] = []
         if (annotationLevel === AnnotationLevel.patient) {
             patients?.patients.forEach((patient) => {
                 rowNames.push(patient.patientID)
@@ -181,7 +148,7 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
         return rowNames
     }
 
-    saveAnnotationForm = (patients: Patients, variables: Variable[], annotationLevel: AnnotationLevel, rows) => {
+    saveAnnotationForm = (patients: Patients, variables: Variable[], annotationLevel: AnnotationLevel, rows: GridRowsProp | undefined): void => {
         let segmentationIndex = 0
         variables.forEach(variable => {
             if (variable.type === VariableType.segmentation) {
@@ -190,12 +157,13 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
         })
         if (annotationLevel === AnnotationLevel.patient) {
             if (rows !== undefined) {
-                const imagePatientIDs = []
-                const annotationPatientIDs = []
+                const imagePatientIDs: string[] = []
+                const annotationPatientIDs: string[] = []
                 patients.patients.forEach(patient => {
                     imagePatientIDs.push(patient.patientID)
                 })
                 rows.forEach(row => {
+                    // @ts-ignore
                     const patientID = row.PatientID
                     annotationPatientIDs.push(patientID)
                 })
@@ -205,10 +173,11 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
                         patients.deletePatient(patientID)
                     }
                 })
-                let deleteIndices: number[] = []
+                const deleteIndices: number[] = []
                 annotationPatientIDs.forEach(patientID => {
                     if (!intersectionPatientIDs.includes(patientID)) {
                         rows.forEach((row, index) => {
+                            // @ts-ignore
                             if (row.PatientID === patientID) {
                                 deleteIndices.push(index)
                             }
@@ -217,83 +186,59 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
                 })
                 let counter = 0
                 deleteIndices.forEach(deleteIndex => {
+                    // @ts-ignore
                     rows.splice(deleteIndex - counter++, 1)
                 })
                 rows.forEach((row, index) => {
+                    // @ts-ignore
                     row.id = index
                 })
             }
         }
         this._init(patients, variables, rows, annotationLevel)
         this.setState({
-            activeStudyIndex: 0,
             variables: variables,
             patients: patients,
             annotationLevel: annotationLevel,
             annotationMode: true,
-            jumpBackToPatientIndex: -1,
-            jumpBackToVariableIndex: -1,
             segmentationsCount: segmentationIndex,
         })
     }
 
-    nextVariable = (currentValues: TSMap<string, number>[]) => {
-        const rows = this._updateRows(currentValues)
-        let activeVariableIndex = this.state.activeVariableIndex
-        let jumpBackToVariableIndex = this.state.jumpBackToVariableIndex
-        if (jumpBackToVariableIndex >= 0) {
-            activeVariableIndex = jumpBackToVariableIndex
-            jumpBackToVariableIndex = -1
-        } else {
-            activeVariableIndex++
-        }
-        let isLastPatient: boolean = false
-        if (this.state.jumpBackToPatientIndex >= 0) {
-            isLastPatient = this._nextPatient()
-        } else if (activeVariableIndex === this.state.variables.length) {
-            activeVariableIndex = 0
-            isLastPatient = this._nextPatient()
-        }
-        if (isLastPatient) {
-            this.setState({
-                activeVariableIndex: -1,
-                jumpBackToVariableIndex: -1
-            })
-        }
-        const activeVariable = this.state.variables[activeVariableIndex]
-        const columns = this._variablesToColumns(this.state.activePatientIndex, activeVariable.name, this.state.variables, this.state.annotationLevel)
-        this.setState({
-            activeVariableIndex: activeVariableIndex,
-            activeVariable: activeVariable,
-            columns: columns,
-            rows: rows,
-            jumpBackToVariableIndex: jumpBackToVariableIndex
-        })
-    }
-
     // ToDo Refactor this and save annotation form method
-    _init = (patients: Patients, variables: Variable[], rows: Object, annotationLevel: AnnotationLevel) => {
+    _init = (patients: Patients, variables: Variable[], rows: GridRowsProp | undefined, annotationLevel: AnnotationLevel): void => {
         let activePatient = patients.getPatient(0)
         let activePatientIndex = 0
         let activeVariable = variables[0]
         let activeVariableIndex = 0
 
         const stackIndices = new Map<string, number>()
-        const toolStates = []
-        let initialRows = []
+        const toolStates: (AnnotationToolStateType | SegmentationToolStateType)[] = []
+        let initialRows: GridRowsProp = []
 
         const rowNames = this._defineRowNames(patients, annotationLevel)
         if (rows === undefined) {
             rowNames.forEach((rowName, index) => {
-                let row = {}
-                row["PatientID"] = rowName
-                row.id = index
+                const row: {PatientID: string, id: number} = {
+                    PatientID: rowName,
+                    id: index
+                }
+                // @ts-ignore
                 initialRows.push(row)
             })
         } else {
             initialRows = rows
-            const annotations = []
-            let sopInstanceUIDs = []
+            const annotations: {
+                sopUid: string,
+                variableIndex: number,
+                height?: number,
+                width?: number,
+                pixelData?: Uint8Array,
+                segmentationIndex?: number,
+                tool?: string,
+                data?: Object
+            }[] = []
+            let sopInstanceUIDs: string[] = []
             let isFirst = true
             rows.forEach((row, patientIndex) => {
                 const fields = Object.keys(row)
@@ -302,23 +247,36 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
                         if (row[field] !== "") {
                             const currentValues = JSON.parse(row[field])
                             const type = JSON.parse(field).type
-                            currentValues.forEach(currentValue => {
-                                const sopInstanceUID = currentValue.sopUid
-                                let annotation
+                            currentValues.forEach((currentValue: {
+                                sopUid: string,
+                                pixelData: string,
+                                height: number,
+                                width: number,
+                                segmentationIndex: number
+                                data: Object
+                            })  => {
                                 if (type === VariableType.segmentation) {
-                                    const pixelData = new Uint8Array(atob(currentValue.pixelData).split("").map(function (c) {
-                                        return c.charCodeAt(0);
-                                    }));
-                                    annotations.push([sopInstanceUID, variableIndex - 1, currentValue.height, currentValue.width, pixelData, currentValue.segmentationIndex])
+                                    annotations.push({
+                                        sopUid: currentValue.sopUid,
+                                        variableIndex: variableIndex - 1,
+                                        height: currentValue.height,
+                                        width: currentValue.width,
+                                        pixelData: new Uint8Array(atob(currentValue.pixelData).split("").map(function (c) {
+                                            return c.charCodeAt(0);
+                                        })),
+                                        segmentationIndex: currentValue.segmentationIndex})
                                 } else if (type !== VariableType.boolean && type !== VariableType.integer) {
-                                    annotation = currentValue.data
-                                    annotations.push([sopInstanceUID, variableIndex - 1, ToolType.get(type), annotation])
+                                    annotations.push({
+                                        sopUid: currentValue.sopUid,
+                                        variableIndex: variableIndex - 1,
+                                        tool: ToolType.get(type),
+                                        data: currentValue.data})
                                 }
-                                sopInstanceUIDs.push(sopInstanceUID)
+                                sopInstanceUIDs.push(currentValue.sopUid)
                             })
                         } else if (isFirst) {
                             isFirst = false
-                            activeVariableIndex = variableIndex-1
+                            activeVariableIndex = variableIndex - 1
                             activePatientIndex = patientIndex
                             activePatient = patients.getPatient(activePatientIndex)
                             activeVariable = variables[activeVariableIndex]
@@ -335,9 +293,31 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
                             stackIndices.set(image.imageID, stackCounter++)
                             if (sopInstanceUIDs.includes(image.sopInstanceUID)) {
                                 annotations.forEach(annotation => {
-                                    const annotationSopUid = annotation[0]
+                                    const annotationSopUid = annotation.sopUid
                                     if (annotationSopUid === image.sopInstanceUID) {
-                                        toolStates.push([image.imageID, patient.patientID, ...annotation.slice(1, annotation.length)])
+                                        let toolState: AnnotationToolStateType | SegmentationToolStateType
+                                        if (annotation.tool !== undefined && annotation.data !== undefined) {
+                                            toolState = {
+                                                patientID: patient.patientID,
+                                                variableID: annotation.variableIndex,
+                                                imageId: image.imageID,
+                                                tool: annotation.tool,
+                                                data: annotation.data,
+
+                                            }
+                                            toolStates.push(toolState)
+                                        } else if (annotation.height !== undefined && annotation.width !== undefined && annotation.pixelData !== undefined && annotation.segmentationIndex !== undefined){
+                                            toolState = {
+                                                patientID: patient.patientID,
+                                                variableID: annotation.variableIndex,
+                                                imageId: image.imageID,
+                                                height: annotation.height,
+                                                width: annotation.width,
+                                                pixelData: annotation.pixelData,
+                                                segmentationIndex: annotation.segmentationIndex
+                                            }
+                                            toolStates.push(toolState)
+                                        }
                                     }
                                 })
                             }
@@ -346,13 +326,9 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
                 })
             })
         }
-        const columns = this._variablesToColumns(activePatientIndex, activeVariable.name, variables, annotationLevel);
-        const {imageIds, instanceNumbers, seriesDescriptions} = this._updateImageIds(activePatient)
+        const columns = this.variablesToColumns(activePatientIndex, activeVariable.name, variables, annotationLevel);
+        const {imageIds, instanceNumbers, seriesDescriptions} = this.updateImageIds(activePatient)
         this.setState({
-            activePatientIndex: activePatientIndex,
-            activeVariableIndex: activeVariableIndex,
-            activePatient: activePatient,
-            activeVariable: activeVariable,
             rows: initialRows,
             columns: columns,
             toolStates: toolStates,
@@ -363,49 +339,13 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
         })
     }
 
-    _nextPatient = () => {
-        let activePatientIndex = this.state.activePatientIndex
-        let jumpBackToPatientIndex = this.state.jumpBackToPatientIndex
-        if (jumpBackToPatientIndex >= 0) {
-            activePatientIndex = jumpBackToPatientIndex
-            jumpBackToPatientIndex = -1
-        } else {
-            activePatientIndex++
-        }
-        if (activePatientIndex === this.state.patients.patients.length) {
-            this.setState({
-                activePatientIndex: -1,
-                imageIds: [],
-                imageIds: [],
-                jumpBackToPatientIndex: -1
-            })
-            return true
-        } else {
-            let activePatient: Patient
-            if (this.state.annotationLevel === AnnotationLevel.patient) {
-                activePatient = this.state.patients.getPatient(activePatientIndex)
-            } else {
-                activePatient = this.state.patients.getPatientStudy(activePatientIndex, this.state.activeStudyIndex)
-            }
-            const {imageIds, instanceNumbers, seriesDescriptions} = this._updateImageIds(activePatient)
-            this.setState({
-                activePatient: activePatient,
-                activePatientIndex: activePatientIndex,
-                imageIds: imageIds,
-                instanceNumbers: instanceNumbers,
-                jumpBackToPatientIndex: jumpBackToPatientIndex,
-                seriesDescriptions: seriesDescriptions
-            })
-            return false
-        }
-    }
-
-    _updateImageIds = (activePatient: Patient | undefined) => {
+    updateImageIds = (activePatient: Patient | undefined):
+        { imageIds: string[], instanceNumbers: Map<string, number>, seriesDescriptions: TSMap<string, Array<string>> } => {
         let imageIds: string[] = []
         const instanceNumbers: Map<string, number> = new Map<string, number>()
         const seriesDescriptions: TSMap<string, Array<string>> = new TSMap<string, Array<string>>()
         if (activePatient === undefined) {
-            return {imageIds, instanceNumbers}
+            return {imageIds, instanceNumbers, seriesDescriptions}
         }
         activePatient.studies.forEach((study) => {
             study.series.forEach((series) => {
@@ -427,141 +367,48 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
         return {imageIds, instanceNumbers, seriesDescriptions}
     }
 
-    _handleCellClick = (params: GridCellParams) => {
-        if (this.state.jumpBackToPatientIndex >= 0 || this.state.jumpBackToVariableIndex >= 0) {
-            return
-        }
-        const activePatientIndex = Number(params.id)
-        let activePatient: Patient
-        if (this.state.annotationLevel === AnnotationLevel.patient) {
-            activePatient = this.state.patients.getPatient(activePatientIndex)
-        } else {
-            activePatient = this.state.patients.getPatientStudy(activePatientIndex, this.state.activeStudyIndex)
-        }
-
-        let activeVariableIndex: number
-        this.state.variables.forEach((variable, index) => {
-            if (variable.name === JSON.parse(params.field).name)
-                activeVariableIndex = index
-        })
-        const activeVariable = this.state.variables[activeVariableIndex]
-        const columns = this._variablesToColumns(activePatientIndex, activeVariable.name, this.state.variables, this.state.annotationLevel);
-        const {imageIds, instanceNumbers, seriesDescriptions} = this._updateImageIds(activePatient)
-        this.setState({
-            activeVariableIndex: activeVariableIndex,
-            activeVariable: activeVariable,
-            activePatientIndex: activePatientIndex,
-            activePatient: activePatient,
-            columns: columns,
-            imageIds: imageIds,
-            instanceNumbers: instanceNumbers,
-            seriesDescriptions: seriesDescriptions
-        })
-        if (this.state.jumpBackToVariableIndex === -1 && this.state.jumpBackToPatientIndex === -1) {
-            this.setState({
-                jumpBackToVariableIndex: this.state.activeVariableIndex,
-                jumpBackToPatientIndex: this.state.activePatientIndex,
-            })
-        }
-
+    clearTable = (): void => {
+        this.saveAnnotationForm(this.state.patients, this.state.variables, this.state.annotationLevel, undefined)
     }
 
-    _updateRows = (currentValues: TSMap<string, number>[]) => {
-        let rows = this.state.rows
-        rows.forEach(row => {
-            if (row.id === this.state.activePatientIndex) {
-                let json = "["
-                if (currentValues.length) {
-                    currentValues.forEach(value => {
-                        json += JSON.stringify(value.toJSON())
-                        json += ","
-                    })
-                    json = json.slice(0, json.length - 1) + "]"
-                } else {
-                    json += "]"
-                }
-                if (this.state.activeVariable.type === VariableType.boolean || this.state.activeVariable.type === VariableType.integer) {
-                    if (currentValues[0] !== undefined) {
-                        if (currentValues[0].get("value") === "Escape") {
-                            row[this.state.activeVariable.toString()] = "[]"
-                        } else {
-                            row[this.state.activeVariable.toString()] = json
-                        }
-                    } else if (row[this.state.activeVariable.toString()] === undefined) {
-                        row[this.state.activeVariable.toString()] = json
-                    }
-                } else {
-                    row[this.state.activeVariable.toString()] = json
-                }
-            }
-        })
-        return rows
-    }
-
-    _setWidth = (width: number) => {
-        this.setState({width: width})
-    }
-
-    clearTable = () => {
-        this.saveAnnotationForm(this.state.patients, this.state.variables, this.state.annotationLevel)
-    }
-
-    restartWorkflow = () => {
+    restartWorkflow = (): void => {
         this.setState({
             annotationMode: false,
         })
     }
 
-    restartAnnotating = () => {
+    restartAnnotating = (): void => {
         const activeVariable = this.state.variables[0]
         const activePatient = this.state.patients.getPatient(0)
-        const columns = this._variablesToColumns(0, activeVariable.name, this.state.variables, this.state.annotationLevel)
-        const {imageIds, instanceNumbers, seriesDescriptions} = this._updateImageIds(activePatient)
+        const columns = this.variablesToColumns(0, activeVariable.name, this.state.variables, this.state.annotationLevel)
+        const {imageIds, instanceNumbers, seriesDescriptions} = this.updateImageIds(activePatient)
         this.setState({
-            activePatientIndex: 0,
-            activePatient: activePatient,
-            activeVariableIndex: 0,
-            activeVariable: activeVariable,
             columns: columns,
-            jumpBackToVariableIndex: -1,
-            jumpBackToPatientIndex: -1,
             imageIds: imageIds,
             instanceNumbers: instanceNumbers,
             seriesDescriptions: seriesDescriptions
         })
     }
 
-    render() {
+    override render(): ReactElement {
         return (
-            <div ref={this.documentRef}>
+            <Box>
                 {this.state.annotationMode ?
-                    <Stack direction={"row"}
-                           justifyContent="space-evently"
-                           spacing={0}
-                           alignItems="stretch"
-                           divider={
-                               <Divider ref={this.dividerRef}
-                                        sx={{cursor: "col-resize", borderRightWidth: 4, marginLeft: 1, marginRight: 1, height: "96.5vh"}}
-                                        orientation="vertical" flexItem/>
-                           }>
-                        <AnnotationData width={this.state.width}
-                                        rows={this.state.rows}
-                                        columns={this.state.columns}
-                                        handleCellClick={this._handleCellClick}
-                                        activePatientIndex={this.state.activePatientIndex}
-                                        activeVariableIndex={this.state.activeVariableIndex}/>
-                        <Box sx={{width: String(100 - this.state.width) + "%"}}>
-                            <Image activePatient={this.state.activePatient}
-                                   activeVariable={this.state.activeVariable}
-                                   nextVariable={this.nextVariable}
-                                   imageIds={this.state.imageIds}
-                                   instanceNumbers={this.state.instanceNumbers}
-                                   seriesDescriptions={this.state.seriesDescriptions}
-                                   toolStates={this.state.toolStates}
-                                   stackIndices={this.state.stackIndices}
-                                   segmentationsCount={this.state.segmentationsCount}/>
-                        </Box>
-                    </Stack>
+                    <Annotation
+                        patients={this.state.patients}
+                        variables={this.state.variables}
+                        annotationLevel={this.state.annotationLevel}
+                        toolStates={this.state.toolStates}
+                        stackIndices={this.state.stackIndices}
+                        segmentationsCount={this.state.segmentationsCount}
+                        variablesToColumns={this.variablesToColumns}
+                        updateImageIds={this.updateImageIds}
+                        imageIds={this.state.imageIds}
+                        instanceNumbers={this.state.instanceNumbers}
+                        seriesDescriptions={this.state.seriesDescriptions}
+                        columns={this.state.columns}
+                        rows={this.state.rows}
+                    />
                     :
                     <AnnotationForm saveAnnotationForm={this.saveAnnotationForm}/>
                 }
@@ -570,7 +417,7 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
                           restartWorkflow={this.restartWorkflow}
                           restartAnnotating={this.restartAnnotating}
                           annotationMode={this.state.annotationMode}/>
-            </div>
+            </Box>
         )
 
     }

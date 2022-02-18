@@ -13,7 +13,6 @@ export enum VariableType {
 export const ToolType = new Map<VariableType, string>([
     [VariableType.boolean, "Pan"],
     [VariableType.integer, "Pan"],
-    [VariableType.decimal, "Pan"],
     [VariableType.seed, "Probe"],
     [VariableType.rectangleRoi, "RectangleRoi"],
     [VariableType.ellipticalRoi, "EllipticalRoi"],

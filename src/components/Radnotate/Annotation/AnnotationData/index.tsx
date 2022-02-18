@@ -7,7 +7,7 @@ import {
 import {CSVLink} from "react-csv";
 import exportFromJSON from "export-from-json";
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
-import {VariableType} from "../AnnotationForm/variable";
+import {VariableType} from "../../Form/variable";
 
 type AnnotationDataProps = {
     columns: GridColDef[],

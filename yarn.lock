@@ -2952,7 +2952,7 @@
     "lodash" "^4.17.15"
     "redent" "^3.0.0"
 
-"@testing-library/react@11.2.7":
+"@testing-library/react@^11.2.7":
   "integrity" "sha512-tzRNp7pzd5QmbtXNG/mhdcl7Awfu/Iz1RaVHY75zTdOkmHCuzMhRL83gWHSgOAcjS3CCbyfwUHMZgRJb4kAfpA=="
   "resolved" "https://registry.npmjs.org/@testing-library/react/-/react-11.2.7.tgz"
   "version" "11.2.7"
@@ -13610,7 +13610,12 @@
     "loose-envify" "^1.4.0"
     "prop-types" "^15.6.2"
 
-"react@*", "react@^16.0.0 || ^17.0.0", "react@^17.0.2", "react@>= 16", "react@>= 16.8", "react@>=16.6.0", "react@>=16.8.0", "react@17.0.2":
+"react-usestateref@^1.0.8":
+  "integrity" "sha512-whaE6H0XGarFKwZ3EYbpHBsRRCLZqdochzg/C7e+b6VFMTA3LS3K4ZfpI4NT40iy83jG89rGXrw70P9iDfOdsA=="
+  "resolved" "https://registry.npmjs.org/react-usestateref/-/react-usestateref-1.0.8.tgz"
+  "version" "1.0.8"
+
+"react@*", "react@^16.0.0 || ^17.0.0", "react@^17.0.2", "react@>= 16", "react@>= 16.8", "react@>=16.6.0", "react@>=16.8", "react@>=16.8.0", "react@>16.0.0", "react@17.0.2":
   "integrity" "sha512-gnhPt75i/dq/z3/6q/0asP78D0u592D5L1pd7M8P+dck6Fu/jJeL6iVVK23fptSUZj8Vjf++7wXA8UNclGQcbA=="
   "resolved" "https://registry.npmjs.org/react/-/react-17.0.2.tgz"
   "version" "17.0.2"
@@ -16913,3 +16918,8 @@
   "integrity" "sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q=="
   "resolved" "https://registry.npmjs.org/yocto-queue/-/yocto-queue-0.1.0.tgz"
   "version" "0.1.0"
+
+"zustand@^3.7.0":
+  "integrity" "sha512-USzVzLGrvZ8VK1/sEsOAmeqa8N7D3OBdZskVaL7DL89Q4QLTYD053iIlZ5KDidyZ+Od80Dttin/f8ZulOLFFDQ=="
+  "resolved" "https://registry.npmjs.org/zustand/-/zustand-3.7.0.tgz"
+  "version" "3.7.0"

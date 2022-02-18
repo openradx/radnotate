@@ -16,6 +16,11 @@
     "esModuleInterop": true,
     "include": [
       "decs.d.ts"
-    ]
+    ],
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "forceConsistentCasingInFileNames": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitOverride": true
   },
 }

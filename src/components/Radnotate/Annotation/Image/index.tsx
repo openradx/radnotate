@@ -3,9 +3,7 @@ import cornerstoneMath from "cornerstone-math";
 import cornerstoneTools from "cornerstone-tools";
 import Hammer from "hammerjs";
 import CornerstoneViewport from "react-cornerstone-viewport";
-import {Patient} from "../AnnotationForm/DicomDropzone/dicomObject";
 import cornerstone, {loadImage} from "cornerstone-core";
-import Variable, {ToolType, VariableType} from "../AnnotationForm/variable";
 import {TSMap} from "typescript-map"
 import {
     Alert,
@@ -30,6 +28,8 @@ import RedoIcon from '@mui/icons-material/Redo';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import ReactDOM from "react-dom";
 import Queue from "queue-promise";
+import {AnnotationToolStateType, SegmentationToolStateType} from "../../index";
+import {ToolType, VariableType} from "../../Form/variable";
 
 cornerstoneTools.external.cornerstone = cornerstone;
 cornerstoneTools.external.Hammer = Hammer;
@@ -50,7 +50,7 @@ type ImagePropsType = {
     imageIds: string[],
     instanceNumbers: Map<string, number>,
     seriesDescriptions: TSMap<string, Array<string>>
-    toolStates: [],
+    toolStates: (AnnotationToolStateType | SegmentationToolStateType)[],
     stackIndices: Map<string, number>,
     segmentationsCount: number,
 }
@@ -134,8 +134,9 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         })
 
         this.props.toolStates.forEach(annotationToolState => {
-            if (annotationToolState.length === 5) {
-                const [imageId, patientID, variableID, tool, data] = annotationToolState
+            if ((annotationToolState as AnnotationToolStateType).tool) {
+                // @ts-ignore
+                const {imageId, patientID, variableID, tool, data} = annotationToolState
                 toolStateManager.addImageIdToolState(imageId, tool, data)
                 this.existingAnnotationsCount.set(data.uuid, {
                     patientId: patientID,
@@ -610,8 +611,8 @@ class Image extends Component<ImagePropsType, ImageStateType> {
     _initSegmentation = () => {
         const {getters, setters} = cornerstoneTools.getModule("segmentation");
         this.props.toolStates.forEach(annotationToolState => {
-            if (annotationToolState.length === 7) {
-                const [imageId, patientID, variableID, height, width, pixelData, segmentationIndex] = annotationToolState
+            if ((annotationToolState as SegmentationToolStateType).segmentationIndex) {
+                const {imageId, height, width, pixelData, segmentationIndex} = annotationToolState
                 let imageIdIndex
                 this.props.imageIds.forEach((currentImageId, index) => {
                     if (currentImageId === imageId) {
