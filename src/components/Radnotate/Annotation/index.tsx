@@ -1,57 +1,95 @@
-import {createRef, ReactElement, RefObject, useCallback, useEffect, useState} from "react";
+import {createRef, ReactElement, RefObject, useEffect, useState} from "react";
 import {Box, Divider, Stack} from "@mui/material";
-import AnnotationData from "./AnnotationData";
+import Data from "./Data";
 import Image from "./Image";
-import {GridCellParams, GridColDef, GridRowsProp} from "@mui/x-data-grid";
-import {Patient, Patients} from "../Form/DicomDropzone/dicomObject";
+import {GridRowsProp} from "@mui/x-data-grid";
+import {Patient} from "../Form/DicomDropzone/dicomObject";
 import {AnnotationLevel} from "../Form";
-import Variable, {VariableType} from "../Form/variable";
+import {VariableType} from "../Form/variable";
 import {TSMap} from "typescript-map";
-import {AnnotationToolStateType, SegmentationToolStateType} from "../index";
+import create from "zustand";
+import {AnnotationToolState, ImageStack, RadnotateState, SegmentationToolState, useRadnotateStore} from "../index";
 import useStateRef from "react-usestateref";
 
-type AnnotationPropsType = {
-    patients: Patients,
-    variables: Variable[],
-    annotationLevel: AnnotationLevel,
-    toolStates: (AnnotationToolStateType | SegmentationToolStateType)[],
+type AnnotationProps = {
+    toolStates: (AnnotationToolState | SegmentationToolState)[],
     stackIndices: Map<string, number>,
     segmentationsCount: number,
-    variablesToColumns: Function,
-    updateImageIds: Function,
-    imageIds: string[],
-    instanceNumbers: Map<string, number>,
-    seriesDescriptions: TSMap<string, Array<string>>,
-    columns: GridColDef[],
-    rows: GridRowsProp,
+    imageStack: ImageStack,
 }
 
-const Annotation = (props: AnnotationPropsType): ReactElement => {
-    const [activePatient, setActivePatient] = useState(props.patients.getPatient(0))
-    const [activePatientIndex, setActivePatientIndex] = useState(0)
-    const [activeVariable, setActiveVariable] = useState(props.variables[0])
-    const [activeVariableIndex, setActiveVariableIndex] = useState(0)
-    // const [activeStudyIndex, setActiveStudyIndex] = useState(0)
-    const [jumpBackToVariableIndex, setJumpBackToVariableIndex] = useState(-1)
-    const [jumpBackToPatientIndex, setJumpBackToPatientIndex] = useState(-1)
+export type AnnotationState = {
+    lastVariableIndex: number,
+    setLastVariableIndex: (lastVariableIndex: number) => void,
+    lastPatientIndex: number,
+    setLastPatientIndex: (lastPatientIndex: number) => void,
+}
+
+export const useAnnotationStore = create((set: Function): AnnotationState => ({
+    lastVariableIndex: -1,
+    setLastVariableIndex: (lastVariableIndex: number): void => set(() => ({lastVariableIndex: lastVariableIndex})),
+    lastPatientIndex: -1,
+    setLastPatientIndex: (lastPatientIndex: number): void => set(() => ({lastPatientIndex: lastPatientIndex})),
+}))
+
+const Annotation = (props: AnnotationProps): ReactElement => {
+    const patients = useRadnotateStore((state: RadnotateState) => state.patients)
+    const variables = useRadnotateStore((state: RadnotateState) => state.variables)
+    const rows = useRadnotateStore((state: RadnotateState) => state.rows)
+    const activePatient = useRadnotateStore((state: RadnotateState) => state.activePatient)
+    const activeVariable = useRadnotateStore((state: RadnotateState) => state.activeVariable)
+    const setActivePatient = useRadnotateStore((state: RadnotateState) => state.setActivePatient)
+    const setActiveVariable = useRadnotateStore((state: RadnotateState) => state.setActiveVariable)
+    const setRows = useRadnotateStore((state: RadnotateState) => state.setRows)
+    const annotationLevel = useRadnotateStore((state: RadnotateState) => state.annotationLevel)
+    const lastPatientIndex = useAnnotationStore((state: AnnotationState) => state.lastPatientIndex)
+    const setLastPatientIndex = useAnnotationStore((state: AnnotationState) => state.setLastPatientIndex)
+    const lastVariableIndex = useAnnotationStore((state: AnnotationState) => state.lastVariableIndex)
+    const setLastVariableIndex = useAnnotationStore((state: AnnotationState) => state.setLastVariableIndex)
+    const updateImageIds = (activePatient: Patient): ImageStack => {
+        let imageIds: string[] = []
+        const instanceNumbers: Map<string, number> = new Map<string, number>()
+        const seriesDescriptions: TSMap<string, Array<string>> = new TSMap<string, Array<string>>()
+        // if (activePatient === undefined) {
+        //     return {imageIds, instanceNumbers, seriesDescriptions}
+        // }
+        activePatient.studies.forEach((study) => {
+            study.series.forEach((series) => {
+                const imageIdsTemp = new Array<string>(series.images.length)
+                series.images.forEach((image) => {
+                    imageIdsTemp[image.instanceNumber - 1] = image.imageID
+                    instanceNumbers.set(image.imageID, image.instanceNumber);
+                })
+                // ToDo If multiple studies within one patient, with same name and same series number exist, this approach will fail
+                if (seriesDescriptions.has(series.seriesDescription)) {
+                    const seriesDescription = series.seriesDescription + " " + series.seriesNumber
+                    seriesDescriptions.set(seriesDescription, imageIdsTemp)
+                } else {
+                    seriesDescriptions.set(series.seriesDescription, imageIdsTemp)
+                }
+                imageIds = [...imageIds, ...imageIdsTemp]
+            })
+        })
+        const imageStack = {
+            imageIDs: imageIds,
+            instanceNumbers: instanceNumbers,
+            seriesDescriptions: seriesDescriptions
+        }
+        return imageStack
+    }
+    const [imageStack, setImageStack] = useState<ImageStack>(() => updateImageIds(activePatient))
     const [dataGridWidth, setDataGridWidth] = useState(30)
     const [windowWidth, setWindowWidth] = useState(window.innerWidth)
-    const [dividerClicked, setDividerClicked, dividerClickedRef] = useStateRef(false)
-    const [columns, setColumns] = useState(props.columns)
-    const [rows, setRows] = useState(props.rows)
-    const [imageIds, setImageIds] = useState(props.imageIds)
-    const [instanceNumbers, setInstanceNumbers] = useState(props.instanceNumbers)
-    const [seriesDescriptions, setSeriesDescriptions] = useState(props.seriesDescriptions)
+    const [, setDividerClicked, dividerClickedRef] = useStateRef(false)
 
     const dividerRef: RefObject<HTMLHRElement> = createRef()
-
 
     useEffect(() => {
         // @ts-ignore
         dividerRef.current.addEventListener("mousedown", _handleMouse, false)
         document.addEventListener("mouseup", _handleMouse, false)
         document.addEventListener("mousemove", _handleMouse, false)
-        addEventListener("beforeunload", (event) => {
+        addEventListener("contextbeforeunload", (event) => {
             event.preventDefault()
         })
     }, [])
@@ -60,46 +98,10 @@ const Annotation = (props: AnnotationPropsType): ReactElement => {
         setWindowWidth(window.innerWidth)
     }, [window.innerWidth])
 
-    const _handleCellDoubleClick = (params: GridCellParams): void => {
-        if (jumpBackToPatientIndex >= 0 || jumpBackToVariableIndex >= 0) {
-            return
-        }
-        const newActivePatientIndex = Number(params.id)
-        let newActivePatient: Patient
-        if (props.annotationLevel === AnnotationLevel.patient) {
-            newActivePatient = props.patients.getPatient(newActivePatientIndex)
-        } else {
-            // ToDo Implement annotation on study level
-            // activePatient = props.patients.getPatientStudy(activePatientIndex, activeStudyIndex)
-        }
-
-        let activeVariableIndex: number = -1
-        props.variables.forEach((variable, index) => {
-            if (variable.name === JSON.parse(params.field).name)
-                activeVariableIndex = index
-        })
-        const activeVariable = props.variables[activeVariableIndex]
-        const columns = props.variablesToColumns(newActivePatientIndex, activeVariable.name, props.variables, props.annotationLevel);
-        // @ts-ignore Because annotationLevel currently always true for patient
-        const {imageIds, instanceNumbers, seriesDescriptions} = props.updateImageIds(newActivePatient)
-
-        // @ts-ignore Because annotationLevel currently always true for patient
-        setActivePatient(newActivePatient)
-        setActivePatientIndex(newActivePatientIndex)
-
-        setActiveVariable(activeVariable)
-        setActiveVariableIndex(activeVariableIndex)
-
-        setColumns(columns)
-        setImageIds(imageIds)
-        setInstanceNumbers(instanceNumbers)
-        setSeriesDescriptions(seriesDescriptions)
-
-        if (jumpBackToVariableIndex === -1 && jumpBackToPatientIndex === -1) {
-            setJumpBackToVariableIndex(activeVariableIndex)
-            setJumpBackToPatientIndex(newActivePatientIndex)
-        }
-    }
+    useEffect(() => {
+        const imageStack = updateImageIds(activePatient)
+        setImageStack(imageStack)
+    }, [activePatient])
 
     const _handleMouse = (event: MouseEvent): void => {
         if (event.type === "mousedown") {
@@ -120,10 +122,11 @@ const Annotation = (props: AnnotationPropsType): ReactElement => {
     }
 
     const _updateRows = (currentValues: TSMap<string, string>[]): GridRowsProp => {
-        const newRows = props.rows
-        newRows.forEach(row => {
+        const newRows = rows
+        // @ts-ignore //ToDo Handle row type properly, dynamic type generation?
+        newRows.forEach((row) => {
             // @ts-ignore
-            if (row.id === activePatientIndex) {
+            if (row.id === activePatient.id) {
                 let json = "["
                 if (currentValues.length) {
                     currentValues.forEach(value => {
@@ -154,65 +157,48 @@ const Annotation = (props: AnnotationPropsType): ReactElement => {
 
     const nextVariable = (currentValues: TSMap<string, string>[]): void => {
         const newRows = _updateRows(currentValues)
-        let newActiveVariableIndex = activeVariableIndex
-        let newJumpBackToVariableIndex = jumpBackToVariableIndex
-        if (jumpBackToVariableIndex >= 0) {
-            newActiveVariableIndex = jumpBackToVariableIndex
+        let newActiveVariableIndex = activeVariable._id
+        let newJumpBackToVariableIndex = lastVariableIndex
+        if (newJumpBackToVariableIndex >= 0) {
+            newActiveVariableIndex = lastVariableIndex
             newJumpBackToVariableIndex = -1
         } else {
             newActiveVariableIndex++
         }
-        let newActivePatientIndex = activePatientIndex
-        if (jumpBackToPatientIndex >= 0) {
-            newActivePatientIndex = _nextPatient()
-        } else if (newActiveVariableIndex === props.variables.length) {
+        if (lastPatientIndex >= 0) {
+            _nextPatient()
+        } else if (newActiveVariableIndex === variables.length) {
             newActiveVariableIndex = 0
-            newActivePatientIndex = _nextPatient()
+            _nextPatient()
         }
-        const newActiveVariable = props.variables[newActiveVariableIndex]
-
-        const newColumns = props.variablesToColumns(newActivePatientIndex, newActiveVariable.name, props.variables, props.annotationLevel)
-
-        setActivePatientIndex(newActivePatientIndex)
-        setActiveVariableIndex(newActiveVariableIndex)
+        const newActiveVariable = variables[newActiveVariableIndex]
         setActiveVariable(newActiveVariable)
-        setColumns(newColumns)
         setRows(newRows)
-        setJumpBackToVariableIndex(newJumpBackToVariableIndex)
+        setLastVariableIndex(newJumpBackToVariableIndex)
     }
 
-    const _nextPatient = (): number => {
-        let newActivePatientIndex = activePatientIndex
-        let newJumpBackToPatientIndex = jumpBackToPatientIndex
+    const _nextPatient = (): void => {
+        let newActivePatientIndex = activePatient.id
+        let newJumpBackToPatientIndex = lastPatientIndex
         if (newJumpBackToPatientIndex >= 0) {
-            newActivePatientIndex = jumpBackToPatientIndex
+            newActivePatientIndex = lastPatientIndex
             newJumpBackToPatientIndex = -1
         } else {
             newActivePatientIndex++
         }
-        if (newActivePatientIndex >= props.patients.patients.length) {
-            setActivePatientIndex(-1)
-            setImageIds([])
-            setJumpBackToPatientIndex(-1)
-            return -1
+        if (newActivePatientIndex >= patients.patients.length) {
+            setLastPatientIndex(-1)
         } else {
             let newActivePatient: Patient
-            if (props.annotationLevel === AnnotationLevel.patient) {
-                newActivePatient = props.patients.getPatient(newActivePatientIndex)
+            if (annotationLevel === AnnotationLevel.patient) {
+                newActivePatient = patients.getPatient(newActivePatientIndex)
             } else {
                 // ToDo Implement annotation on study level
                 // newActivePatient = props.patients.getPatientStudy(newActivePatientIndex, activeStudyIndex)
             }
             // @ts-ignore Because annotationLevel currently always true for patient
-            const {imageIds, instanceNumbers, seriesDescriptions} = props.updateImageIds(newActivePatient)
-            setImageIds(imageIds)
-            setInstanceNumbers(instanceNumbers)
-            setSeriesDescriptions(seriesDescriptions)
-
-            // @ts-ignore Because annotationLevel currently always true for patient
             setActivePatient(newActivePatient)
-            setJumpBackToPatientIndex(newJumpBackToPatientIndex)
-            return newActivePatientIndex
+            setLastPatientIndex(newJumpBackToPatientIndex)
         }
     }
 
@@ -232,20 +218,12 @@ const Annotation = (props: AnnotationPropsType): ReactElement => {
                             }}
                             orientation="vertical" flexItem/>
                }>
-            <AnnotationData width={dataGridWidth}
-                            rows={rows}
-                            // @ts-ignore
-                            columns={columns}
-                            handleCellClick={_handleCellDoubleClick}
-                            activePatientIndex={activePatientIndex}
-                            activeVariableIndex={activeVariableIndex}/>
+            <Data width={dataGridWidth}/>
             <Box sx={{width: String(100 - dataGridWidth) + "%"}}>
                 <Image activePatient={activePatient}
                        activeVariable={activeVariable}
                        nextVariable={nextVariable}
-                       imageIds={imageIds}
-                       instanceNumbers={instanceNumbers}
-                       seriesDescriptions={seriesDescriptions}
+                       imageStack={imageStack}
                        toolStates={props.toolStates}
                        stackIndices={props.stackIndices}
                        segmentationsCount={props.segmentationsCount}/>

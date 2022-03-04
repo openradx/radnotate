@@ -28,8 +28,9 @@ import RedoIcon from '@mui/icons-material/Redo';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import ReactDOM from "react-dom";
 import Queue from "queue-promise";
-import {AnnotationToolStateType, SegmentationToolStateType} from "../../index";
-import {ToolType, VariableType} from "../../Form/variable";
+import {AnnotationToolState, ImageStack, SegmentationToolState} from "../../index";
+import Variable, {ToolType, VariableType} from "../../Form/variable";
+import {Patient} from "../../Form/DicomDropzone/dicomObject";
 
 cornerstoneTools.external.cornerstone = cornerstone;
 cornerstoneTools.external.Hammer = Hammer;
@@ -47,12 +48,10 @@ type ImagePropsType = {
     activePatient: Patient,
     activeVariable: Variable,
     nextVariable: Function,
-    imageIds: string[],
-    instanceNumbers: Map<string, number>,
-    seriesDescriptions: TSMap<string, Array<string>>
-    toolStates: (AnnotationToolStateType | SegmentationToolStateType)[],
+    toolStates: (AnnotationToolState | SegmentationToolState)[],
     stackIndices: Map<string, number>,
     segmentationsCount: number,
+    imageStack: ImageStack,
 }
 
 type ImageStateType = {
@@ -125,16 +124,16 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         configuration.fillAlphaInactive = 0
 
         let currentSeriesDescription: string = ""
-        this.props.seriesDescriptions.keys().forEach(seriesDescription => {
-            this.props.seriesDescriptions.get(seriesDescription).forEach(imageId => {
-                if (imageId === this.props.imageIds[0]) {
+        this.props.imageStack.seriesDescriptions.keys().forEach(seriesDescription => {
+            this.props.imageStack.seriesDescriptions.get(seriesDescription).forEach(imageId => {
+                if (imageId === this.props.imageStack.imageIDs[0]) {
                     currentSeriesDescription = seriesDescription
                 }
             })
         })
 
         this.props.toolStates.forEach(annotationToolState => {
-            if ((annotationToolState as AnnotationToolStateType).tool) {
+            if ((annotationToolState as AnnotationToolState).tool) {
                 // @ts-ignore
                 const {imageId, patientID, variableID, tool, data} = annotationToolState
                 toolStateManager.addImageIdToolState(imageId, tool, data)
@@ -146,7 +145,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         })
 
         const stackStartImageIds = []
-        stackStartImageIds.push(this.props.imageIds[0])
+        stackStartImageIds.push(this.props.imageStack.imageIDs[0])
 
         this.state = {
             activeViewportIndex: 0,
@@ -276,15 +275,15 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         const {
             state
         } = cornerstoneTools.getModule("segmentation");
-        const imageIdState = state.series[this.props.imageIds[0]]
+        const imageIdState = state.series[this.props.imageStack.imageIDs[0]]
         if (imageIdState !== undefined && imageIdState.labelmaps3D !== undefined) {
             const labelmap3D = imageIdState.labelmaps3D[this.props.activeVariable.segmentationIndex]
             const annotations = labelmap3D.labelmaps2D
             const imageIndices = Object.keys(annotations)
             for (let i = 0; i < imageIndices.length; i++) {
                 const imageIndex = imageIndices[i]
-                const imageId = this.props.imageIds[Number(imageIndex)]
-                const instanceNumber = this.props.instanceNumbers.get(imageId)
+                const imageId = this.props.imageStack.imageIDs[Number(imageIndex)]
+                const instanceNumber = this.props.imageStack.instanceNumbers.get(imageId)
                 const pixelData = annotations[imageIndex].pixelData
                 if (pixelData.some(value => value !== 0)) {
                     const segmentationIndex = this.props.activeVariable.segmentationIndex
@@ -302,11 +301,11 @@ class Image extends Component<ImagePropsType, ImageStateType> {
         const currentValues = []
         const existingToolState = toolStateManager.saveToolState();
         const keys = Object.keys(existingToolState)
-        for (let i = 0; i < this.props.imageIds.length; i++) {
-            const imageId = this.props.imageIds[i]
+        for (let i = 0; i < this.props.imageStack.imageIDs.length; i++) {
+            const imageId = this.props.imageStack.imageIDs[i]
             if (keys.includes(imageId) && this.props.activeVariable.tool in existingToolState[imageId]) {
                 const annotations = existingToolState[imageId][this.props.activeVariable.tool].data
-                const instanceNumber = this.props.instanceNumbers.get(imageId)
+                const instanceNumber = this.props.imageStack.instanceNumbers.get(imageId)
                 for (let j = 0; j < annotations.length; j++) {
                     const data = annotations[j]
                     let value
@@ -502,8 +501,8 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                         }
                         currentImageIdIndex = currentImageIdIndex + movement
                         if (currentImageIdIndex >= 0 &&
-                            currentImageIdIndex < this.props.imageIds.length) {
-                            const currentImageId = this.props.imageIds[currentImageIdIndex]
+                            currentImageIdIndex < this.props.imageStack.imageIDs.length) {
+                            const currentImageId = this.props.imageStack.imageIDs[currentImageIdIndex]
                             this._setCurrentImage(currentImageId)
                         }
                         resolve(true)
@@ -538,8 +537,8 @@ class Image extends Component<ImagePropsType, ImageStateType> {
     }
 
     componentDidUpdate = (prevProps, prevState) => { // ORDER MATTERS
-        if (!prevState.stackStartImageIds.includes(prevProps.imageIds[0])) { // If an image stack is viewed for the first time
-            prevState.stackStartImageIds.push(prevProps.imageIds[0])
+        if (!prevState.stackStartImageIds.includes(prevProps.imageStack.imageIDs[0])) { // If an image stack is viewed for the first time
+            prevState.stackStartImageIds.push(prevProps.imageStack.imageIDs[0])
             this._initSegmentation()
         }
 
@@ -575,7 +574,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
     _jumpToImage = async () => {
         if (this.props.activeVariable.type === VariableType.segmentation) {
             const {state} = cornerstoneTools.getModule("segmentation");
-            const imageIdState = state.series[this.props.imageIds[0]]
+            const imageIdState = state.series[this.props.imageStack.imageIDs[0]]
             if (imageIdState !== undefined) {
                 const labelmap3D = imageIdState.labelmaps3D[this.props.activeVariable.segmentationIndex]
                 if (labelmap3D !== undefined && labelmap3D.labelmaps2D.length > 0) {
@@ -595,7 +594,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
             const existingToolState = toolStateManager.saveToolState();
             const imageIds = Object.keys(existingToolState)
             let imageId: string
-            let stack = [...this.props.imageIds]
+            let stack = [...this.props.imageStack.imageIDs]
             stack = stack.reverse()
             stack.forEach(currentImageId => {
                 if (imageIds.includes(currentImageId) && this.props.activeVariable.tool in existingToolState[currentImageId]) {
@@ -611,10 +610,10 @@ class Image extends Component<ImagePropsType, ImageStateType> {
     _initSegmentation = () => {
         const {getters, setters} = cornerstoneTools.getModule("segmentation");
         this.props.toolStates.forEach(annotationToolState => {
-            if ((annotationToolState as SegmentationToolStateType).segmentationIndex) {
+            if ((annotationToolState as SegmentationToolState).segmentationIndex) {
                 const {imageId, height, width, pixelData, segmentationIndex} = annotationToolState
                 let imageIdIndex
-                this.props.imageIds.forEach((currentImageId, index) => {
+                this.props.imageStack.imageIDs.forEach((currentImageId, index) => {
                     if (currentImageId === imageId) {
                         imageIdIndex = index
                     }
@@ -655,15 +654,15 @@ class Image extends Component<ImagePropsType, ImageStateType> {
 
     _setCurrentImage = (currentImageId: string) => {
         let currentSeriesDescription: string
-        this.props.seriesDescriptions.keys().forEach(seriesDescription => {
-            this.props.seriesDescriptions.get(seriesDescription).forEach(imageId => {
+        this.props.imageStack.seriesDescriptions.keys().forEach(seriesDescription => {
+            this.props.imageStack.seriesDescriptions.get(seriesDescription).forEach(imageId => {
                 if (imageId === currentImageId) {
                     currentSeriesDescription = seriesDescription
                 }
             })
         })
         let currentImageIndex: number
-        this.props.imageIds.forEach((imageId, index) => {
+        this.props.imageStack.imageIDs.forEach((imageId, index) => {
             if (imageId === currentImageId) {
                 currentImageIndex = index
             }
@@ -697,11 +696,11 @@ class Image extends Component<ImagePropsType, ImageStateType> {
     handleResetClick = () => {
         const variableType = this.props.activeVariable.type
         if (variableType === VariableType.segmentation) {
-            const stackStartImageId = this.props.imageIds[0]
+            const stackStartImageId = this.props.imageStack.imageIDs[0]
             const segmentationIndex = this.props.activeVariable.segmentationIndex
             this._deleteSegmentations(stackStartImageId, segmentationIndex)
         } else {
-            this._deleteAnnotations(variableType, this.props.imageIds)
+            this._deleteAnnotations(variableType, this.props.imageStack.imageIDs)
         }
     }
 
@@ -720,9 +719,9 @@ class Image extends Component<ImagePropsType, ImageStateType> {
 
     handleSeriesSelection = async (event: SelectChangeEvent) => {
         const currentSeriesDescription = event.target.value
-        const currentImageId = this.props.seriesDescriptions.get(currentSeriesDescription)[0]
+        const currentImageId = this.props.imageStack.seriesDescriptions.get(currentSeriesDescription)[0]
         let imageIdIndex: number
-        this.props.imageIds.forEach((imageId, index) => {
+        this.props.imageStack.imageIDs.forEach((imageId, index) => {
             if (currentImageId === imageId) {
                 imageIdIndex = index
             }
@@ -751,7 +750,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                                         document.activeElement.blur();
                                     }, 0);
                                 }}>
-                            {this.props.seriesDescriptions.keys().map((seriesDescription) => (
+                            {this.props.imageStack.seriesDescriptions.keys().map((seriesDescription) => (
                                 <MenuItem key={seriesDescription} value={seriesDescription}>
                                     {seriesDescription}
                                 </MenuItem>
@@ -862,7 +861,7 @@ class Image extends Component<ImagePropsType, ImageStateType> {
                         key={viewportIndex}
                         style={{height: "91.5vh"}}
                         tools={this.state.tools}
-                        imageIds={this.props.imageIds}
+                        imageIds={this.props.imageStack.imageIDs}
                         imageIdIndex={this.state.currentImageIdIndex}
                         isPlaying={false}
                         frameRate={22}

@@ -28,7 +28,7 @@ export type TreeNodeType = {
     children?: TreeNodeType[],
 }
 
-class Series {
+export class Series {
     seriesInstanceUID: string;
     seriesDescription: string;
     seriesNumber: number;
@@ -55,7 +55,7 @@ class Series {
     }
 }
 
-class Study {
+export class Study {
     studyInstanceUID: string;
     studyDescription: string;
     studyDate: string;
@@ -108,6 +108,7 @@ export class Patient {
     patientID: string;
     studies: Study[];
     treeNode: TreeNodeType;
+    id: number;
 
     constructor(patientDict: PatientType, studyDict: StudyType, seriesDict: SeriesType, imageDict: ImageType) {
         this.patientID = patientDict.patientID;
@@ -119,6 +120,7 @@ export class Patient {
             isOpen: false,
             children: []
         }
+        this.id = 0
         this.addStudy(study)
     }
 
@@ -192,13 +194,17 @@ export class Patients {
                 this.patients.sort((a, b) => {
                     return a.patientID.localeCompare(b.patientID);
                 })
+                this.patients.forEach((patient, id) => {
+                    patient.id = id
+                })
                 this.treeNode.children?.push(newPatient.treeNode)
             }
         }
     }
 
-    getPatient(index: number) {
-        return this.patients[index]
+    getPatient(id: number): void | Patient {
+        const patient = this.patients[id]
+        return patient
     }
 
     getPatientStudy(patientIndex: number, studyIndex: number) {

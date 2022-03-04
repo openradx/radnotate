@@ -1,4 +1,4 @@
-import React, {Component} from 'react'
+import React, {ReactElement, useState} from 'react'
 import Dropzone, {DropEvent} from 'react-dropzone'
 import {Patients} from "./dicomObject";
 import {trackPromise} from "react-promise-tracker";
@@ -12,7 +12,7 @@ import dicomParser from "dicom-parser";
 cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
 cornerstoneWADOImageLoader.external.dicomParser = dicomParser;
 
-function CircularProgressWithLabel(props: CircularProgressProps & { value: number }) {
+const CircularProgressWithLabel = (props: CircularProgressProps & { value: number }) => {
     return (
         <Box sx={{
             position: 'absolute',
@@ -43,56 +43,38 @@ function CircularProgressWithLabel(props: CircularProgressProps & { value: numbe
     );
 }
 
-type DicomDropzoneState = {
-    patients: Patients | null,
-    loadingPatients: boolean,
-    loadingAcceptedFiles: boolean,
-    progress: number,
-    buttonText: string,
-    openSnackbar: boolean
-}
 
 type DicomDropzoneProps = {
-    savePatients: Function
+    setPatients: Function
 }
 
-class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
+const DicomDropzone = (props: DicomDropzoneProps): ReactElement => {
+    const [loadingPatients, setLoadingPatients] = useState(false)
+    const [loadingAcceptedFiles, setLoadingAcceptedFiles] = useState(false)
+    const [progress, setProgress] = useState(0)
+    const [buttonText, setButtonText] = useState("Select or drop folders or dicom files")
+    const [openSnackbar, setOpenSnackbar] = useState(false)
 
-    constructor(props: DicomDropzoneProps) {
-        super(props);
-        this.state = {
-            patients: new Patients(),
-            loadingPatients: false,
-            loadingAcceptedFiles: false,
-            progress: 0,
-            buttonText: "Select or drop folders or dicom files",
-            openSnackbar: false
-        }
-    }
-
-    processAcceptedFiles = (acceptedFiles: Blob[]) => {
+    const processAcceptedFiles = (acceptedFiles: Blob[]): void => {
         const patients = new Patients()
-        const percentCount = parseInt(acceptedFiles.length / 100)
+        const percentCount = Math.ceil(acceptedFiles.length / 100)
         let percentage = percentCount
         let fileCounter = 0
-        this.setState({loadingAcceptedFiles: false, loadingPatients: true})
+        setLoadingAcceptedFiles(false)
+        setLoadingPatients(true)
         trackPromise(
-            acceptedFiles.reduce((previousPromise: Promise<void>, file) => {
+            acceptedFiles.reduce((previousPromise: Promise<void>, file: Blob) => {
                 const imageID: string = cornerstoneWADOImageLoader.wadouri.fileManager.add(file);
                 return previousPromise.then(() => {
                     return new Promise<void>((resolve => {
                         const reader = new FileReader()
                         const imagePath: string = file.path
-                        reader.onload = () => {
+                        reader.onload = (): void => {
                             loadFile(patients, reader, imagePath, imageID)
                             fileCounter++
                             if (fileCounter >= percentage) {
                                 percentage += percentCount
-                                let progress = this.state.progress
-                                if (progress < 100) {
-                                    progress++
-                                }
-                                this.setState({progress: progress})
+                                setProgress(progress => ++progress)
                             }
                             resolve()
                         }
@@ -100,45 +82,40 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
                     }))
                 });
             }, Promise.resolve()).then(() => {
-                this.props.savePatients(patients)
-                this.setState({
-                    patients: patients,
-                    loadingPatients: false,
-                    buttonText: "Select or drop folders or files",
-                    openSnackbar: true
-                })
+                props.setPatients(patients)
+                setProgress(100)
+                setLoadingPatients(false)
+                setButtonText("Select or drop folders or files")
+                setOpenSnackbar(true)
             })
         );
     }
 
-    getFilesFromEvent = (event: Event | DropEvent) => {
+    const getFilesFromEvent = (event: Event | DropEvent): Promise<FileWithPath | DataTransferItem> => {
         if (event._reactName === "onDrop" || event._reactName === "onChange") {
-            this.props.savePatients(undefined)
-            this.setState({loadingAcceptedFiles: true, progress: 0, buttonText: ""})
+            setLoadingAcceptedFiles(true)
+            setProgress(0)
+            setButtonText("")
             return trackPromise(fromEvent(event as Event).then((acceptedFiles => {
                 return new Promise<(FileWithPath | DataTransferItem)[]>((resolve => {
                     resolve(acceptedFiles)
                 }))
             })))
         } else if (event._reactName === "onDragEnter") {
-            this.setState({buttonText: "Drop here"})
+            setButtonText("Drop here")
         }
         return new Promise((() => {
         }))
     }
 
-    onTreeStateChange = (state: any, event: any) => {
-        //console.log(state, event)
-    }
-
-    renderProgress = () => {
-        if (this.state.loadingPatients) {
+    const renderProgress = (): ReactElement => {
+        if (loadingPatients) {
             return (
                 <Box sx={{positon: "absolute"}}>
-                    <CircularProgressWithLabel value={this.state.progress}/>
+                    <CircularProgressWithLabel value={progress}/>
                 </Box>
             )
-        } else if (this.state.loadingAcceptedFiles) {
+        } else if (loadingAcceptedFiles) {
             return (
                 <Box sx={{
                     position: 'absolute',
@@ -151,39 +128,36 @@ class DicomDropzone extends Component<DicomDropzoneProps, DicomDropzoneState> {
         }
     }
 
-    render() {
-        return (
-            <div>
-                <Dropzone
-                    onDragLeave={() => this.setState({buttonText: "Select or drop folders or dicom files"})}
-                    onDrop={async acceptedFiles => this.processAcceptedFiles(acceptedFiles)}
-                    getFilesFromEvent={async event => this.getFilesFromEvent(event)}>
-                    {({getRootProps, getInputProps}) => (
-                        <Box sx={{
-                            width: 200
-                        }} {...getRootProps()}>
-                            <input {...getInputProps()} directory={""} webkitdirectory={""} mozdirectory={""}
-                                   type={"file"} multiple={true}/>
-                            <Button sx={{minWidth: 200, minHeight: 55}} variant="outlined">
-                                {this.state.buttonText}
-                            </Button>
-                            {
-                                this.renderProgress()
-                            }
-                        </Box>
-                    )}
-                </Dropzone>
-                <Snackbar
-                    anchorOrigin={{vertical: "bottom", horizontal: "center"}}
-                    open={this.state.openSnackbar}
-                    autoHideDuration={6000}
-                    onClose={() => this.setState({openSnackbar: false})}
-                    message="Patients loaded"
-                />
-            </div>
-        )
-    }
-
+    return (
+        <div>
+            <Dropzone
+                onDragLeave={() => setButtonText("Select or drop folders or dicom files")}
+                onDrop={async acceptedFiles => processAcceptedFiles(acceptedFiles)}
+                getFilesFromEvent={async event => getFilesFromEvent(event)}>
+                {({getRootProps, getInputProps}) => (
+                    <Box sx={{
+                        width: 200
+                    }} {...getRootProps()}>
+                        <input {...getInputProps()} directory={""} webkitdirectory={""} mozdirectory={""}
+                               type={"file"} multiple={true}/>
+                        <Button sx={{minWidth: 200, minHeight: 55}} variant="outlined">
+                            {buttonText}
+                        </Button>
+                        {
+                            renderProgress()
+                        }
+                    </Box>
+                )}
+            </Dropzone>
+            <Snackbar
+                anchorOrigin={{vertical: "bottom", horizontal: "center"}}
+                open={openSnackbar}
+                autoHideDuration={6000}
+                onClose={() => setOpenSnackbar(false)}
+                message="Patients loaded"
+            />
+        </div>
+    )
 }
 
 export default DicomDropzone;

@@ -1,18 +1,17 @@
-import {Component, ReactElement, ReactNode} from "react";
-import AnnotationForm, {AnnotationLevel} from "./Form";
+import {ReactElement, useState} from "react";
+import Form, {AnnotationLevel} from "./Form";
 import Variable, {ToolType, VariableType} from "./Form/variable";
-import {Patient, Patients} from "./Form/DicomDropzone/dicomObject";
-import {GridCellParams, GridColDef, GridRowsProp,} from "@mui/x-data-grid";
-import clsx from "clsx";
-import {Box, Tooltip} from "@mui/material";
+import {Patient, Patients, Series, Study} from "./Form/DicomDropzone/dicomObject";
+import {GridRowsProp,} from "@mui/x-data-grid";
+import {Box} from "@mui/material";
 import {TSMap} from "typescript-map"
-import {GridColumnHeaderParams, GridRenderCellParams, LicenseInfo} from "@mui/x-data-grid-pro";
+import {LicenseInfo} from "@mui/x-data-grid-pro";
 import {Settings} from "./Settings";
 import Annotation from "./Annotation";
-
+import create from "zustand";
 LicenseInfo.setLicenseKey("07a54c751acde4192070a1600dac24bdT1JERVI6MCxFWFBJUlk9MTc5OTc3Njg5NjA4NCxLRVlWRVJTSU9OPTE=",);
 
-export type SegmentationToolStateType = {
+export type SegmentationToolState = {
     patientID: string,
     variableID: number,
     imageId: string,
@@ -22,7 +21,7 @@ export type SegmentationToolStateType = {
     segmentationIndex: number
 }
 
-export type AnnotationToolStateType = {
+export type AnnotationToolState = {
     patientID: string,
     variableID: number,
     imageId: string,
@@ -30,109 +29,62 @@ export type AnnotationToolStateType = {
     data: Object
 }
 
-type RadnotatePropsType = {
-    colorMode: Function
+type RadnotateProps = {
+    colorMode: {toggleColorMode: Function}
 }
 
-type RadnotateStateType = {
-    patients: Patients,
-    variables: Variable[],
-    rows: GridRowsProp,
-
-    columns: GridColDef[],
-    annotationMode: boolean,
-    annotationLevel: AnnotationLevel,
-    imageIds: string[],
+export type ImageStack = {
+    imageIDs: string[],
     instanceNumbers: Map<string, number>,
-    rowNames: string[],
     seriesDescriptions: TSMap<string, Array<string>>,
-    toolStates: (AnnotationToolStateType | SegmentationToolStateType)[],
-    stackIndices: Map<string, number>,
-    segmentationsCount: number,
 }
 
-class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
+export type RadnotateState = {
+    patients: Patients,
+    setPatients: (patients: Patients) => void,
+    variables: Variable[],
+    setVariables: (variables: Variable[]) => void,
+    rows: GridRowsProp,
+    setRows: (rows: GridRowsProp) => void,
+    activePatient: undefined | Patient,
+    setActivePatient: (patient: Patient) => void,
+    activeVariable: undefined | Variable,
+    setActiveVariable: (variable: Variable) => void,
+    annotationLevel: AnnotationLevel,
+    setAnnotationLevel: (annotationLevel: AnnotationLevel) => void,
+}
 
-    constructor(props: RadnotatePropsType) {
-        super(props);
-        this.state = {
-            patients: new Patients(),
-            segmentationsCount: 0,
-            variables: [],
-            annotationMode: false,
-        }
-    }
+export const useRadnotateStore = create((set: Function): RadnotateState => ({
+    patients: new Patients(),
+    setPatients: (patients: Patients): void => set(() => ({patients: patients})),
+    variables: [new Variable(0)],
+    setVariables: (variables: Variable[]): void => set(() => ({variables: variables})),
+    rows: [],
+    setRows: (rows: GridRowsProp): void => set(() => ({rows: rows})),
+    activePatient: undefined,
+    setActivePatient: (patient: Patient): void => set(() => ({activePatient: patient})),
+    activeVariable: undefined,
+    setActiveVariable: (variable: Variable): void => set(() => ({activeVariable: variable})),
+    annotationLevel: AnnotationLevel.patient,
+    setAnnotationLevel: (annotationLevel: AnnotationLevel): void => set(() => ({annotationLevel: annotationLevel})),
+}))
 
-    variablesToColumns = (activePatientIndex: number, activeVariableName: string, variables: Variable[], annotationLevel: AnnotationLevel): GridColDef[] => {
-        const columns: GridColDef[] = []
-        if (annotationLevel === AnnotationLevel.patient) {
-            columns.push({
-                field: "PatientID",
-                filterable: false,
-                disableReorder: true,
-                sortable: false,
-            })
-        } else {
-            columns.push({
-                field: "Study",
-                filterable: false,
-                disableReorder: true,
-                sortable: false,
-            })
-        }
-        variables?.forEach((variable: Variable) => {
-            columns.push({
-                field: variable.toString(),
-                filterable: false,
-                disableReorder: true,
-                sortable: false,
-                cellClassName: (params: GridCellParams) => {
-                    return (clsx('cell', {
-                        isActive: (params.row.id === activePatientIndex && JSON.parse(params.field).name === activeVariableName),
-                    }))
-                },
-                // @ts-ignore
-                renderCell: (params: GridRenderCellParams): ReactNode => {
-                    let value = params.value
-                    if (value === undefined) {
-                        value = ""
-                    }
-                    const variable: Variable = JSON.parse(params.field)
-                    if (variable.type === VariableType.segmentation && value !== "") {
-                        value = JSON.parse(value)
-                        value.forEach((element: { pixelData: string }) => {
-                            element.pixelData = "B64EncodedImage"
-                        })
-                        value = JSON.stringify(value)
-                    }
-                    if (value !== "") {
-                        value = JSON.parse(value)
-                        value.forEach((element: { studyUid?: string, seriesUid?: string, sopUid?: string, data?: Object }) => {
-                            delete element.studyUid
-                            delete element.seriesUid
-                            delete element.sopUid
-                            delete element.data
-                        })
-                        value = JSON.stringify(value)
-                    }
-                    return (<Tooltip title={value} followCursor={true}>
-                            <span className="table-cell-trucate">{value}</span>
-                        </Tooltip>
-                    )
-                },
-                // @ts-ignore
-                renderHeader: (params: GridColumnHeaderParams): ReactNode => {
-                    const value: { name: string } = JSON.parse(params.field)
-                    return (
-                        value.name
-                    )
-                },
-            })
-        })
-        return columns
-    }
+const Radnotate = (props: RadnotateProps): ReactElement => {
+    const patients = useRadnotateStore((state: RadnotateState) => state.patients)
+    const setPatients = useRadnotateStore((state: RadnotateState) => state.setPatients)
+    const variables = useRadnotateStore((state: RadnotateState) => state.variables)
+    const setVariables = useRadnotateStore((state: RadnotateState) => state.setVariables)
+    const setRows = useRadnotateStore((state: RadnotateState) => state.setRows)
+    const setActivePatient = useRadnotateStore((state: RadnotateState) => state.setActivePatient)
+    const setActiveVariable = useRadnotateStore((state: RadnotateState) => state.setActiveVariable)
+    const annotationLevel = useRadnotateStore((state: RadnotateState) => state.annotationLevel)
+    const setAnnotationLevel = useRadnotateStore((state: RadnotateState) => state.setAnnotationLevel)
+    const [annotationMode, setAnnotationMode] = useState<boolean>(false)
+    const [toolStates, setToolStates] = useState<(AnnotationToolState | SegmentationToolState)[]>()
+    const [stackIndices, setStackIndices] = useState<Map<string, number>>()
+    const [segmentationsCount, setSegmentationsCount] = useState<number>()
 
-    _defineRowNames = (patients: Patients, annotationLevel: AnnotationLevel): string[] => {
+    const _initRowIndices = (patients: Patients, annotationLevel: AnnotationLevel): string[] => {
         const rowNames: string[] = []
         if (annotationLevel === AnnotationLevel.patient) {
             patients?.patients.forEach((patient) => {
@@ -148,7 +100,10 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
         return rowNames
     }
 
-    saveAnnotationForm = (patients: Patients, variables: Variable[], annotationLevel: AnnotationLevel, rows: GridRowsProp | undefined): void => {
+    const saveAnnotationForm = (patients: Patients, variables: Variable[], rows: GridRowsProp, annotationLevel: AnnotationLevel): void => {
+        setPatients(patients)
+        setVariables(variables)
+        setAnnotationLevel(annotationLevel)
         let segmentationIndex = 0
         variables.forEach(variable => {
             if (variable.type === VariableType.segmentation) {
@@ -156,7 +111,7 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
             }
         })
         if (annotationLevel === AnnotationLevel.patient) {
-            if (rows !== undefined) {
+            if (rows.length > 0) {
                 const imagePatientIDs: string[] = []
                 const annotationPatientIDs: string[] = []
                 patients.patients.forEach(patient => {
@@ -195,29 +150,22 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
                 })
             }
         }
-        this._init(patients, variables, rows, annotationLevel)
-        this.setState({
-            variables: variables,
-            patients: patients,
-            annotationLevel: annotationLevel,
-            annotationMode: true,
-            segmentationsCount: segmentationIndex,
-        })
+        _init(patients, variables, rows, annotationLevel)
+        setAnnotationMode(true)
+        setSegmentationsCount(segmentationIndex)
     }
 
-    // ToDo Refactor this and save annotation form method
-    _init = (patients: Patients, variables: Variable[], rows: GridRowsProp | undefined, annotationLevel: AnnotationLevel): void => {
+    // ToDo Refactor this into Annotation component by splitting up inital row and inital tool state
+    const _init = (patients: Patients, variables: Variable[], rows: GridRowsProp,annotationLevel: AnnotationLevel): void => {
         let activePatient = patients.getPatient(0)
         let activePatientIndex = 0
         let activeVariable = variables[0]
         let activeVariableIndex = 0
-
         const stackIndices = new Map<string, number>()
-        const toolStates: (AnnotationToolStateType | SegmentationToolStateType)[] = []
+        const toolStates: (AnnotationToolState | SegmentationToolState)[] = []
         let initialRows: GridRowsProp = []
-
-        const rowNames = this._defineRowNames(patients, annotationLevel)
-        if (rows === undefined) {
+        const rowNames = _initRowIndices(patients, annotationLevel)
+        if (rows.length === 0) {
             rowNames.forEach((rowName, index) => {
                 const row: {PatientID: string, id: number} = {
                     PatientID: rowName,
@@ -295,7 +243,7 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
                                 annotations.forEach(annotation => {
                                     const annotationSopUid = annotation.sopUid
                                     if (annotationSopUid === image.sopInstanceUID) {
-                                        let toolState: AnnotationToolStateType | SegmentationToolStateType
+                                        let toolState: AnnotationToolState | SegmentationToolState
                                         if (annotation.tool !== undefined && annotation.data !== undefined) {
                                             toolState = {
                                                 patientID: patient.patientID,
@@ -326,102 +274,46 @@ class Radnotate extends Component<RadnotatePropsType, RadnotateStateType> {
                 })
             })
         }
-        const columns = this.variablesToColumns(activePatientIndex, activeVariable.name, variables, annotationLevel);
-        const {imageIds, instanceNumbers, seriesDescriptions} = this.updateImageIds(activePatient)
-        this.setState({
-            rows: initialRows,
-            columns: columns,
-            toolStates: toolStates,
-            stackIndices: stackIndices,
-            imageIds: imageIds,
-            instanceNumbers: instanceNumbers,
-            seriesDescriptions: seriesDescriptions,
-        })
+        setActivePatient(activePatient)
+        setActiveVariable(activeVariable)
+        setRows(initialRows)
+        setToolStates(toolStates)
+        setStackIndices(stackIndices)
     }
 
-    updateImageIds = (activePatient: Patient | undefined):
-        { imageIds: string[], instanceNumbers: Map<string, number>, seriesDescriptions: TSMap<string, Array<string>> } => {
-        let imageIds: string[] = []
-        const instanceNumbers: Map<string, number> = new Map<string, number>()
-        const seriesDescriptions: TSMap<string, Array<string>> = new TSMap<string, Array<string>>()
-        if (activePatient === undefined) {
-            return {imageIds, instanceNumbers, seriesDescriptions}
-        }
-        activePatient.studies.forEach((study) => {
-            study.series.forEach((series) => {
-                const imageIdsTemp = new Array<string>(series.images.length)
-                series.images.forEach((image) => {
-                    imageIdsTemp[image.instanceNumber - 1] = image.imageID
-                    instanceNumbers.set(image.imageID, image.instanceNumber);
-                })
-                // ToDo If multiple studies within one patient, with same name and same series number exist, this approach will fail
-                if (seriesDescriptions.has(series.seriesDescription)) {
-                    const seriesDescription = series.seriesDescription + " " + series.seriesNumber
-                    seriesDescriptions.set(seriesDescription, imageIdsTemp)
-                } else {
-                    seriesDescriptions.set(series.seriesDescription, imageIdsTemp)
-                }
-                imageIds = [...imageIds, ...imageIdsTemp]
-            })
-        })
-        return {imageIds, instanceNumbers, seriesDescriptions}
+    const clearTable = (): void => {
+        saveAnnotationForm(patients, variables, [], annotationLevel)
     }
 
-    clearTable = (): void => {
-        this.saveAnnotationForm(this.state.patients, this.state.variables, this.state.annotationLevel, undefined)
+    const restartWorkflow = (): void => {
+        setAnnotationMode(false)
     }
 
-    restartWorkflow = (): void => {
-        this.setState({
-            annotationMode: false,
-        })
+    const restartAnnotating = (): void => {
+        const activeVariable = variables[0]
+        const activePatient = patients.getPatient(0)
+        setActivePatient(activePatient)
+        setActiveVariable(activeVariable)
     }
 
-    restartAnnotating = (): void => {
-        const activeVariable = this.state.variables[0]
-        const activePatient = this.state.patients.getPatient(0)
-        const columns = this.variablesToColumns(0, activeVariable.name, this.state.variables, this.state.annotationLevel)
-        const {imageIds, instanceNumbers, seriesDescriptions} = this.updateImageIds(activePatient)
-        this.setState({
-            columns: columns,
-            imageIds: imageIds,
-            instanceNumbers: instanceNumbers,
-            seriesDescriptions: seriesDescriptions
-        })
-    }
-
-    override render(): ReactElement {
-        return (
-            <Box>
-                {this.state.annotationMode ?
-                    <Annotation
-                        patients={this.state.patients}
-                        variables={this.state.variables}
-                        annotationLevel={this.state.annotationLevel}
-                        toolStates={this.state.toolStates}
-                        stackIndices={this.state.stackIndices}
-                        segmentationsCount={this.state.segmentationsCount}
-                        variablesToColumns={this.variablesToColumns}
-                        updateImageIds={this.updateImageIds}
-                        imageIds={this.state.imageIds}
-                        instanceNumbers={this.state.instanceNumbers}
-                        seriesDescriptions={this.state.seriesDescriptions}
-                        columns={this.state.columns}
-                        rows={this.state.rows}
-                    />
-                    :
-                    <AnnotationForm saveAnnotationForm={this.saveAnnotationForm}/>
-                }
-                <Settings clearTable={this.clearTable}
-                          colorMode={this.props.colorMode}
-                          restartWorkflow={this.restartWorkflow}
-                          restartAnnotating={this.restartAnnotating}
-                          annotationMode={this.state.annotationMode}/>
-            </Box>
-        )
-
-    }
-
+    return (
+        <Box>
+            {annotationMode ?
+                <Annotation
+                    toolStates={toolStates}
+                    stackIndices={stackIndices}
+                    segmentationsCount={segmentationsCount}
+                />
+                :
+                <Form saveAnnotationForm={saveAnnotationForm}/>
+            }
+            <Settings clearTable={clearTable}
+                      colorMode={props.colorMode}
+                      restartWorkflow={restartWorkflow}
+                      restartAnnotating={restartAnnotating}
+                      annotationMode={annotationMode}/>
+        </Box>
+    )
 }
 
 export default Radnotate;

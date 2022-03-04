@@ -9,7 +9,7 @@ import {
     SpeedDial,
     SpeedDialAction
 } from "@mui/material";
-import {useEffect, useState} from "react";
+import {ReactElement, useEffect, useState} from "react";
 import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
 import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
@@ -18,16 +18,16 @@ import StartIcon from '@mui/icons-material/Start';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import {helpAnnotationMode, helpStartPage} from "./help";
 
-type SettingsPropsType = {
+type SettingsProps = {
     clearTable: Function
-    colorMode: Function
+    colorMode: {toggleColorMode: Function}
     restartWorkflow: Function
     restartAnnotating: Function
     annotationMode: boolean
 }
 
-export const Settings = (props: SettingsPropsType) => {
-    const [actions, setActions] = useState([
+export const Settings = (props: SettingsProps): ReactElement => {
+    const [actions, setActions] = useState<{icon: ReactElement, name: string}[]>([
             {icon: <HelpOutlineIcon/>, name: "Help"},
             {icon: <LightModeOutlinedIcon/>, name: 'Light mode'}
         ]
@@ -37,7 +37,7 @@ export const Settings = (props: SettingsPropsType) => {
     const [alertDialogType, setAlertDialogType] = useState<string>()
 
     const [helpDialogOpen, setHelpDialogOpen] = useState(false)
-    const [helpDialogText, setHelpDialogText] = useState<string>()
+    const [helpDialogText, setHelpDialogText] = useState<ReactElement>()
 
     useEffect(() => {
         if (props.annotationMode) {
@@ -51,16 +51,17 @@ export const Settings = (props: SettingsPropsType) => {
             setHelpDialogText(helpAnnotationMode)
         } else {
             if (actions.length > 2) {
-                setActions([...actions.slice(3,5)])
+                setActions([...actions.slice(3, 5)])
             } else {
-                setActions([...actions.slice(0,2)])
+                setActions([...actions.slice(0, 2)])
             }
             setHelpDialogText(helpStartPage)
         }
     }, [props.annotationMode]);
 
-    const _changeColorModeIcon = () => {
-        if (actions.pop().name === "Light mode") {
+    const _changeColorModeIcon = (): void => {
+        const action = actions.pop()
+        if (action !== undefined && action.name === "Light mode") {
             actions.push({icon: <DarkModeOutlinedIcon/>, name: 'Dark mode'})
         } else {
             actions.push({icon: <LightModeOutlinedIcon/>, name: 'Light mode'})
@@ -68,7 +69,7 @@ export const Settings = (props: SettingsPropsType) => {
         setActions(actions)
     }
 
-    const _handleSpeedDialClick = (key: string) => {
+    const _handleSpeedDialClick = (key: string): void => {
         switch (key) {
             case "Dark mode":
                 props.colorMode.toggleColorMode();
@@ -99,7 +100,7 @@ export const Settings = (props: SettingsPropsType) => {
         }
     }
 
-    const _handleAlertDialogClose = () => {
+    const _handleAlertDialogClose = (): void => {
         switch (alertDialogType) {
             case "restart":
                 props.restartWorkflow()
@@ -121,7 +122,8 @@ export const Settings = (props: SettingsPropsType) => {
         <div>
             <SpeedDial
                 ariaLabel="SpeedDial"
-                direction={props.annotationMode?"right":"down"}
+                direction={props.annotationMode ? "right" : "down"}
+                // @ts-ignore
                 sx={sx}
                 icon={<SettingsOutlinedIcon/>}>
                 {actions.map((action) => (
@@ -129,7 +131,7 @@ export const Settings = (props: SettingsPropsType) => {
                         key={action.name}
                         icon={action.icon}
                         tooltipTitle={action.name}
-                        onClick={() => _handleSpeedDialClick(action.name)}
+                        onClick={(): void => _handleSpeedDialClick(action.name)}
                     />
                 ))}
             </SpeedDial>
@@ -145,15 +147,15 @@ export const Settings = (props: SettingsPropsType) => {
                     </DialogContentText>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setAlertDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={() => _handleAlertDialogClose()} autoFocus>
+                    <Button onClick={(): void => setAlertDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={(): void => _handleAlertDialogClose()} autoFocus>
                         Yes
                     </Button>
                 </DialogActions>
             </Dialog>
             <Dialog
                 open={helpDialogOpen}
-                onClose={() => setHelpDialogOpen(false)}>
+                onClose={(): void => setHelpDialogOpen(false)}>
                 <DialogTitle id="help-dialog-title">
                     How to use Radnotate
                 </DialogTitle>
@@ -163,7 +165,7 @@ export const Settings = (props: SettingsPropsType) => {
                     </DialogContentText>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setHelpDialogOpen(false)}>Ok</Button>
+                    <Button onClick={(): void => setHelpDialogOpen(false)}>Ok</Button>
                 </DialogActions>
             </Dialog>
         </div>

@@ -6,10 +6,10 @@ import {
     PaletteMode,
     ThemeProvider, useMediaQuery
 } from "@mui/material";
-import {useMemo, useState} from "react";
+import {ReactElement, useMemo, useState} from "react";
 import {getTheme} from "./components/Radnotate/styles";
 
-const App = () => {
+const App = (): ReactElement => {
     const prefersLightMode = useMediaQuery('(prefers-color-scheme: light)');
     const [mode, setMode] = useState<PaletteMode>(prefersLightMode ? "light" : "dark");
 
@@ -17,7 +17,7 @@ const App = () => {
 
     const colorMode = useMemo(
         () => ({
-            toggleColorMode: () => {
+            toggleColorMode: (): void => {
                 setMode((prevMode: PaletteMode) =>
                     prevMode === 'light' ? 'dark' : 'light',
                 );
