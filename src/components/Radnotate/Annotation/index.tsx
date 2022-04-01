@@ -1,4 +1,4 @@
-import {createRef, ReactElement, RefObject, useEffect, useState} from "react";
+import {createRef, ReactElement, RefObject, useEffect, useLayoutEffect, useRef, useState} from "react";
 import {Box, Divider, Stack} from "@mui/material";
 import Data from "./Data";
 import Image from "./Image";
@@ -8,14 +8,13 @@ import {AnnotationLevel} from "../Form";
 import {VariableType} from "../Form/variable";
 import {TSMap} from "typescript-map";
 import create from "zustand";
-import {AnnotationToolState, ImageStack, RadnotateState, SegmentationToolState, useRadnotateStore} from "../index";
+import {AnnotationToolData, RadnotateState, SegmentationToolData, useRadnotateStore} from "../index";
 import useStateRef from "react-usestateref";
 
 type AnnotationProps = {
-    toolStates: (AnnotationToolState | SegmentationToolState)[],
+    toolStates: (AnnotationToolData | SegmentationToolData)[],
     stackIndices: Map<string, number>,
     segmentationsCount: number,
-    imageStack: ImageStack,
 }
 
 export type AnnotationState = {
@@ -32,6 +31,7 @@ export const useAnnotationStore = create((set: Function): AnnotationState => ({
     setLastPatientIndex: (lastPatientIndex: number): void => set(() => ({lastPatientIndex: lastPatientIndex})),
 }))
 
+
 const Annotation = (props: AnnotationProps): ReactElement => {
     const patients = useRadnotateStore((state: RadnotateState) => state.patients)
     const variables = useRadnotateStore((state: RadnotateState) => state.variables)
@@ -46,40 +46,12 @@ const Annotation = (props: AnnotationProps): ReactElement => {
     const setLastPatientIndex = useAnnotationStore((state: AnnotationState) => state.setLastPatientIndex)
     const lastVariableIndex = useAnnotationStore((state: AnnotationState) => state.lastVariableIndex)
     const setLastVariableIndex = useAnnotationStore((state: AnnotationState) => state.setLastVariableIndex)
-    const updateImageIds = (activePatient: Patient): ImageStack => {
-        let imageIds: string[] = []
-        const instanceNumbers: Map<string, number> = new Map<string, number>()
-        const seriesDescriptions: TSMap<string, Array<string>> = new TSMap<string, Array<string>>()
-        // if (activePatient === undefined) {
-        //     return {imageIds, instanceNumbers, seriesDescriptions}
-        // }
-        activePatient.studies.forEach((study) => {
-            study.series.forEach((series) => {
-                const imageIdsTemp = new Array<string>(series.images.length)
-                series.images.forEach((image) => {
-                    imageIdsTemp[image.instanceNumber - 1] = image.imageID
-                    instanceNumbers.set(image.imageID, image.instanceNumber);
-                })
-                // ToDo If multiple studies within one patient, with same name and same series number exist, this approach will fail
-                if (seriesDescriptions.has(series.seriesDescription)) {
-                    const seriesDescription = series.seriesDescription + " " + series.seriesNumber
-                    seriesDescriptions.set(seriesDescription, imageIdsTemp)
-                } else {
-                    seriesDescriptions.set(series.seriesDescription, imageIdsTemp)
-                }
-                imageIds = [...imageIds, ...imageIdsTemp]
-            })
-        })
-        const imageStack = {
-            imageIDs: imageIds,
-            instanceNumbers: instanceNumbers,
-            seriesDescriptions: seriesDescriptions
-        }
-        return imageStack
-    }
-    const [imageStack, setImageStack] = useState<ImageStack>(() => updateImageIds(activePatient))
+    
+    const firstUpdate = useRef(true);
     const [dataGridWidth, setDataGridWidth] = useState(30)
-    const [windowWidth, setWindowWidth] = useState(window.innerWidth)
+    const [activeAnnotations, setActiveAnnotations] = useState<TSMap<string, string>[]>([])
+    const [_, setWindowWidth, windowWidthRef] = useStateRef(window.innerWidth)
+    
     const [, setDividerClicked, dividerClickedRef] = useStateRef(false)
 
     const dividerRef: RefObject<HTMLHRElement> = createRef()
@@ -89,9 +61,19 @@ const Annotation = (props: AnnotationProps): ReactElement => {
         dividerRef.current.addEventListener("mousedown", _handleMouse, false)
         document.addEventListener("mouseup", _handleMouse, false)
         document.addEventListener("mousemove", _handleMouse, false)
-        addEventListener("contextbeforeunload", (event) => {
+        document.addEventListener("contextbeforeunload", (event) => {
             event.preventDefault()
         })
+        return () => {
+            if (dividerRef.current !== null) {
+                dividerRef.current.removeEventListener("mousedown", _handleMouse, false)
+            }
+            document.removeEventListener("mouseup", _handleMouse, false)
+            document.removeEventListener("mousemove", _handleMouse, false)
+            document.removeEventListener("contextbeforeunload", (event) => {
+                event.preventDefault()
+            })
+        }
     }, [])
 
     useEffect(() => {
@@ -99,9 +81,12 @@ const Annotation = (props: AnnotationProps): ReactElement => {
     }, [window.innerWidth])
 
     useEffect(() => {
-        const imageStack = updateImageIds(activePatient)
-        setImageStack(imageStack)
-    }, [activePatient])
+        if (!firstUpdate.current) {
+            nextVariable()
+        } else {
+            firstUpdate.current = false
+        }
+    }, [activeAnnotations])
 
     const _handleMouse = (event: MouseEvent): void => {
         if (event.type === "mousedown") {
@@ -110,7 +95,7 @@ const Annotation = (props: AnnotationProps): ReactElement => {
             setDividerClicked(false)
         } else if (event.type === "mousemove") {
             if (dividerClickedRef.current) {
-                let width: number = Math.floor(100 * event.clientX / windowWidth)
+                let width: number = Math.floor(100 * event.clientX / windowWidthRef.current)
                 if (width > 99) {
                     width = 99
                 } else if (width < 0) {
@@ -155,9 +140,9 @@ const Annotation = (props: AnnotationProps): ReactElement => {
         return newRows
     }
 
-    const nextVariable = (currentValues: TSMap<string, string>[]): void => {
-        const newRows = _updateRows(currentValues)
-        let newActiveVariableIndex = activeVariable._id
+    const nextVariable = (): void => {
+        const newRows = _updateRows(activeAnnotations)
+        let newActiveVariableIndex = activeVariable.id
         let newJumpBackToVariableIndex = lastVariableIndex
         if (newJumpBackToVariableIndex >= 0) {
             newActiveVariableIndex = lastVariableIndex
@@ -220,10 +205,7 @@ const Annotation = (props: AnnotationProps): ReactElement => {
                }>
             <Data width={dataGridWidth}/>
             <Box sx={{width: String(100 - dataGridWidth) + "%"}}>
-                <Image activePatient={activePatient}
-                       activeVariable={activeVariable}
-                       nextVariable={nextVariable}
-                       imageStack={imageStack}
+                <Image nextVariable={setActiveAnnotations}
                        toolStates={props.toolStates}
                        stackIndices={props.stackIndices}
                        segmentationsCount={props.segmentationsCount}/>

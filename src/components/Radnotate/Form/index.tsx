@@ -26,6 +26,8 @@ import {CustomWidthTooltip} from "../styles";
 import dirLogo from "./dir_logo.png";
 import ukhdLogo from "./ukhd_logo.png";
 import {RadnotateState, useRadnotateStore} from "../../Radnotate";
+import { Patient, Patients, Study } from "./DicomDropzone/dicomObject";
+import { GridRowsProp } from "@mui/x-data-grid-pro";
 
 export enum AnnotationLevel {
     // eslint-disable-next-line no-unused-vars
@@ -65,7 +67,7 @@ const Form = (props: FormProps): ReactElement => {
         setSaveAnnotationButtonDisabled(saveAnnotationButtonDisabled)
     }, [patients, variables])
 
-    const addVariable = (id: number): void => {
+    const _addVariable = (id: number): void => {
         const variable = variables.pop()
         let nameError = false
         if (variable.name === "") {
@@ -84,7 +86,7 @@ const Form = (props: FormProps): ReactElement => {
         setTypeError(typeError)
     }
 
-    const removeVariable = (id: number): void => {
+    const _removeVariable = (id: number): void => {
         variables.splice(id, 1)
         variables.forEach((variable: Variable, index: number) => {
             variable.id = index
@@ -92,7 +94,7 @@ const Form = (props: FormProps): ReactElement => {
         setVariables([...variables])
     }
 
-    const addVariableName = (event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>, id: number): void => {
+    const _addVariableName = (event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>, id: number): void => {
         const value = event.target.value
         variables.forEach((variable: Variable) => {
             if (variable.id === id) {
@@ -103,7 +105,7 @@ const Form = (props: FormProps): ReactElement => {
         setVariables([...variables])
     }
 
-    const addVariableType = (event: SelectChangeEvent, id: number): void => {
+    const _addVariableType = (event: SelectChangeEvent, id: number): void => {
         const value = event.target.value
         variables.forEach((variable: Variable) => {
             if (variable.id === id) {
@@ -115,18 +117,101 @@ const Form = (props: FormProps): ReactElement => {
         setVariables([...variables])
     }
 
-    const addAnnotationLevel = (event: ChangeEvent<HTMLInputElement>): void => {
+    const _addAnnotationLevel = (event: ChangeEvent<HTMLInputElement>): void => {
         const annotationLevel = event.target.value
         // @ts-ignore
         setAnnotationLevel(annotationLevel)
     }
 
-    const _handleButtonClick = (id: number, isActiveVariable: boolean): void => {
+    const _handleAddRemoveButton = (id: number, isActiveVariable: boolean): void => {
         if (isActiveVariable) {
-            addVariable(id + 1)
+            _addVariable(id + 1)
         } else {
-            removeVariable(id)
+            _removeVariable(id)
         }
+    }
+
+    const _mergePatientsWithLoadedRows = () => {
+        const imagePatientIDs: string[] = []
+        const annotationPatientIDs: string[] = []
+        patients.patients.forEach((patient: Patient) => {
+            imagePatientIDs.push(patient.patientID)
+        })
+        rows.forEach(row => {
+            // @ts-ignore
+            const patientID = row.PatientID
+            annotationPatientIDs.push(patientID)
+        })
+        const intersectionPatientIDs = imagePatientIDs.filter(patientID => annotationPatientIDs.includes(patientID));
+        imagePatientIDs.forEach(patientID => {
+            if (!intersectionPatientIDs.includes(patientID)) {
+                patients.deletePatient(patientID)
+            }
+        })
+        const deleteIndices: number[] = []
+        annotationPatientIDs.forEach(patientID => {
+            if (!intersectionPatientIDs.includes(patientID)) {
+                rows.forEach((row, index) => {
+                    // @ts-ignore
+                    if (row.PatientID === patientID) {
+                        deleteIndices.push(index)
+                    }
+                })
+            }
+        })
+        let counter = 0
+        deleteIndices.forEach(deleteIndex => {
+            // @ts-ignore
+            rows.splice(deleteIndex - counter++, 1)
+        })
+        rows.forEach((row, index) => {
+            // @ts-ignore
+            row.id = index
+        })
+        return rows
+    }
+
+    const _initEmptyRows = () => {
+        let initialRows: GridRowsProp = []
+        const rowNames: string[] = []
+        if (annotationLevel === AnnotationLevel.patient) {
+            patients?.patients.forEach((patient: Patient) => {
+                rowNames.push(patient.patientID)
+            })
+        } else {
+            patients?.patients.forEach((patient: Patient) => {
+                patient.studies.forEach((study: Study) => {
+                    rowNames.push(patient.patientID + " " + study.studyDescription)
+                })
+            })
+        }
+        rowNames.forEach((rowName: string, index: number) => {
+            const row: {PatientID: string, id: number} = {
+                PatientID: rowName,
+                id: index
+            }
+            // @ts-ignore
+            initialRows.push(row)
+        })
+        return initialRows
+    }
+
+    const _handleSaveAnnotationButton = () => {
+        let segmentationIndex = 0
+        variables.forEach((variable: Variable) => {
+            if (variable.type === VariableType.segmentation) {
+                variable.segmentationIndex = segmentationIndex++
+            }
+        })
+        let initialRows: GridRowsProp = []
+        if (annotationLevel === AnnotationLevel.patient) {
+            if (rows.length > 0) {
+                initialRows = _mergePatientsWithLoadedRows()
+            } else {
+                initialRows = _initEmptyRows()
+            }
+        }
+        props.saveAnnotationForm(patients, variables.slice(0, variables.length - 1), initialRows, annotationLevel, segmentationIndex)
     }
 
     const _setLoadAnnotationsSwitch = (event: FormEvent<HTMLInputElement>): void => {
@@ -196,7 +281,9 @@ const Form = (props: FormProps): ReactElement => {
         })
     }
 
-    const renderVariableInput = (id: number): ReactElement => {
+
+
+    const _renderVariableInput = (id: number): ReactElement => {
         let isActiveVariable = false
         let toolTitle = "Remove variable"
         if (id === variables.length - 1) {
@@ -215,7 +302,7 @@ const Form = (props: FormProps): ReactElement => {
                                color="primary"
                                id="filled-basic" label="Variable name" variant="filled"
                                onChange={(event:
-                                              ChangeEvent<HTMLTextAreaElement | HTMLInputElement>): void => addVariableName(event, id)}
+                                              ChangeEvent<HTMLTextAreaElement | HTMLInputElement>): void => _addVariableName(event, id)}
                                value={variables[id].name}/>
                     <FormControl disabled={!isActiveVariable} error={typeError && isActiveVariable}
                                  variant="filled"
@@ -223,7 +310,7 @@ const Form = (props: FormProps): ReactElement => {
                         <InputLabel id="demo-simple-select-filled-label">Variable type</InputLabel>
                         <Select
                             labelId="demo-simple-select-filled-label" id="demo-simple-select-filled"
-                            onChange={(event: SelectChangeEvent): void => addVariableType(event, id)}
+                            onChange={(event: SelectChangeEvent): void => _addVariableType(event, id)}
                             value={variables[id].type}>
                             <MenuItem value={VariableType.boolean}>boolean</MenuItem>
                             <MenuItem value={VariableType.integer}>integer number</MenuItem>
@@ -235,7 +322,7 @@ const Form = (props: FormProps): ReactElement => {
                         </Select>
                     </FormControl>
                     <Tooltip title={toolTitle}>
-                        <IconButton color={"primary"} onClick={(): void => _handleButtonClick(id, isActiveVariable)}>
+                        <IconButton color={"primary"} onClick={(): void => _handleAddRemoveButton(id, isActiveVariable)}>
                             {isActiveVariable ?
                                 // @ts-ignore
                                 <AddIcon disabled={isErrorVariable} variant="contained"></AddIcon>
@@ -278,7 +365,7 @@ const Form = (props: FormProps): ReactElement => {
                             <FormLabel component="legend">Annotation level</FormLabel>
                             <RadioGroup row aria-label="annotationLevel" name="row-radio-buttons-group"
                                         defaultValue={annotationLevel}
-                                        onChange={(event: ChangeEvent<HTMLInputElement>): void => addAnnotationLevel(event)}>
+                                        onChange={(event: ChangeEvent<HTMLInputElement>): void => _addAnnotationLevel(event)}>
                                 <FormControlLabel value={AnnotationLevel.patient} control={<Radio/>}
                                                   label="patient"/>
                                 <FormControlLabel value={AnnotationLevel.study} control={<Radio/>}
@@ -290,19 +377,18 @@ const Form = (props: FormProps): ReactElement => {
                            spacing={2}>
                         {
                             variables?.map((value: Variable, index: number) => {
-                                return renderVariableInput(index)
+                                return _renderVariableInput(index)
                             })
                         }
                         <Button sx={{minWidth: 200, maxWidth: 200, minHeight: 55}} color="primary"
                                 variant="outlined" startIcon={<SendIcon/>}
-                                onClick={(): void => {
-                                    props.saveAnnotationForm(patients, variables.slice(0, variables.length - 1), rows, annotationLevel)
-                                }}
+                                onClick={_handleSaveAnnotationButton}
                                 disabled={saveAnnotationButtonDisabled}>
                             Start annotation
                         </Button>
                     </Stack>
                 </Stack>
+                {/* //TODO Refactor this into standalone greetings component, to vary, since the official release does not need any connection to DIR */}
                 <Box sx={{marginLeft: 10, paddingRight: 8, minWidth: 400}}>
                     <Stack direction={"column"} spacing={5}>
                         <Typography variant="body1" align={"justify"}>

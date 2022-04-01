@@ -1,6 +1,6 @@
-import {ReactElement, useState} from "react";
+import {ReactElement, useEffect, useState} from "react";
 import Form, {AnnotationLevel} from "./Form";
-import Variable, {ToolType, VariableType} from "./Form/variable";
+import Variable, {VariableToolType, VariableType} from "./Form/variable";
 import {Patient, Patients, Series, Study} from "./Form/DicomDropzone/dicomObject";
 import {GridRowsProp,} from "@mui/x-data-grid";
 import {Box} from "@mui/material";
@@ -9,24 +9,34 @@ import {LicenseInfo} from "@mui/x-data-grid-pro";
 import {Settings} from "./Settings";
 import Annotation from "./Annotation";
 import create from "zustand";
+import useStateRef from "react-usestateref";
+
 LicenseInfo.setLicenseKey("07a54c751acde4192070a1600dac24bdT1JERVI6MCxFWFBJUlk9MTc5OTc3Njg5NjA4NCxLRVlWRVJTSU9OPTE=",);
 
-export type SegmentationToolState = {
-    patientID: string,
-    variableID: number,
-    imageId: string,
+export type SegmentationToolData = {
     height: number,
     width: number,
     pixelData: Uint8Array,
     segmentationIndex: number
 }
 
-export type AnnotationToolState = {
-    patientID: string,
-    variableID: number,
-    imageId: string,
+export type AnnotationToolData = {
     tool: string,
     data: Object
+}
+
+export enum ToolType {
+    annotation,
+    segmentation,
+}
+
+export type ToolState = {
+    type: ToolType,
+    patientID: string,
+    variableID: number,
+    imageID: string,
+    variableType: VariableType,
+    data: SegmentationToolData | AnnotationToolData,
 }
 
 type RadnotateProps = {
@@ -74,108 +84,58 @@ const Radnotate = (props: RadnotateProps): ReactElement => {
     const setPatients = useRadnotateStore((state: RadnotateState) => state.setPatients)
     const variables = useRadnotateStore((state: RadnotateState) => state.variables)
     const setVariables = useRadnotateStore((state: RadnotateState) => state.setVariables)
+    const rows = useRadnotateStore((state: RadnotateState) => state.rows)
     const setRows = useRadnotateStore((state: RadnotateState) => state.setRows)
     const setActivePatient = useRadnotateStore((state: RadnotateState) => state.setActivePatient)
     const setActiveVariable = useRadnotateStore((state: RadnotateState) => state.setActiveVariable)
     const annotationLevel = useRadnotateStore((state: RadnotateState) => state.annotationLevel)
     const setAnnotationLevel = useRadnotateStore((state: RadnotateState) => state.setAnnotationLevel)
-    const [annotationMode, setAnnotationMode] = useState<boolean>(false)
-    const [toolStates, setToolStates] = useState<(AnnotationToolState | SegmentationToolState)[]>()
+
+    const [annotationMode, setAnnotationMode, annotationModeRef] = useStateRef<boolean>(false)
+    const [toolStates, setToolStates] = useState<(ToolState)[]>()
     const [stackIndices, setStackIndices] = useState<Map<string, number>>()
-    const [segmentationsCount, setSegmentationsCount] = useState<number>()
+    const [segmentationsCount, setSegmentationsCount] = useState<number>(0)
 
-    const _initRowIndices = (patients: Patients, annotationLevel: AnnotationLevel): string[] => {
-        const rowNames: string[] = []
-        if (annotationLevel === AnnotationLevel.patient) {
-            patients?.patients.forEach((patient) => {
-                rowNames.push(patient.patientID)
-            })
-        } else {
-            patients?.patients.forEach((patient) => {
-                patient.studies.forEach((study) => {
-                    rowNames.push(patient.patientID + " " + study.studyDescription)
-                })
-            })
-        }
-        return rowNames
-    }
+    useEffect(() => {
+        if (annotationMode && !annotationModeRef.current) {
+            _initToolStates()
+            //_init(patients, variables, rows, annotationLevel)
+        }      
+    }, [annotationMode, patients, variables])
+    
+    //TODO Implement side effect for when rows is cleared, delete annotations and synchronize toolStates
+    useEffect(() => {
 
-    const saveAnnotationForm = (patients: Patients, variables: Variable[], rows: GridRowsProp, annotationLevel: AnnotationLevel): void => {
+    }, [rows])
+
+    const saveAnnotationForm = (patients: Patients, variables: Variable[], rows: GridRowsProp, annotationLevel: AnnotationLevel, segmentationsCount: number): void => {
         setPatients(patients)
         setVariables(variables)
+        setRows(rows)
         setAnnotationLevel(annotationLevel)
-        let segmentationIndex = 0
-        variables.forEach(variable => {
-            if (variable.type === VariableType.segmentation) {
-                variable.segmentationIndex = segmentationIndex++
-            }
-        })
-        if (annotationLevel === AnnotationLevel.patient) {
-            if (rows.length > 0) {
-                const imagePatientIDs: string[] = []
-                const annotationPatientIDs: string[] = []
-                patients.patients.forEach(patient => {
-                    imagePatientIDs.push(patient.patientID)
-                })
-                rows.forEach(row => {
-                    // @ts-ignore
-                    const patientID = row.PatientID
-                    annotationPatientIDs.push(patientID)
-                })
-                const intersectionPatientIDs = imagePatientIDs.filter(patientID => annotationPatientIDs.includes(patientID));
-                imagePatientIDs.forEach(patientID => {
-                    if (!intersectionPatientIDs.includes(patientID)) {
-                        patients.deletePatient(patientID)
-                    }
-                })
-                const deleteIndices: number[] = []
-                annotationPatientIDs.forEach(patientID => {
-                    if (!intersectionPatientIDs.includes(patientID)) {
-                        rows.forEach((row, index) => {
-                            // @ts-ignore
-                            if (row.PatientID === patientID) {
-                                deleteIndices.push(index)
-                            }
-                        })
-                    }
-                })
-                let counter = 0
-                deleteIndices.forEach(deleteIndex => {
-                    // @ts-ignore
-                    rows.splice(deleteIndex - counter++, 1)
-                })
-                rows.forEach((row, index) => {
-                    // @ts-ignore
-                    row.id = index
-                })
-            }
-        }
-        _init(patients, variables, rows, annotationLevel)
+        setSegmentationsCount(segmentationsCount)
+
+        setActivePatient(patients.getPatient(0))
+        setActiveVariable(variables[0])
+        setToolStates(toolStates)
+        setStackIndices(stackIndices)
+
         setAnnotationMode(true)
-        setSegmentationsCount(segmentationIndex)
     }
 
-    // ToDo Refactor this into Annotation component by splitting up inital row and inital tool state
-    const _init = (patients: Patients, variables: Variable[], rows: GridRowsProp,annotationLevel: AnnotationLevel): void => {
+    const _initToolStates = () => {
+
+    }
+
+    // TODO Refactor this into Annotation component by splitting up inital row and inital tool state
+    const _init = (patients: Patients, variables: Variable[], rows: GridRowsProp, annotationLevel: AnnotationLevel): void => {
         let activePatient = patients.getPatient(0)
         let activePatientIndex = 0
         let activeVariable = variables[0]
         let activeVariableIndex = 0
         const stackIndices = new Map<string, number>()
-        const toolStates: (AnnotationToolState | SegmentationToolState)[] = []
-        let initialRows: GridRowsProp = []
-        const rowNames = _initRowIndices(patients, annotationLevel)
-        if (rows.length === 0) {
-            rowNames.forEach((rowName, index) => {
-                const row: {PatientID: string, id: number} = {
-                    PatientID: rowName,
-                    id: index
-                }
-                // @ts-ignore
-                initialRows.push(row)
-            })
-        } else {
-            initialRows = rows
+        const toolStates: ToolState[] = []
+        if (rows.length >= 0) {
             const annotations: {
                 sopUid: string,
                 variableIndex: number,
@@ -217,7 +177,7 @@ const Radnotate = (props: RadnotateProps): ReactElement => {
                                     annotations.push({
                                         sopUid: currentValue.sopUid,
                                         variableIndex: variableIndex - 1,
-                                        tool: ToolType.get(type),
+                                        tool: VariableToolType.get(type),
                                         data: currentValue.data})
                                 }
                                 sopInstanceUIDs.push(currentValue.sopUid)
@@ -243,26 +203,33 @@ const Radnotate = (props: RadnotateProps): ReactElement => {
                                 annotations.forEach(annotation => {
                                     const annotationSopUid = annotation.sopUid
                                     if (annotationSopUid === image.sopInstanceUID) {
-                                        let toolState: AnnotationToolState | SegmentationToolState
+                                        let toolState: ToolState
                                         if (annotation.tool !== undefined && annotation.data !== undefined) {
                                             toolState = {
+                                                type: ToolType.annotation,
                                                 patientID: patient.patientID,
                                                 variableID: annotation.variableIndex,
-                                                imageId: image.imageID,
-                                                tool: annotation.tool,
-                                                data: annotation.data,
-
+                                                imageID: image.imageID,
+                                                variableType: VariableType.boolean, // TODO Add right variable type
+                                                data: {
+                                                    tool: annotation.tool,
+                                                    data: annotation.data
+                                                }
                                             }
                                             toolStates.push(toolState)
                                         } else if (annotation.height !== undefined && annotation.width !== undefined && annotation.pixelData !== undefined && annotation.segmentationIndex !== undefined){
                                             toolState = {
+                                                type: ToolType.segmentation,
                                                 patientID: patient.patientID,
                                                 variableID: annotation.variableIndex,
-                                                imageId: image.imageID,
-                                                height: annotation.height,
-                                                width: annotation.width,
-                                                pixelData: annotation.pixelData,
-                                                segmentationIndex: annotation.segmentationIndex
+                                                imageID: image.imageID,
+                                                variableType: VariableType.boolean, // TODO Add right variable type
+                                                data: {
+                                                    height: annotation.height,
+                                                    width: annotation.width,
+                                                    pixelData: annotation.pixelData,
+                                                    segmentationIndex: annotation.segmentationIndex
+                                                }
                                             }
                                             toolStates.push(toolState)
                                         }
@@ -276,13 +243,21 @@ const Radnotate = (props: RadnotateProps): ReactElement => {
         }
         setActivePatient(activePatient)
         setActiveVariable(activeVariable)
-        setRows(initialRows)
         setToolStates(toolStates)
         setStackIndices(stackIndices)
     }
 
     const clearTable = (): void => {
-        saveAnnotationForm(patients, variables, [], annotationLevel)
+        const newRows: GridRowsProp = []
+        rows.forEach((row) => {
+            const keys = Object.keys(row)
+            keys.forEach((key: string) => {
+                if (key !== "PatientID" && key !== "id") {
+                    delete row[key]
+                }
+            })
+        })
+        saveAnnotationForm(patients, variables, rows, annotationLevel, segmentationsCount)
     }
 
     const restartWorkflow = (): void => {
@@ -293,7 +268,7 @@ const Radnotate = (props: RadnotateProps): ReactElement => {
         const activeVariable = variables[0]
         const activePatient = patients.getPatient(0)
         setActivePatient(activePatient)
-        setActiveVariable(activeVariable)
+        setActilogveVariable(activeVariable)
     }
 
     return (
@@ -303,7 +278,7 @@ const Radnotate = (props: RadnotateProps): ReactElement => {
                     toolStates={toolStates}
                     stackIndices={stackIndices}
                     segmentationsCount={segmentationsCount}
-                />
+                    />
                 :
                 <Form saveAnnotationForm={saveAnnotationForm}/>
             }
@@ -311,7 +286,8 @@ const Radnotate = (props: RadnotateProps): ReactElement => {
                       colorMode={props.colorMode}
                       restartWorkflow={restartWorkflow}
                       restartAnnotating={restartAnnotating}
-                      annotationMode={annotationMode}/>
+                      annotationMode={annotationMode}
+                      />
         </Box>
     )
 }

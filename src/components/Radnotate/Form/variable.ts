@@ -10,7 +10,7 @@ export enum VariableType {
     segmentation
 }
 
-export const ToolType = new Map<VariableType, string>([
+export const VariableToolType = new Map<VariableType, string>([
     [VariableType.boolean, "Pan"],
     [VariableType.integer, "Pan"],
     [VariableType.seed, "Probe"],
@@ -37,7 +37,7 @@ class Variable {
             this._id = value.id
             this._name = value.name
             this._type = value.type
-            this._tool = ToolType.get(value.type)
+            this._tool = VariableToolType.get(value.type)
         }
     }
 
@@ -51,7 +51,7 @@ class Variable {
 
     set type(value: VariableType) {
         this._type = value;
-        this._tool = ToolType.get(value)
+        this._tool = VariableToolType.get(value)
     }
 
     set segmentationIndex(value: number) {
