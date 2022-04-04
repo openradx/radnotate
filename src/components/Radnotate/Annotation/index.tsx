@@ -1,4 +1,4 @@
-import {createRef, ReactElement, RefObject, useEffect, useLayoutEffect, useRef, useState} from "react";
+import {createRef, ReactElement, RefObject, useEffect, useRef, useState} from "react";
 import {Box, Divider, Stack} from "@mui/material";
 import Data from "./Data";
 import Image from "./Image";
@@ -8,27 +8,24 @@ import {AnnotationLevel} from "../Form";
 import {VariableType} from "../Form/variable";
 import {TSMap} from "typescript-map";
 import create from "zustand";
-import {AnnotationToolData, RadnotateState, SegmentationToolData, useRadnotateStore} from "../index";
+import { RadnotateState, useRadnotateStore} from "../index";
 import useStateRef from "react-usestateref";
 
 type AnnotationProps = {
-    toolStates: (AnnotationToolData | SegmentationToolData)[],
-    stackIndices: Map<string, number>,
-    segmentationsCount: number,
 }
 
 export type AnnotationState = {
-    lastVariableIndex: number,
-    setLastVariableIndex: (lastVariableIndex: number) => void,
-    lastPatientIndex: number,
-    setLastPatientIndex: (lastPatientIndex: number) => void,
+    previousVariableIndex: number,
+    setPreviousVariableIndex: (lastVariableIndex: number) => void,
+    previousPatientIndex: number,
+    setPreviousPatientIndex: (lastPatientIndex: number) => void,
 }
 
 export const useAnnotationStore = create((set: Function): AnnotationState => ({
-    lastVariableIndex: -1,
-    setLastVariableIndex: (lastVariableIndex: number): void => set(() => ({lastVariableIndex: lastVariableIndex})),
-    lastPatientIndex: -1,
-    setLastPatientIndex: (lastPatientIndex: number): void => set(() => ({lastPatientIndex: lastPatientIndex})),
+    previousVariableIndex: -1,
+    setPreviousVariableIndex: (previousVariableIndex: number): void => set(() => ({previousVariableIndex: previousVariableIndex})),
+    previousPatientIndex: -1,
+    setPreviousPatientIndex: (previousPatientIndex: number): void => set(() => ({previousPatientIndex: previousPatientIndex})),
 }))
 
 
@@ -42,10 +39,10 @@ const Annotation = (props: AnnotationProps): ReactElement => {
     const setActiveVariable = useRadnotateStore((state: RadnotateState) => state.setActiveVariable)
     const setRows = useRadnotateStore((state: RadnotateState) => state.setRows)
     const annotationLevel = useRadnotateStore((state: RadnotateState) => state.annotationLevel)
-    const lastPatientIndex = useAnnotationStore((state: AnnotationState) => state.lastPatientIndex)
-    const setLastPatientIndex = useAnnotationStore((state: AnnotationState) => state.setLastPatientIndex)
-    const lastVariableIndex = useAnnotationStore((state: AnnotationState) => state.lastVariableIndex)
-    const setLastVariableIndex = useAnnotationStore((state: AnnotationState) => state.setLastVariableIndex)
+    const previousPatientIndex = useAnnotationStore((state: AnnotationState) => state.previousPatientIndex)
+    const setPreviousPatientIndex = useAnnotationStore((state: AnnotationState) => state.setPreviousPatientIndex)
+    const previousVariableIndex = useAnnotationStore((state: AnnotationState) => state.previousVariableIndex)
+    const setPreviousVariableIndex = useAnnotationStore((state: AnnotationState) => state.setPreviousVariableIndex)
     
     const firstUpdate = useRef(true);
     const [dataGridWidth, setDataGridWidth] = useState(30)
@@ -82,7 +79,7 @@ const Annotation = (props: AnnotationProps): ReactElement => {
 
     useEffect(() => {
         if (!firstUpdate.current) {
-            nextVariable()
+            _nextVariable()
         } else {
             firstUpdate.current = false
         }
@@ -106,15 +103,15 @@ const Annotation = (props: AnnotationProps): ReactElement => {
         }
     }
 
-    const _updateRows = (currentValues: TSMap<string, string>[]): GridRowsProp => {
+    const _updateRows = (activeAnnotations: TSMap<string, string>[]): GridRowsProp => {
         const newRows = rows
         // @ts-ignore //ToDo Handle row type properly, dynamic type generation?
         newRows.forEach((row) => {
             // @ts-ignore
             if (row.id === activePatient.id) {
                 let json = "["
-                if (currentValues.length) {
-                    currentValues.forEach(value => {
+                if (activeAnnotations.length) {
+                    activeAnnotations.forEach(value => {
                         json += JSON.stringify(value.toJSON())
                         json += ","
                     })
@@ -123,13 +120,15 @@ const Annotation = (props: AnnotationProps): ReactElement => {
                     json += "]"
                 }
                 if (activeVariable.type === VariableType.boolean || activeVariable.type === VariableType.integer) {
-                    if (currentValues[0] !== undefined) {
-                        if (currentValues[0].get("value") === "Escape") {
+                    if (activeAnnotations[0] !== undefined) {
+                        if (activeAnnotations[0].get("value") === "escape") {
                             row[activeVariable.toString()] = "[]"
                         } else {
                             row[activeVariable.toString()] = json
                         }
                     } else if (row[activeVariable.toString()] === undefined) {
+                        row[activeVariable.toString()] = json
+                    } else if (row[activeVariable.toString()] === ""){
                         row[activeVariable.toString()] = json
                     }
                 } else {
@@ -140,39 +139,48 @@ const Annotation = (props: AnnotationProps): ReactElement => {
         return newRows
     }
 
-    const nextVariable = (): void => {
-        const newRows = _updateRows(activeAnnotations)
+    const _nextVariable = (): void => {
+        const updatedRows = _updateRows(activeAnnotations)
+        setRows(updatedRows)
         let newActiveVariableIndex = activeVariable.id
-        let newJumpBackToVariableIndex = lastVariableIndex
-        if (newJumpBackToVariableIndex >= 0) {
-            newActiveVariableIndex = lastVariableIndex
-            newJumpBackToVariableIndex = -1
-        } else {
+        let newPreviousVariableIndex = previousVariableIndex
+        if (previousVariableIndex >= 0) {
+            newActiveVariableIndex = previousVariableIndex
+            newPreviousVariableIndex = -1
+        } else if (previousVariableIndex === -1) {
             newActiveVariableIndex++
         }
-        if (lastPatientIndex >= 0) {
+        setPreviousVariableIndex(newPreviousVariableIndex)
+        if (newActiveVariableIndex === variables.length) {
+            setActiveVariable(variables[0])
             _nextPatient()
-        } else if (newActiveVariableIndex === variables.length) {
-            newActiveVariableIndex = 0
-            _nextPatient()
+        } else if (previousVariableIndex === -2) {
+            setPreviousPatientIndex(-2)
+            setPreviousVariableIndex(-2)
+            setActivePatient(null)
+            setActiveVariable(null)
+        } else {
+            if (previousVariableIndex >= 0) {
+                _nextPatient()
+            }
+            setActiveVariable(variables[newActiveVariableIndex])
         }
-        const newActiveVariable = variables[newActiveVariableIndex]
-        setActiveVariable(newActiveVariable)
-        setRows(newRows)
-        setLastVariableIndex(newJumpBackToVariableIndex)
     }
 
     const _nextPatient = (): void => {
         let newActivePatientIndex = activePatient.id
-        let newJumpBackToPatientIndex = lastPatientIndex
-        if (newJumpBackToPatientIndex >= 0) {
-            newActivePatientIndex = lastPatientIndex
-            newJumpBackToPatientIndex = -1
+        let newPreviousPatientIndex = previousPatientIndex
+        if (newPreviousPatientIndex >= 0) {
+            newActivePatientIndex = previousPatientIndex
+            newPreviousPatientIndex = -1
         } else {
             newActivePatientIndex++
         }
-        if (newActivePatientIndex >= patients.patients.length) {
-            setLastPatientIndex(-1)
+        if (newActivePatientIndex >= patients.patients.length || previousPatientIndex === -2) {
+            setPreviousPatientIndex(-2)
+            setPreviousVariableIndex(-2)
+            setActivePatient(null)
+            setActiveVariable(null)
         } else {
             let newActivePatient: Patient
             if (annotationLevel === AnnotationLevel.patient) {
@@ -181,9 +189,9 @@ const Annotation = (props: AnnotationProps): ReactElement => {
                 // ToDo Implement annotation on study level
                 // newActivePatient = props.patients.getPatientStudy(newActivePatientIndex, activeStudyIndex)
             }
+            setPreviousPatientIndex(newPreviousPatientIndex)
             // @ts-ignore Because annotationLevel currently always true for patient
             setActivePatient(newActivePatient)
-            setLastPatientIndex(newJumpBackToPatientIndex)
         }
     }
 
@@ -205,10 +213,8 @@ const Annotation = (props: AnnotationProps): ReactElement => {
                }>
             <Data width={dataGridWidth}/>
             <Box sx={{width: String(100 - dataGridWidth) + "%"}}>
-                <Image nextVariable={setActiveAnnotations}
-                       toolStates={props.toolStates}
-                       stackIndices={props.stackIndices}
-                       segmentationsCount={props.segmentationsCount}/>
+                <Image setActiveAnnotations={setActiveAnnotations}
+                    />
             </Box>
         </Stack>
     )

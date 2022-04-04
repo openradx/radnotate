@@ -47,9 +47,15 @@ const Form = (props: FormProps): ReactElement => {
     const [nameError, setNameError] = useState(false)
     const [typeError, setTypeError] = useState(false)
     const [annotationLevel, setAnnotationLevel] = useState(AnnotationLevel.patient)
-    const [rows, setRows] = useState([])
+    const [rows, setRows] = useState(useRadnotateStore((state: RadnotateState) => state.rows))
     const [loadAnnotations, setLoadAnnotations] = useState(false)
-    const [loadAnnotationsDisabled, setLoadAnnotationsDisabled] = useState(true)
+    const [loadAnnotationsDisabled, setLoadAnnotationsDisabled] = useState(() => {
+        if (rows.length > 0) {
+            return false
+        } else {
+            return true
+        }
+    })
     const [saveAnnotationButtonDisabled, setSaveAnnotationButtonDisabled] = useState(true)
 
     useEffect(() => {
@@ -66,6 +72,9 @@ const Form = (props: FormProps): ReactElement => {
         }
         setSaveAnnotationButtonDisabled(saveAnnotationButtonDisabled)
     }, [patients, variables])
+
+    useEffect(() => {
+    }, [loadAnnotations])
 
     const _addVariable = (id: number): void => {
         const variable = variables.pop()
@@ -205,7 +214,7 @@ const Form = (props: FormProps): ReactElement => {
         })
         let initialRows: GridRowsProp = []
         if (annotationLevel === AnnotationLevel.patient) {
-            if (rows.length > 0) {
+            if (rows.length > 0 && loadAnnotations) {
                 initialRows = _mergePatientsWithLoadedRows()
             } else {
                 initialRows = _initEmptyRows()

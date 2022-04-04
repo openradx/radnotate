@@ -1,15 +1,16 @@
-import {ReactElement, useEffect, useState} from "react";
+import {ReactElement, useState} from "react";
 import Form, {AnnotationLevel} from "./Form";
 import Variable, {VariableToolType, VariableType} from "./Form/variable";
-import {Patient, Patients, Series, Study} from "./Form/DicomDropzone/dicomObject";
+import {ImageType, Patient, Patients, Series, Study} from "./Form/DicomDropzone/dicomObject";
 import {GridRowsProp,} from "@mui/x-data-grid";
 import {Box} from "@mui/material";
 import {TSMap} from "typescript-map"
 import {LicenseInfo} from "@mui/x-data-grid-pro";
 import {Settings} from "./Settings";
-import Annotation from "./Annotation";
+import Annotation, { AnnotationState, useAnnotationStore } from "./Annotation";
 import create from "zustand";
 import useStateRef from "react-usestateref";
+import { ImageState, useImageStore } from "./Annotation/Image";
 
 LicenseInfo.setLicenseKey("07a54c751acde4192070a1600dac24bdT1JERVI6MCxFWFBJUlk9MTc5OTc3Njg5NjA4NCxLRVlWRVJTSU9OPTE=",);
 
@@ -91,22 +92,70 @@ const Radnotate = (props: RadnotateProps): ReactElement => {
     const annotationLevel = useRadnotateStore((state: RadnotateState) => state.annotationLevel)
     const setAnnotationLevel = useRadnotateStore((state: RadnotateState) => state.setAnnotationLevel)
 
-    const [annotationMode, setAnnotationMode, annotationModeRef] = useStateRef<boolean>(false)
-    const [toolStates, setToolStates] = useState<(ToolState)[]>()
-    const [stackIndices, setStackIndices] = useState<Map<string, number>>()
+    const setPreviousPatientIndex = useAnnotationStore((state: AnnotationState) => state.setPreviousPatientIndex)
+    const setPreviousVariableIndex = useAnnotationStore((state: AnnotationState) => state.setPreviousVariableIndex)
+
+    const setToolStates = useImageStore((state: ImageState) => state.setToolStates)
+
+    const [annotationMode, setAnnotationMode] = useState<boolean>(false)
+    const [, setSopUidToImageID] = useState<Map<string, string>>()
     const [segmentationsCount, setSegmentationsCount] = useState<number>(0)
 
-    useEffect(() => {
-        if (annotationMode && !annotationModeRef.current) {
-            _initToolStates()
-            //_init(patients, variables, rows, annotationLevel)
-        }      
-    }, [annotationMode, patients, variables])
-    
-    //TODO Implement side effect for when rows is cleared, delete annotations and synchronize toolStates
-    useEffect(() => {
+    const _initSopUidToImageID = (patients: Patients) => {
+        const sopUidToImageID = new Map<string, string>()
+        patients.patients.forEach((patient: Patient) => {
+            patient.studies.forEach((study: Study) => {
+                study.series.forEach((series: Series) => {
+                    series.images.forEach((image: ImageType) => {
+                        sopUidToImageID.set(image.sopInstanceUID, image.imageID)
+                    })
+                })
+            })
+        })
+        return sopUidToImageID
+    }
 
-    }, [rows])
+    const _initToolStates = (rows: GridRowsProp, sopUidToImageID: Map<string, string>) => {
+        const toolStates:ToolState[] = []
+        rows.forEach((row) => {
+            const patientID: string = row["PatientID"]
+            const fields = Object.keys(row)
+            fields.forEach((field, variableID) => {
+                if (field !== "PatientID" && field !== "id") {
+                    if (row[field] !== "") {
+                        const annotations = JSON.parse(row[field])
+                        const type = JSON.parse(field).type
+                        annotations.forEach((annotation)  => {
+                            if (type === VariableType.segmentation) {
+                                const toolState: ToolState = {
+                                    type: ToolType.segmentation,
+                                    patientID: patientID,
+                                    variableID: variableID - 1,
+                                    imageID: sopUidToImageID.get(annotation.sopUid),
+                                    variableType: type,
+                                    data: {width: annotation.width, height: annotation.height, segmentationIndex: annotation.segmentationIndex, pixelData: new Uint8Array(atob(annotation.pixelData).split("").map(function (c) {
+                                            return c.charCodeAt(0);
+                                    }))}
+                                }
+                                toolStates.push(toolState)
+                            } else if (type !== VariableType.boolean && type !== VariableType.integer) {
+                                const toolState: ToolState = {
+                                    type: ToolType.annotation,
+                                    patientID: patientID,
+                                    variableID: variableID - 1,
+                                    imageID: sopUidToImageID.get(annotation.sopUid),
+                                    variableType: type,
+                                    data: {tool: VariableToolType.get(type), data: JSON.parse(annotation.data)},
+                                }
+                                toolStates.push(toolState)
+                            }
+                        })
+                    }
+                }
+            })
+        })
+        return toolStates
+    }
 
     const saveAnnotationForm = (patients: Patients, variables: Variable[], rows: GridRowsProp, annotationLevel: AnnotationLevel, segmentationsCount: number): void => {
         setPatients(patients)
@@ -117,138 +166,15 @@ const Radnotate = (props: RadnotateProps): ReactElement => {
 
         setActivePatient(patients.getPatient(0))
         setActiveVariable(variables[0])
-        setToolStates(toolStates)
-        setStackIndices(stackIndices)
 
+        const sopUidToImageID = _initSopUidToImageID(patients)
+        const toolStates = _initToolStates(rows, sopUidToImageID)
+        setSopUidToImageID(sopUidToImageID)
+        setToolStates(toolStates)
         setAnnotationMode(true)
     }
 
-    const _initToolStates = () => {
-
-    }
-
-    // TODO Refactor this into Annotation component by splitting up inital row and inital tool state
-    const _init = (patients: Patients, variables: Variable[], rows: GridRowsProp, annotationLevel: AnnotationLevel): void => {
-        let activePatient = patients.getPatient(0)
-        let activePatientIndex = 0
-        let activeVariable = variables[0]
-        let activeVariableIndex = 0
-        const stackIndices = new Map<string, number>()
-        const toolStates: ToolState[] = []
-        if (rows.length >= 0) {
-            const annotations: {
-                sopUid: string,
-                variableIndex: number,
-                height?: number,
-                width?: number,
-                pixelData?: Uint8Array,
-                segmentationIndex?: number,
-                tool?: string,
-                data?: Object
-            }[] = []
-            let sopInstanceUIDs: string[] = []
-            let isFirst = true
-            rows.forEach((row, patientIndex) => {
-                const fields = Object.keys(row)
-                fields.forEach((field, variableIndex) => {
-                    if (field !== "PatientID" && field !== "id") {
-                        if (row[field] !== "") {
-                            const currentValues = JSON.parse(row[field])
-                            const type = JSON.parse(field).type
-                            currentValues.forEach((currentValue: {
-                                sopUid: string,
-                                pixelData: string,
-                                height: number,
-                                width: number,
-                                segmentationIndex: number
-                                data: Object
-                            })  => {
-                                if (type === VariableType.segmentation) {
-                                    annotations.push({
-                                        sopUid: currentValue.sopUid,
-                                        variableIndex: variableIndex - 1,
-                                        height: currentValue.height,
-                                        width: currentValue.width,
-                                        pixelData: new Uint8Array(atob(currentValue.pixelData).split("").map(function (c) {
-                                            return c.charCodeAt(0);
-                                        })),
-                                        segmentationIndex: currentValue.segmentationIndex})
-                                } else if (type !== VariableType.boolean && type !== VariableType.integer) {
-                                    annotations.push({
-                                        sopUid: currentValue.sopUid,
-                                        variableIndex: variableIndex - 1,
-                                        tool: VariableToolType.get(type),
-                                        data: currentValue.data})
-                                }
-                                sopInstanceUIDs.push(currentValue.sopUid)
-                            })
-                        } else if (isFirst) {
-                            isFirst = false
-                            activeVariableIndex = variableIndex - 1
-                            activePatientIndex = patientIndex
-                            activePatient = patients.getPatient(activePatientIndex)
-                            activeVariable = variables[activeVariableIndex]
-                        }
-                    }
-                })
-            })
-            sopInstanceUIDs = [...new Set(sopInstanceUIDs)]
-            let stackCounter = 0
-            patients.patients.forEach(patient => {
-                patient.studies.forEach(study => {
-                    study.series.forEach(series => {
-                        series.images.forEach(image => {
-                            stackIndices.set(image.imageID, stackCounter++)
-                            if (sopInstanceUIDs.includes(image.sopInstanceUID)) {
-                                annotations.forEach(annotation => {
-                                    const annotationSopUid = annotation.sopUid
-                                    if (annotationSopUid === image.sopInstanceUID) {
-                                        let toolState: ToolState
-                                        if (annotation.tool !== undefined && annotation.data !== undefined) {
-                                            toolState = {
-                                                type: ToolType.annotation,
-                                                patientID: patient.patientID,
-                                                variableID: annotation.variableIndex,
-                                                imageID: image.imageID,
-                                                variableType: VariableType.boolean, // TODO Add right variable type
-                                                data: {
-                                                    tool: annotation.tool,
-                                                    data: annotation.data
-                                                }
-                                            }
-                                            toolStates.push(toolState)
-                                        } else if (annotation.height !== undefined && annotation.width !== undefined && annotation.pixelData !== undefined && annotation.segmentationIndex !== undefined){
-                                            toolState = {
-                                                type: ToolType.segmentation,
-                                                patientID: patient.patientID,
-                                                variableID: annotation.variableIndex,
-                                                imageID: image.imageID,
-                                                variableType: VariableType.boolean, // TODO Add right variable type
-                                                data: {
-                                                    height: annotation.height,
-                                                    width: annotation.width,
-                                                    pixelData: annotation.pixelData,
-                                                    segmentationIndex: annotation.segmentationIndex
-                                                }
-                                            }
-                                            toolStates.push(toolState)
-                                        }
-                                    }
-                                })
-                            }
-                        })
-                    })
-                })
-            })
-        }
-        setActivePatient(activePatient)
-        setActiveVariable(activeVariable)
-        setToolStates(toolStates)
-        setStackIndices(stackIndices)
-    }
-
     const clearTable = (): void => {
-        const newRows: GridRowsProp = []
         rows.forEach((row) => {
             const keys = Object.keys(row)
             keys.forEach((key: string) => {
@@ -257,6 +183,8 @@ const Radnotate = (props: RadnotateProps): ReactElement => {
                 }
             })
         })
+        setPreviousPatientIndex(-1)
+        setPreviousVariableIndex(-1)
         saveAnnotationForm(patients, variables, rows, annotationLevel, segmentationsCount)
     }
 
@@ -268,17 +196,15 @@ const Radnotate = (props: RadnotateProps): ReactElement => {
         const activeVariable = variables[0]
         const activePatient = patients.getPatient(0)
         setActivePatient(activePatient)
-        setActilogveVariable(activeVariable)
+        setActiveVariable(activeVariable)
+        setPreviousPatientIndex(-1)
+        setPreviousVariableIndex(-1)
     }
 
     return (
         <Box>
             {annotationMode ?
-                <Annotation
-                    toolStates={toolStates}
-                    stackIndices={stackIndices}
-                    segmentationsCount={segmentationsCount}
-                    />
+                <Annotation/>
                 :
                 <Form saveAnnotationForm={saveAnnotationForm}/>
             }

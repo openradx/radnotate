@@ -16,7 +16,6 @@ import {AnnotationState, useAnnotationStore} from "../index";
 
 type DataProps = {
     width: number,
-    //handleCellClick: Function,
 }
 
 const Data = (props: DataProps): ReactElement => {
@@ -28,14 +27,20 @@ const Data = (props: DataProps): ReactElement => {
     const annotationLevel = useRadnotateStore((state: RadnotateState) => state.annotationLevel)
     const variables = useRadnotateStore((state: RadnotateState) => state.variables)
     const rows = useRadnotateStore((state: RadnotateState) => state.rows)
-    const lastPatientIndex = useAnnotationStore((state: AnnotationState) => state.lastPatientIndex)
-    const setLastPatientIndex = useAnnotationStore((state: AnnotationState) => state.setLastPatientIndex)
-    const lastVariableIndex = useAnnotationStore((state: AnnotationState) => state.lastVariableIndex)
-    const setLastVariableIndex = useAnnotationStore((state: AnnotationState) => state.setLastVariableIndex)
+    const lastPatientIndex = useAnnotationStore((state: AnnotationState) => state.previousPatientIndex)
+    const setLastPatientIndex = useAnnotationStore((state: AnnotationState) => state.setPreviousPatientIndex)
+    const lastVariableIndex = useAnnotationStore((state: AnnotationState) => state.previousVariableIndex)
+    const setLastVariableIndex = useAnnotationStore((state: AnnotationState) => state.setPreviousVariableIndex)
     const variablesToColumns = (): GridColDef[] => {
         const columns: GridColDef[] = []
-        const activePatientIndex = activePatient.id
-        const activeVariableName = activeVariable.name
+        let activePatientIndex = -1
+        if (activePatient !== null) {
+            activePatientIndex = activePatient.id
+        }
+        let activeVariableName: string = ""
+        if (activeVariable !== null) {
+            activeVariableName = activeVariable.name
+        }
         if (annotationLevel === AnnotationLevel.patient) {
             columns.push({
                 field: "PatientID",
@@ -139,7 +144,9 @@ const Data = (props: DataProps): ReactElement => {
     }, [activeVariable, activePatient])
 
     const handleCellDoubleClick = (params: GridCellParams): void => {
-        if (lastPatientIndex >= 0 || lastVariableIndex >= 0) {
+        if (activePatient === null) {
+            setLastVariableIndex
+        } else if (lastPatientIndex >= 0 || lastVariableIndex >= 0) {
             return
         } else if (lastPatientIndex === -1 && lastVariableIndex === -1) {
             setLastVariableIndex(activeVariable.id)
