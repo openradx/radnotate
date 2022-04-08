@@ -17,6 +17,12 @@ cornerstoneTools.external.cornerstone = cornerstone;
 cornerstoneTools.external.Hammer = Hammer;
 cornerstoneTools.external.cornerstoneMath = cornerstoneMath;
 
+export type ImageStack = {
+    imageIDs: string[],
+    instanceNumbers: Map<string, number>,
+    seriesDescriptions: TSMap<string, Array<string>>,
+}
+
 type ImageProps = {
     setActiveAnnotations: Function,
 }
@@ -26,10 +32,20 @@ export type ImageState = {
     setUndo: (undo: boolean) => void,
     redo: boolean,
     setRedo: (redo: boolean) => void,
+    reset: boolean,
+    setReset: (reset: boolean) => void,
     correctionMode: boolean,
     setCorrectionMode: (correctionMode: boolean) => void,
     toolStates: ToolState[],
     setToolStates: (toolStates: ToolState[]) => void,
+    segmentationTransparency: number,
+    setSegmentationTransparency: (segmentationTransparency: number) => void,
+    activeSeriesDescription: string,
+    setActiveSeriesDescription: (imageStack: ImageStack) => void,
+    activeImageID: string,
+    setActiveImageID: (activeImageID: string) => void,
+    imageStack: ImageStack,
+    setImageStack: (activePatient: Patient) => void,
 }
 
 export const useImageStore = create((set: Function): ImageState => ({
@@ -37,10 +53,71 @@ export const useImageStore = create((set: Function): ImageState => ({
     setUndo: (undo: boolean): void => set(() => ({undo: undo})),
     redo: false,
     setRedo: (redo: boolean): void => set(() => ({redo: redo})),
+    reset: false,
+    setReset: (reset: boolean): void => set(() => ({reset: reset})),
     correctionMode: false,
     setCorrectionMode: (correctionMode: boolean): void => set(() => ({correctionMode: correctionMode})),
     toolStates: [],
     setToolStates: (toolStates: ToolState[]): void => set(() => ({toolStates: toolStates})),
+    segmentationTransparency: 50,
+    setSegmentationTransparency: (segmentationTransparency: number) => set(() => ({segmentationTransparency: segmentationTransparency})),
+    activeSeriesDescription: "",
+    setActiveSeriesDescription: (imageStack: ImageStack) => set(() => ({activeSeriesDescription: () => {
+        let activeSeriesDescription: string = ""
+            imageStack.seriesDescriptions.keys().forEach(seriesDescription => {
+                imageStack.seriesDescriptions.get(seriesDescription).forEach(imageID => {
+                    if (imageID === imageStack.imageIDs[0]) {
+                        activeSeriesDescription = seriesDescription
+                    }
+                })
+            })
+            return activeSeriesDescription
+    }})),
+    activeImageID: "",
+    setActiveImageID: (activeImageID: string) => set(() => ({activeImageID: activeImageID})),
+    imageStack: {
+        imageIDs: [],
+        instanceNumbers: new Map<string, number>(),
+        seriesDescriptions: new TSMap<string, string[]>()
+    },
+    setImageStack: (activePatient: Patient) => set(() => ({imageStack: () => {
+        let imageIDs: string[] = []
+        const instanceNumbers: Map<string, number> = new Map<string, number>()
+        const seriesDescriptions: TSMap<string, Array<string>> = new TSMap<string, Array<string>>()
+        // if (activePatient === undefined) {
+        //     return {imageIds, instanceNumbers, seriesDescriptions}
+        // }
+        if (activePatient === null) {
+            return {
+                imageIDs: [],
+                instanceNumbers: new Map<string, number>(),
+                seriesDescriptions: new TSMap<string, string[]>()
+            }
+        } else {
+            activePatient.studies.forEach((study) => {
+                study.series.forEach((series) => {
+                    const imageIdsTemp = new Array<string>(series.images.length)
+                    series.images.forEach((image) => {
+                        imageIdsTemp[image.instanceNumber - 1] = image.imageID
+                        instanceNumbers.set(image.imageID, image.instanceNumber);
+                    })
+                    // ToDo If multiple studies within one patient, with same name and same series number exist, this approach will fail
+                    if (seriesDescriptions.has(series.seriesDescription)) {
+                        const seriesDescription = series.seriesDescription + " " + series.seriesNumber
+                        seriesDescriptions.set(seriesDescription, imageIdsTemp)
+                    } else {
+                        seriesDescriptions.set(series.seriesDescription, imageIdsTemp)
+                    }
+                    imageIDs = [...imageIDs, ...imageIdsTemp]
+                })
+            })
+            return {
+                imageIDs: imageIDs,
+                instanceNumbers: instanceNumbers,
+                seriesDescriptions: seriesDescriptions
+            }
+        }
+    }})),
 }))
 
 const Image = (props: ImageProps): ReactElement => {
@@ -53,6 +130,7 @@ const Image = (props: ImageProps): ReactElement => {
     const setRedo = useImageStore((state: ImageState) => state.setRedo)
     const setCorrectionMode = useImageStore((state: ImageState) => state.setCorrectionMode)
     const toolStates = useImageStore((state: ImageState) => state.toolStates)
+    const setImageStack = useImageStore((state: ImageState) => state.setImageStack)
 
     const [snackbarOpen, setSnackbarOpen] = useState(false)
     const [snackbarText, setSnackbarText] = useState("")
