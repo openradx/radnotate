@@ -9,8 +9,7 @@ import {LicenseInfo} from "@mui/x-data-grid-pro";
 import {Settings} from "./Settings";
 import Annotation, { AnnotationState, useAnnotationStore } from "./Annotation";
 import create from "zustand";
-import useStateRef from "react-usestateref";
-import { ImageState, useImageStore } from "./Annotation/Image";
+import { ImageState, StoreState, useImageStore, useToolStateStore } from "./Annotation/Image";
 
 LicenseInfo.setLicenseKey("07a54c751acde4192070a1600dac24bdT1JERVI6MCxFWFBJUlk9MTc5OTc3Njg5NjA4NCxLRVlWRVJTSU9OPTE=",);
 
@@ -164,8 +163,30 @@ const Radnotate = (props: RadnotateProps): ReactElement => {
         setAnnotationLevel(annotationLevel)
         setSegmentationsCount(segmentationsCount)
 
-        setActivePatient(patients.getPatient(0))
-        setActiveVariable(variables[0])
+        let startPatientIndex: number
+        let startVariableIndex: number
+        rows.forEach(patient => {
+            let variableIndex = 0
+            Object.keys(patient).forEach((variable) => {
+                if (variable !== "PatientID" && variable !== "id") {
+                     if (patient[variable] === "" && startPatientIndex == undefined && startVariableIndex == undefined) { 
+                        startPatientIndex = patient.id
+                        startVariableIndex = variableIndex 
+                        variableIndex++
+                     }   
+                } 
+            })
+        })
+        // @ts-ignore
+        if (startPatientIndex === undefined) {
+            startPatientIndex = 0
+        }
+        // @ts-ignore
+        if (startVariableIndex === undefined) {
+            startVariableIndex = 0
+        }
+        setActivePatient(patients.getPatient(startPatientIndex))
+        setActiveVariable(variables[startVariableIndex])
 
         const sopUidToImageID = _initSopUidToImageID(patients)
         const toolStates = _initToolStates(rows, sopUidToImageID)

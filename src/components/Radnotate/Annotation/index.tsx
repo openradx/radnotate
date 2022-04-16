@@ -121,7 +121,7 @@ const Annotation = (props: AnnotationProps): ReactElement => {
                 }
                 if (activeVariable.type === VariableType.boolean || activeVariable.type === VariableType.integer) {
                     if (activeAnnotations[0] !== undefined) {
-                        if (activeAnnotations[0].get("value") === "escape") {
+                        if (activeAnnotations[0].get("value") === "delete") {
                             row[activeVariable.toString()] = "[]"
                         } else {
                             row[activeVariable.toString()] = json

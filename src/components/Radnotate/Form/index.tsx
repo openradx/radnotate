@@ -199,6 +199,10 @@ const Form = (props: FormProps): ReactElement => {
                 PatientID: rowName,
                 id: index
             }
+            variables.slice(0, variables.length - 1).forEach((variable: Variable) => {
+                // @ts-ignore
+                row[variable.toString()] = ""
+            })
             // @ts-ignore
             initialRows.push(row)
         })

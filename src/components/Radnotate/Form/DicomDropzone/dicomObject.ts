@@ -6,6 +6,7 @@ export type StudyType = {
     studyInstanceUID: string,
     studyDescription: string,
     studyDate: string,
+    studyID: string,
 }
 
 export type SeriesType = {
@@ -59,6 +60,7 @@ export class Study {
     studyInstanceUID: string;
     studyDescription: string;
     studyDate: string;
+    studyID: string;
     series: Series[];
     treeNode: TreeNodeType;
 
@@ -66,6 +68,7 @@ export class Study {
         this.studyInstanceUID = studyDict.studyInstanceUID
         this.studyDescription = studyDict.studyDescription
         this.studyDate = studyDict.studyDate
+        this.studyID = studyDict.studyID
         const series = new Series(seriesDict, imageDict)
         this.series = []
         this.treeNode = {
@@ -107,19 +110,12 @@ export class Study {
 export class Patient {
     patientID: string;
     studies: Study[];
-    treeNode: TreeNodeType;
     id: number;
 
     constructor(patientDict: PatientType, studyDict: StudyType, seriesDict: SeriesType, imageDict: ImageType) {
         this.patientID = patientDict.patientID;
         this.studies = []
         const study = new Study(studyDict, seriesDict, imageDict)
-        this.treeNode = {
-            name: this.patientID,
-            checked: 0,
-            isOpen: false,
-            children: []
-        }
         this.id = 0
         this.addStudy(study)
     }
@@ -127,7 +123,6 @@ export class Patient {
     addStudy(newStudy: Study) {
         if (this.studies.length === 0) {
             this.studies = [newStudy]
-            this.treeNode.children?.push(newStudy.treeNode)
         } else {
             let isSame: boolean = false
             this.studies.forEach((study) => {
@@ -143,7 +138,6 @@ export class Patient {
                     const dateB = new Date(Number(b.studyDate.slice(0, 4)), Number(b.studyDate.slice(4, 6)) - 1, Number(b.studyDate.slice(6, 8)))
                     return dateB - dateA
                 })
-                this.treeNode.children?.push(newStudy.treeNode)
             }
         }
     }
@@ -165,22 +159,14 @@ export class Patient {
 
 export class Patients {
     patients: Patient[]
-    treeNode: TreeNodeType
 
     constructor() {
         this.patients = []
-        this.treeNode = {
-            name: "Patients",
-            checked: 0,
-            isOpen: false,
-            children: []
-        }
     }
 
     addPatient(newPatient: Patient) {
         if (this.patients.length === 0) {
             this.patients = [newPatient]
-            this.treeNode.children?.push(newPatient.treeNode)
         } else {
             let isSame: boolean = false
             this.patients.forEach((patient) => {
@@ -197,7 +183,6 @@ export class Patients {
                 this.patients.forEach((patient, id) => {
                     patient.id = id
                 })
-                this.treeNode.children?.push(newPatient.treeNode)
             }
         }
     }

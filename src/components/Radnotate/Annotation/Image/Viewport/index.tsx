@@ -1,6 +1,5 @@
-import { EffectCallback, ReactElement, useCallback, useEffect, useRef, useState } from "react";
+import { ReactElement, useCallback, useEffect, useRef, useState } from "react";
 import { ImageStack, RadnotateState, ToolState, ToolType, useRadnotateStore } from "../../..";
-import { TSMap } from "typescript-map";
 import Variable, { VariableType, VariableToolType } from "../../../Form/variable";
 
 
@@ -9,14 +8,17 @@ import cornerstone from "cornerstone-core";
 import CornerstoneViewport from "react-cornerstone-viewport";
 import cornerstoneMath from "cornerstone-math";
 import cornerstoneTools from "cornerstone-tools";
+import cornerstoneWADOImageLoader from "cornerstone-wado-image-loader";
 import useStateRef from "react-usestateref";
 import { Patient } from "../../../Form/DicomDropzone/dicomObject";
-import { ImageState, useImageStore } from "..";
+import { ImageState, useImageStore} from "..";
 
 cornerstoneTools.external.cornerstone = cornerstone;
 cornerstoneTools.external.Hammer = Hammer;
 cornerstoneTools.external.cornerstoneMath = cornerstoneMath;
+cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
 cornerstoneTools.init();
+
 const toolStateManager = cornerstoneTools.globalImageIdSpecificToolStateManager;
 
 // TODO Since only 10 colors are provided, segmentationIndex will break whne more than 10 segmentations are wanted.
@@ -37,6 +39,7 @@ const colors = [
 const awaitTimeout = (delay: number) => new Promise(resolve => setTimeout(resolve, delay));
 
 type ViewportProps = {
+    imageStack: ImageStack
 }
 
 export type SegmentationToolState = {
@@ -63,17 +66,24 @@ export const Viewport = (props: ViewportProps): ReactElement => {
     const activePatientRef = useRef(activePatient)
     const activeVariable: Variable = useRadnotateStore((state: RadnotateState) => state.activeVariable)
     const activeVariableRef = useRef(activeVariable)
-    const toolStates = useImageStore((state: ImageState) => state.toolStates)
-    const toolStatesRef = useRef(toolStates)
 
+    const toolStates = useImageStore((state: ImageState) => state.toolStates)
     const setToolStates = useImageStore((state: ImageState) => state.setToolStates)
+    const toolStatesRef = useRef(toolStates)
+    const [, setSegmentationToolStates, segmentationToolStatesRef] = useStateRef<ToolState[]>([])
+
+    const segmentationTransparency = useImageStore((state: ImageState) => state.segmentationTransparency)
     const undo = useImageStore((state: ImageState) => state.undo)
     const setUndo = useImageStore((state: ImageState) => state.setUndo)
     const redo = useImageStore((state: ImageState) => state.redo)
     const setRedo = useImageStore((state: ImageState) => state.setRedo)
+    const reset = useImageStore((state: ImageState) => state.reset)
+    const setReset = useImageStore((state: ImageState) => state.setReset)
     const correctionMode = useImageStore((state: ImageState) => state.correctionMode)
-
-    const [segmentationTransparency, setSegmentationTransperency] = useState(50)
+    const setActiveSeries = useImageStore((state: ImageState) => state.setActiveSeries)
+    
+    const [viewport, setViewport, viewportRef] = useStateRef<any>()
+    const [activeViewport, setActiveViewport] = useState<number>(0)
     const [tools,] = useState<object[]>(
         [
             {name: 'Pan', mode: 'enabled', modeOptions: {mouseButtonMask: 1}},
@@ -95,8 +105,6 @@ export const Viewport = (props: ViewportProps): ReactElement => {
             {name: 'StackScrollMultiTouch', mode: 'active'}
         ]
     )
-    const [currentImageIdIndex, setCurrentImageIdIndex] = useState<number>(0)
-    const [currentImageId, setCurrentImageId] = useState<string>()
     const [activeTool, setActiveTool] = useState<string>(() => {
         if (activeVariable !== null) {
             return activeVariable.tool
@@ -104,62 +112,10 @@ export const Viewport = (props: ViewportProps): ReactElement => {
             return ""
         }
     })
-    const [activeViewport, setActiveViewport] = useState<number>(0)
-    const [, setSegmentationToolStates, segmentationToolStatesRef] = useStateRef<ToolState[]>([])
-    const updateImageIds = (activePatient: Patient): ImageStack => {
-        let imageIds: string[] = []
-        const instanceNumbers: Map<string, number> = new Map<string, number>()
-        const seriesDescriptions: TSMap<string, Array<string>> = new TSMap<string, Array<string>>()
-        // if (activePatient === undefined) {
-        //     return {imageIds, instanceNumbers, seriesDescriptions}
-        // }
-        if (activePatient === null) {
-            return {
-                imageIDs: [],
-                instanceNumbers: [],
-                seriesDescriptions: ["Undefined"]
-            }
-        } else {
-            activePatient.studies.forEach((study) => {
-                study.series.forEach((series) => {
-                    const imageIdsTemp = new Array<string>(series.images.length)
-                    series.images.forEach((image) => {
-                        imageIdsTemp[image.instanceNumber - 1] = image.imageID
-                        instanceNumbers.set(image.imageID, image.instanceNumber);
-                    })
-                    // ToDo If multiple studies within one patient, with same name and same series number exist, this approach will fail
-                    if (seriesDescriptions.has(series.seriesDescription)) {
-                        const seriesDescription = series.seriesDescription + " " + series.seriesNumber
-                        seriesDescriptions.set(seriesDescription, imageIdsTemp)
-                    } else {
-                        seriesDescriptions.set(series.seriesDescription, imageIdsTemp)
-                    }
-                    imageIds = [...imageIds, ...imageIdsTemp]
-                })
-            })
-            return {
-                imageIDs: imageIds,
-                instanceNumbers: instanceNumbers,
-                seriesDescriptions: seriesDescriptions
-            }
-        }
-    }
-    const [imageStack, setImageStack, imageStackRef] = useStateRef<ImageStack>(() => updateImageIds(activePatient))
-    const [currentSeriesDescription, setCurrentSeriesDescription] = useState<string>(
-        () => {
-            let currentSeriesDescription: string = ""
-            imageStack.seriesDescriptions.keys().forEach(seriesDescription => {
-                imageStack.seriesDescriptions.get(seriesDescription).forEach(imageId => {
-                    if (imageId === imageStack.imageIDs[0]) {
-                        currentSeriesDescription = seriesDescription
-                    }
-                })
-            })
-            return currentSeriesDescription
-        }
-    )
-    const [viewport, setViewport, viewportRef] = useStateRef<any>()
-    
+    const imageStackRef = useRef(props.imageStack)
+    const activeImageID = useImageStore((state: ImageState) => state.activeImageID)
+    const setActiveImageID = useImageStore((state: ImageState) => state.setActiveImageID)
+    const [currentImageIDIndex, setCurrentImageIDIndex] = useState<number>(0)
     const existingAnnotationsCount = new Map<string, Object>()
 
     useEffect(() => {
@@ -192,14 +148,20 @@ export const Viewport = (props: ViewportProps): ReactElement => {
     }, [])
 
     useEffect(() => {
+        imageStackRef.current = props.imageStack
+    }, [props.imageStack])
+
+    useEffect(() => {
         activePatientRef.current = activePatient
-        const imageStack = updateImageIds(activePatient)
-        setImageStack(imageStack)
         awaitTimeout(500).then(() => {
-            _initSegmentations(activePatient, imageStack.imageIDs, segmentationToolStatesRef.current)
+            _initSegmentations(activePatient, imageStackRef.current.imageIDs, segmentationToolStatesRef.current)
             _setActiveSegmentation(activeVariable)
-            _jumpToImage(activeVariable, imageStack.imageIDs)
-            _setToolStates()
+            _jumpToImage(activeVariable, imageStackRef.current.imageIDs)
+            if (activeVariableRef.current !== null && activeVariableRef.current.type === VariableType.segmentation) {
+                _setToolStates(ToolType.segmentation)
+            } else {
+                _setToolStates(ToolType.annotation)
+            }
         })
     }, [activePatient])
 
@@ -217,10 +179,14 @@ export const Viewport = (props: ViewportProps): ReactElement => {
             })
             if (activeVariableRef.current !== activeVariable) {
                 _setActiveSegmentation(activeVariable)
-                _jumpToImage(activeVariable, imageStack.imageIDs)
+                _jumpToImage(activeVariable, props.imageStack.imageIDs)
             }
             activeVariableRef.current = activeVariable
-            _setToolStates()
+            if (activeVariableRef.current.type === VariableType.segmentation) {
+                _setToolStates(ToolType.segmentation)
+            } else {
+                _setToolStates(ToolType.annotation)
+            }
         } else {
             activeVariableRef.current = activeVariable
         }
@@ -228,23 +194,23 @@ export const Viewport = (props: ViewportProps): ReactElement => {
 
     useEffect(() => {
         let currentImageIndex: number = 0
-        imageStack.imageIDs.forEach((imageId, index) => {
-            if (imageId === currentImageId) {
+        props.imageStack.imageIDs.forEach((imageID, index) => {
+            if (imageID === activeImageID) {
                 currentImageIndex = index
             }
         })
         let currentSeriesDescription: string = ""
-        imageStack.seriesDescriptions.keys().forEach(seriesDescription => {
-            imageStack.seriesDescriptions.get(seriesDescription).forEach(imageId => {
-                if (imageId === currentImageId) {
+        props.imageStack.seriesDescriptions.keys().forEach(seriesDescription => {
+            props.imageStack.seriesDescriptions.get(seriesDescription).forEach(imageID => {
+                if (imageID === activeImageID) {
                     currentSeriesDescription = seriesDescription
                 }
             })
         })
-        setCurrentImageIdIndex(currentImageIndex)
-        setCurrentSeriesDescription(currentSeriesDescription)
+        setCurrentImageIDIndex(currentImageIndex)
+        setActiveSeries(currentSeriesDescription)
         cornerstone.updateImage(viewportRef.current);
-    }, [currentImageId])
+    }, [activeImageID])
 
     useEffect(() => {
         if (undo) {
@@ -253,9 +219,15 @@ export const Viewport = (props: ViewportProps): ReactElement => {
                     setters,
                 } = cornerstoneTools.getModule("segmentation");
                 setters.undo(viewport);
-                setUndo(false)
+                
+            } else if (activeVariable.type !== VariableType.boolean && activeVariable.type !== VariableType.integer) {
+                //
             }
+            setUndo(false)
         } 
+    }, [undo])
+
+    useEffect(() => { 
         if (redo) {
             if (activeVariable.type === VariableType.segmentation) {
                 const {
@@ -265,40 +237,81 @@ export const Viewport = (props: ViewportProps): ReactElement => {
                 setRedo(false)
             }
         }
+    }, [redo])
+
+    useEffect(() => {
         if (correctionMode) {
-            cornerstoneTools.setToolEnabled("Wwwc");
-            if (activeVariable.type !== VariableType.integer && activeVariable.type !== VariableType.boolean) {
+            if (activeVariable.type === VariableType.segmentation) {
+                cornerstoneTools.setToolActive("CorrectionScissors", {mouseButtonMask: 1})
+            } else if (activeVariable.type !== VariableType.integer && activeVariable.type !== VariableType.boolean) {
+                cornerstoneTools.setToolActive("Eraser", {mouseButtonMask: 1})
+                cornerstoneTools.setToolEnabled("Wwwc");
                 cornerstoneTools.setToolActive("Pan", {mouseButtonMask: 2});
                 cornerstoneTools.setToolEnabled("Zoom");
             }
         } else {
-            cornerstoneTools.setToolActive("Wwwc", {mouseButtonMask: 4});
-            if (activeVariable.type !== VariableType.integer && activeVariable.type !== VariableType.boolean) {
+            if (activeVariable.type === VariableType.segmentation) {
+                cornerstoneTools.setToolActive(activeVariable.tool, {mouseButtonMask: 1})
+            } else if (activeVariable.type !== VariableType.integer && activeVariable.type !== VariableType.boolean) {
+                cornerstoneTools.setToolActive(activeVariable.tool, {mouseButtonMask: 1})
+                cornerstoneTools.setToolActive("Wwwc", {mouseButtonMask: 4});
                 cornerstoneTools.setToolActive("Zoom", {mouseButtonMask: 2});
                 cornerstoneTools.setToolEnabled("Pan");
             }
         }
-    }, [undo, redo, correctionMode])
+    }, [correctionMode])
 
     useEffect(() => {
+        if (reset) {
+            if (activeVariable.variableType === VariableType.segmentation) {
+                const stackStartImageId = props.imageStack.imageIDs[0]
+                const segmentationIndex = activeVariable.segmentationIndex
+                _deleteSegmentations(stackStartImageId, segmentationIndex)
+            } else {
+                _deleteAnnotations(activeVariable.variableType, props.imageStack.imageIDs)
+            }
+            setReset(false)
+        }
+    }, [reset])
+
+    useEffect(() => {
+        _deleteAnnotations(activeVariable.type, props.imageStack.imageIDs)
+        toolStates.forEach((toolState: ToolState) => {
+            if (toolState.type === ToolType.annotation) {
+                // @ts-ignore
+                const {type, patientID, variableID, imageID, variableType, data} = toolState
+                toolStateManager.addImageIdToolState(imageID, data.tool, data.data)
+                existingAnnotationsCount.set(data.data.uuid, {
+                    patientID: patientID,
+                    variableID: variableID,
+                })
+            } 
+        })
+
         toolStatesRef.current = toolStates
     }, [toolStates])
 
     useEffect(() => {
         if (viewport !== undefined) {
-            viewport.addEventListener("cornerstonenewimage", async (event: {detail: {image: {imageId: string}}}) => setCurrentImageId(event.detail.image.imageId))
-            viewport.addEventListener("cornerstonetoolsmeasurementcompleted", _setToolStates)
-            viewport.addEventListener("cornerstonetoolsmouseup", _setToolStates)
-            viewport.addEventListener("cornerstonetoolsmouseclick", _setToolStates)
-        
+            viewport.addEventListener("cornerstonenewimage", async (event: {detail: {image: {imageId: string}}}) => setActiveImageID(event.detail.image.imageId))
+            viewport.addEventListener("cornerstonetoolsmeasurementcompleted", () => _setToolStates(ToolType.segmentation))
+            viewport.addEventListener("cornerstonetoolsmouseup", () => _setToolStates(ToolType.annotation))
+            viewport.addEventListener("cornerstonetoolsmouseclick", () => _setToolStates(ToolType.annotation))
+
             return () => {
-                viewport.removeEventListener("cornerstonenewimage", async (event: {detail: {image: {imageId: string}}}) => setCurrentImageId(event.detail.image.imageId))
+                viewport.removeEventListener("cornerstonenewimage", async (event: {detail: {image: {imageId: string}}}) => setActiveImageID(event.detail.image.imageId))
                 viewport.removeEventListener("cornerstonetoolsmeasurementcompleted", _setToolStates)
                 viewport.removeEventListener("cornerstonetoolsmouseup", _setToolStates)
                 viewport.removeEventListener("cornerstonetoolsmouseclick", _setToolStates)
             }
         }
     }, [viewport])
+
+    useEffect(() => {
+        const {configuration} = cornerstoneTools.getModule("segmentation")
+        configuration.fillAlpha = segmentationTransparency / 100
+        cornerstone.updateImage(viewportRef.current)
+    }, [segmentationTransparency])
 
     const _initSegmentations = (activePatient: Patient, imageIDs: string[], segmentationToolStates: ToolState[]) => {
         const {getters, setters} = cornerstoneTools.getModule("segmentation");
@@ -310,8 +323,8 @@ export const Viewport = (props: ViewportProps): ReactElement => {
                     if (segmentationIndex >= 0) {
                         const {imageID, data} = toolState
                         let imageIDIndex: number | undefined = undefined
-                        imageIDs.forEach((currentImageId, index) => {
-                            if (currentImageId === imageID) {
+                        imageIDs.forEach((currentImageID, index) => {
+                            if (currentImageID === imageID) {
                                 imageIDIndex = index
                             }
                         })
@@ -337,22 +350,23 @@ export const Viewport = (props: ViewportProps): ReactElement => {
         })
         if (deleteIndices.length > 0) {
             segmentationToolStates.splice(deleteIndices[0], deleteIndices.length)
-            console.log(segmentationToolStates)
             setSegmentationToolStates(segmentationToolStates)
         }
         cornerstone.updateImage(viewportRef.current);
     }
 
     const _setActiveSegmentation = (activeVariable: Variable) => {
-        const {setters, configuration, getters} = cornerstoneTools.getModule("segmentation");
-        configuration.fillAlpha = segmentationTransparency / 100
-        if (activeVariable !== null && activeVariable.segmentationIndex !== undefined) {
-            setters.activeLabelmapIndex(viewportRef.current, activeVariable.segmentationIndex);
-            setters.colorLUTIndexForLabelmap3D(getters.labelmap3D(viewportRef.current, activeVariable.segmentationIndex), activeVariable.segmentationIndex)
-        } else {
-            setters.activeLabelmapIndex(viewportRef.current, -1);
+        if (viewportRef.current !== undefined) {
+            const {setters, configuration, getters} = cornerstoneTools.getModule("segmentation");
+            configuration.fillAlpha = segmentationTransparency / 100
+            if (activeVariable !== null && activeVariable.segmentationIndex !== undefined) {
+                setters.activeLabelmapIndex(viewportRef.current, activeVariable.segmentationIndex);
+                setters.colorLUTIndexForLabelmap3D(getters.labelmap3D(viewportRef.current, activeVariable.segmentationIndex), activeVariable.segmentationIndex)
+            } else {
+                setters.activeLabelmapIndex(viewportRef.current, -1);
+            }
+            cornerstone.updateImage(viewportRef.current);
         }
-        cornerstone.updateImage(viewportRef.current);
     }
 
     const _resolveSegmentation = (activePatient: Patient, activeVariable: Variable, imageStack: ImageStack) => {
@@ -370,6 +384,7 @@ export const Viewport = (props: ViewportProps): ReactElement => {
                     const pixelData = annotations[imageIndex].pixelData
                     if (pixelData.some(value => value !== 0)) {
                         const toolState: ToolState = {
+                            counter: 0,
                             type: ToolType.segmentation,
                             patientID: activePatient.patientID,
                             variableID: activeVariable.id,
@@ -429,15 +444,15 @@ export const Viewport = (props: ViewportProps): ReactElement => {
     }
 
     const _deleteSegmentations = (stackStartImageId: string, segmentationIndex: number) => {
-        const {state} = cornerstoneTools.getModule("segmentation");
+        const {state} = cornerstoneTools.getModule("segmentation")
         state.series[stackStartImageId].labelmaps3D[segmentationIndex].labelmaps2D = []
-        cornerstone.updateImage(viewportRef);
+        cornerstone.updateImage(viewportRef.current)
     }
 
-    const _deleteAnnotations = (variableType: VariableType, imageIds: string[] | undefined) => {
-        const existingToolState = toolStateManager.saveToolState();
-        const deleteAnnotations = (imageId, tool) => {
-            const annotations = existingToolState[imageId][tool]
+    const _deleteAnnotations = (variableType: VariableType, imageIDs: string[] | undefined) => {
+        const existingToolState = toolStateManager.saveToolState()
+        const deleteAnnotations = (imageID, tool) => {
+            const annotations = existingToolState[imageID][tool]
             if (annotations !== undefined) {
                 const annotationData = annotations.data
                 let annotationsCount = annotationData.length
@@ -449,21 +464,20 @@ export const Viewport = (props: ViewportProps): ReactElement => {
         }
 
         const tool = VariableToolType.get(variableType)
-        const imageIdsWithAnnotations = Object.keys(existingToolState)
-        if (imageIds === undefined) {
-            imageIdsWithAnnotations.forEach(imageId => {
+        const imageIDsWithAnnotations = Object.keys(existingToolState)
+        if (imageIDs === undefined) {
+            imageIDsWithAnnotations.forEach(imageId => {
                 deleteAnnotations(imageId, tool)
             })
         } else {
-            imageIds.forEach(imageId => {
-                if (imageIdsWithAnnotations.includes(imageId) && tool in existingToolState[imageId]) {
-                    deleteAnnotations(imageId, tool)
+            imageIDs.forEach(imageID => {
+                if (imageIDsWithAnnotations.includes(imageID) && tool in existingToolState[imageID]) {
+                    deleteAnnotations(imageID, tool)
                 }
             })
         }
-        cornerstoneTools.clearToolState(viewportRef, tool);
-        cornerstone.updateImage(viewportRef);
-        useState({correctionModeEnabled: false})
+        cornerstoneTools.clearToolState(viewportRef.current, tool)
+        cornerstone.updateImage(viewportRef.current)
     }
 
     const _jumpToImage = async (activeVariable: Variable, imageIDs: string[]) => {
@@ -481,32 +495,36 @@ export const Viewport = (props: ViewportProps): ReactElement => {
                     const imageID = imageIDs[Number(imageIndex)]
                     const image = await cornerstone.loadImage(imageID)
                     cornerstone.displayImage(viewportRef.current, image)
-                    setCurrentImageId(imageID)
+                    setActiveImageID(imageID)
                 }
             }
         } else if (activeVariable !== null && activeVariable.type !== VariableType.boolean &&
             activeVariable.type !== VariableType.integer) {
-            const cornerstoneToolState = toolStateManager.saveToolState();
+            const cornerstoneToolState = toolStateManager.saveToolState()
             const imageIds = Object.keys(cornerstoneToolState)
             let imageID: string | undefined = undefined
             let stack = [...imageIDs]
             stack = stack.reverse()
-            stack.forEach(currentImageId => {
-                if (imageIds.includes(currentImageId) && activeVariable.tool in cornerstoneToolState[currentImageId]) {
-                    imageID = currentImageId
+            stack.forEach(currentImageID => {
+                if (imageIds.includes(currentImageID) && activeVariable.tool in cornerstoneToolState[currentImageID]) {
+                    imageID = currentImageID
                 }
             })
             if (imageID !== undefined) {
-                setCurrentImageId(imageID)
+                setActiveImageID(imageID)
             }
         }
     }
 
-    const _setToolStates = useCallback(() => {
-        if (activeVariableRef.current.type === VariableType.segmentation) {
-            setToolStates(_resolveSegmentation(activePatientRef.current, activeVariableRef.current, imageStackRef.current))
-        } else if (activeVariableRef.current.type !== VariableType.boolean && activeVariableRef.current.type !== VariableType.integer) {
-            setToolStates(_resolveAnnotation(activePatientRef.current, activeVariableRef.current, imageStackRef.current))
+    const _setToolStates = useCallback((toolType: ToolType) => {
+        if (activeVariableRef.current !== null) {
+            if (activeVariableRef.current.type === VariableType.segmentation && toolType === ToolType.segmentation) {
+                const activeToolStates = _resolveSegmentation(activePatientRef.current, activeVariableRef.current, imageStackRef.current)
+                setToolStates(activeToolStates)
+            } else if (activeVariableRef.current.type !== VariableType.boolean && activeVariableRef.current.type !== VariableType.integer  && toolType === ToolType.annotation) {
+                const activeToolStates = _resolveAnnotation(activePatientRef.current, activeVariableRef.current, imageStackRef.current)
+                setToolStates(activeToolStates)
+            }
         }
     }, [])
 
@@ -516,9 +534,9 @@ export const Viewport = (props: ViewportProps): ReactElement => {
                     key={activeViewport}
                     style={{height: "91.5vh"}}
                     tools={tools}
-                    id={currentImageId}
-                    imageIds={imageStack.imageIDs}
-                    imageIdIndex={currentImageIdIndex}
+                    id={activeImageID}
+                    imageIds={props.imageStack.imageIDs}
+                    imageIdIndex={currentImageIDIndex}
                     isPlaying={false}
                     frameRate={22}
                     className={"active"}

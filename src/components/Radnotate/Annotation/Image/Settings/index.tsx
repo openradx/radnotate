@@ -1,215 +1,117 @@
-import { Stack, Divider, Tooltip, FormGroup, FormControlLabel, Switch, Button, Box, Slider, Typography, FormControl, MenuItem, Select } from "@mui/material"
-import { ReactElement } from "react"
+import { Stack, Divider, Tooltip, FormGroup, FormControlLabel, Switch, Button, Box, Slider, Typography, FormControl, MenuItem, Select, SelectChangeEvent } from "@mui/material"
+import { ReactElement, useEffect, useState } from "react"
 import Variable, { VariableType } from "../../../Form/variable"
 import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
-import cornerstone from "cornerstone-core";
-import { TSMap } from "typescript-map";
-import { useRadnotateStore, RadnotateState } from "../../..";
-import cornerstoneMath from "cornerstone-math";
-import cornerstoneTools from "cornerstone-tools";
-import Hammer from "hammerjs";
+import { useRadnotateStore, RadnotateState, ImageStack } from "../../..";
 import { Patient } from "../../../Form/DicomDropzone/dicomObject";
+import { ImageState, useImageStore } from "..";
 
-cornerstoneTools.external.cornerstone = cornerstone;
-cornerstoneTools.external.Hammer = Hammer;
-cornerstoneTools.external.cornerstoneMath = cornerstoneMath;
-const toolStateManager = cornerstoneTools.globalImageIdSpecificToolStateManager;
 
-type SettingsProps = {}
+type SettingsProps = {
+    imageStack: ImageStack
+}
 
 export const Settings = (props: SettingsProps): ReactElement => {
     const activePatient: Patient = useRadnotateStore((state: RadnotateState) => state.activePatient)
     const activeVariable: Variable = useRadnotateStore((state: RadnotateState) => state.activeVariable)
 
+    const [openTooltip, setOpenTooltip] = useState(false)
+    const correctionMode = useImageStore((state: ImageState) => state.correctionMode)
+    const setUndo = useImageStore((state: ImageState) => state.setUndo)
+    const setRedo = useImageStore((state: ImageState) => state.setRedo)
+    const setReset = useImageStore((state: ImageState) => state.setReset)
+    const segmentationTransparency = useImageStore((state: ImageState) => state.segmentationTransparency)
+    const setSegmentationTransparency = useImageStore((state: ImageState) => state.setSegmentationTransparency)
+    const setCorrectionMode = useImageStore((state: ImageState) => state.setCorrectionMode)
 
-    const _handleMouse = async (event) => {
-        if (event.type === "mousedown") {
-            if (event.button === 1) { // Scroll button, enable
-                this.setState({enableScrolling: true})
-            }
-        } else if (event.type === "mouseup") {
-            if (event.button === 1) { // Scroll button, disable
-                this.setState({enableScrolling: false})
-            }
+    const activeSeries = useImageStore((state: ImageState) => state.activeSeries)
+    const setActiveImageID = useImageStore((state: ImageState) => state.setActiveImageID)
+    const [modeLabel, setModeLabel] = useState(() => {
+        if (activeVariable.type === VariableType.segmentation) {
+            return "Correction mode"
         } else {
-            if (this.state.enableScrolling && event.ctrlKey) {
-                const scrolled = event.movementY
-                if (Math.abs(scrolled)) {
-                    const currentDirection = scrolled > 0 ? 1 : -1
-                    if (this.state.previousScrollingDirection !== currentDirection) {
-                        this.imageIdQueue.clear()
-                    }
-                    this.imageIdQueue.enqueue(() => new Promise(resolve => {
-                        let currentImageIdIndex = this.state.currentImageIdIndex
-                        const threshold = 3
-                        let movement = 0
-                        if (scrolled > threshold) {
-                            movement = Math.abs(scrolled) >= 15 ? 5 : 1
-                            this.setState({previousScrollingDirection: 1})
-                        } else if (scrolled < -1 * threshold) {
-                            movement = Math.abs(scrolled) >= 15 ? -5 : -1
-                            this.setState({previousScrollingDirection: -1})
-                        }
-                        currentImageIdIndex = currentImageIdIndex + movement
-                        if (currentImageIdIndex >= 0 &&
-                            currentImageIdIndex < this.props.imageStack.imageIDs.length) {
-                            const currentImageId = this.props.imageStack.imageIDs[currentImageIdIndex]
-                            this._setCurrentImage(currentImageId)
-                        }
-                        resolve(true)
-                    }))
-                }
-            }
+            return "Deletion mode"
         }
-    }
+    })
 
-    const handleUndoClick = () => {
-        if (this.props.activeVariable.type === VariableType.segmentation) {
-            const {
-                setters,
-            } = cornerstoneTools.getModule("segmentation");
-            setters.undo(this.state.cornerstoneElement);
-        }
-    }
-
-    const handleRedoClick = () => {
-        if (this.props.activeVariable.type === VariableType.segmentation) {
-            const {
-                setters,
-            } = cornerstoneTools.getModule("segmentation");
-            setters.redo(this.state.cornerstoneElement);
-        }
-    }
-
-    const handleResetClick = () => {
-        const variableType = this.props.activeVariable.type
-        if (variableType === VariableType.segmentation) {
-            const stackStartImageId = this.props.imageStack.imageIDs[0]
-            const segmentationIndex = this.props.activeVariable.segmentationIndex
-            this._deleteSegmentations(stackStartImageId, segmentationIndex)
+    useEffect(() => {
+        if (activeVariable !== null && activeVariable.type === VariableType.segmentation) {
+            setModeLabel("Correction mode")
         } else {
-            this._deleteAnnotations(variableType, this.props.imageStack.imageIDs)
+            setModeLabel("Deletion mode")
         }
-    }
+    }, [activeVariable])
 
-    const handleSegmentationTransparencySlider = (event: Event | number) => {
-        let segmentationTransparency: number
-        if (typeof event === "number") {
-            segmentationTransparency = event
-        } else {
-            segmentationTransparency = event.target.value
-        }
-        const {configuration} = cornerstoneTools.getModule("segmentation");
-        configuration.fillAlpha = segmentationTransparency / 100;
-        cornerstone.updateImage(this.state.cornerstoneElement);
-        this.setState({segmentationTransparency: segmentationTransparency})
-    }
-
-    const renderSeriesSelection = (): ReactElement => {
-        return (
-            <div>
-                <Tooltip title={"Select series by series description"} followCursor={true} disableTouchListener={true}
-                         disableFocusListener={true} disableInteractive={true} open={this.state.openTooltip}>
-                    <FormControl sx={{width: 250}} size={"small"}>
-                        <Select value={this.state.currentSeriesDescription}
-                                onOpen={() => this.setState({openTooltip: true})}
-                                onChange={event => this.handleSeriesSelection(event)}
-                                onClose={() => {
-                                    this.setState({openTooltip: false})
-                                    setTimeout(() => {
-                                        document.activeElement.blur();
-                                    }, 0);
-                                }}>
-                            {this.props.imageStack.seriesDescriptions.keys().map((seriesDescription) => (
-                                <MenuItem key={seriesDescription} value={seriesDescription}>
-                                    {seriesDescription}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
-                </Tooltip>
-            </div>
-        )
-    }
-
-    const renderIntegerBooleanControl = (): ReactElement => {
-        return(
-            <Stack direction={"row"} sx={{marginBottom: 1}}
+    return (
+        <Stack direction={"row"} sx={{marginBottom: 1}}
                    justifyContent={"flex-start"}
                    alignItems={"center"}
                    spacing={1}
                    divider={<Divider orientation="vertical" flexItem/>}>
-                {renderSeriesSelection()}
-                <Tooltip title={"Enable by pressing Control key"}>
-                    <FormGroup sx={{minWidth: 160}}>
-                        <FormControlLabel control={<Switch checked={correctionModeEnabled}
-                                                           value={correctionModeEnabled}
-                                                           onChange={setCorrectionMode}/>}
-                                          label="Deletion mode"/>
-                    </FormGroup>
-                </Tooltip>
-                <Button onClick={handleResetClick} sx={{minWidth: 80}} color="primary" variant="outlined"
-                        startIcon={<RestartAltIcon/>}>
-                    Reset
-                </Button>
-            </Stack>
-        )
-    }
+            <Tooltip title={"Select series by series description"} followCursor={true} disableTouchListener={true}
+                    disableFocusListener={true} disableInteractive={true} open={openTooltip}>
+                <FormControl sx={{width: 250}} size={"small"}>
+                    <Select value={activeSeries}
+                            onOpen={() => setOpenTooltip(true)}
+                            onChange={event => setActiveImageID(props.imageStack.seriesDescriptions.get(event.target.value)[0])}
+                            onClose={() => {
+                                setOpenTooltip(false)
+                                setTimeout(() => {
+                                    document.activeElement.blur();
+                                }, 0);
+                            }}>
+                        {props.imageStack.seriesDescriptions.keys().map((seriesDescription: string) => (
+                            <MenuItem key={seriesDescription} value={seriesDescription}>
+                                {seriesDescription}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+            </Tooltip>
 
-    const renderSegmentationControl = (): ReactElement => {
-        return (
-            <Stack direction={"row"} sx={{marginBottom: 1}}
-                   justifyContent={"flex-start"}
-                   alignItems={"center"}
-                   spacing={1}
-                   divider={<Divider orientation="vertical" flexItem/>}>
-                {renderSeriesSelection()}
-
-                <Tooltip title={"Enable by pressing Control key"}>
-                    <FormGroup sx={{minWidth: 160}}>
-                        <FormControlLabel control={<Switch checked={correctionModeEnabled}
-                                                           value={correctionModeEnabled}
-                                                           onChange={setCorrectionMode}/>}
-                                          label="Correction mode"/>
-                    </FormGroup>
-                </Tooltip>
-                <Button sx={{minWidth: 80}} onClick={handleUndoClick} color="primary" variant="outlined"
-                        startIcon={<UndoIcon/>}>
-                    Undo
-                </Button>
-                <Button sx={{minWidth: 80}} onClick={handleRedoClick} color="primary" variant="outlined"
-                        startIcon={<RedoIcon/>}>
-                    Redo
-                </Button>
-                <Button sx={{minWidth: 80}} onClick={handleResetClick} color="primary" variant="outlined"
-                        startIcon={<RestartAltIcon/>}>
-                    Reset
-                </Button>
+            <Tooltip title={"Enable by pressing Control key"}>
+                <FormGroup sx={{minWidth: 100}}>
+                    <FormControlLabel control={<Switch checked={correctionMode}
+                                                        value={correctionMode}
+                                                        onChange={() => {
+                                                            if (correctionMode) {
+                                                                setCorrectionMode(false)
+                                                            } else {
+                                                                setCorrectionMode(true)
+                                                            }
+                                                        }}/>}
+                                        label={modeLabel}/>
+                </FormGroup>
+            </Tooltip>
+            <Button sx={{minWidth: 80}} onClick={() => setUndo(true)} color="primary" variant="outlined"
+                    startIcon={<UndoIcon/>}>
+                Undo
+            </Button>
+            <Button sx={{minWidth: 80}} onClick={() => setRedo(true)} color="primary" variant="outlined"
+                    startIcon={<RedoIcon/>}>
+                Redo
+            </Button>
+            <Button sx={{minWidth: 80}} onClick={() => setReset(true)} color="primary" variant="outlined"
+                    startIcon={<RestartAltIcon/>}>
+                Reset
+            </Button>
+            {activeVariable !== null && activeVariable.type === VariableType.segmentation ?
                 <Box sx={{minWidth: 250, paddingLeft: 1}}>
                     <Stack direction={"row"} alignItems={"center"} justifyContent={"flex-start"}>
                         <Slider aria-label="segmentation-transparency" track={false}
                                 value={segmentationTransparency} max={100}
-                                onChange={event => handleSegmentationTransparencySlider(event)}/>
+                                onChange={event => setSegmentationTransparency(event.target.value)}
+                                />
                         <Typography sx={{marginLeft: 2.5}} id="segmentation-transparency-slider">
                             Segmentation transparency
                         </Typography>
                     </Stack>
                 </Box>
-            </Stack>
-        )
-    }
-
-    if (activeVariable.type === VariableType.segmentation) {
-        renderSegmentationControl()
-    } else if (activeVariable.type !== VariableType.boolean && activeVariable.type !== VariableType.integer) {
-        renderIntegerBooleanControl()
-    } else {
-        return (
-            <Box sx={{marginBottom: 1}} justifyContent={"flex-start"} alignItems={"center"}>
-                {renderSeriesSelection()}
-            </Box>
-        )
-    }
+                :
+                <div></div>
+            }
+        </Stack>
+    )
 }

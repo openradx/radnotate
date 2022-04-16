@@ -1,21 +1,19 @@
 import { ReactElement, useEffect, useRef, useState } from "react";
 import { Settings } from "./Settings";
 import { Viewport } from "./Viewport";
-
-import cornerstone, {loadImage} from "cornerstone-core";
-import cornerstoneMath from "cornerstone-math";
-import cornerstoneTools from "cornerstone-tools";
-import { AnnotationToolData, RadnotateState, SegmentationToolData, ToolState, useRadnotateStore } from "../..";
+import {loadImage} from "cornerstone-core";
+import { AnnotationToolData, ImageStack, RadnotateState, SegmentationToolData, ToolState, useRadnotateStore } from "../..";
 import Variable, { VariableType } from "../../Form/variable";
 import create from "zustand";
 import { Alert, Snackbar } from "@mui/material";
 import { TSMap } from "typescript-map";
 import useStateRef from "react-usestateref";
 import { Patient } from "../../Form/DicomDropzone/dicomObject";
+import produce, {applyPatches} from "immer"
 
-cornerstoneTools.external.cornerstone = cornerstone;
-cornerstoneTools.external.Hammer = Hammer;
-cornerstoneTools.external.cornerstoneMath = cornerstoneMath;
+// version 6
+import {enablePatches} from "immer"
+enablePatches()
 
 type ImageProps = {
     setActiveAnnotations: Function,
@@ -26,8 +24,16 @@ export type ImageState = {
     setUndo: (undo: boolean) => void,
     redo: boolean,
     setRedo: (redo: boolean) => void,
+    reset: boolean,
+    setReset: (reset: boolean) => void, 
+    segmentationTransparency: number,
+    setSegmentationTransparency: (segmentationTransparency: number) => void,
     correctionMode: boolean,
     setCorrectionMode: (correctionMode: boolean) => void,
+    activeSeries: string,
+    setActiveSeries: (activeSeries: string) => void,
+    activeImageID: string,
+    setActiveImageID: (activeImageID: string) => void,
     toolStates: ToolState[],
     setToolStates: (toolStates: ToolState[]) => void,
 }
@@ -37,11 +43,20 @@ export const useImageStore = create((set: Function): ImageState => ({
     setUndo: (undo: boolean): void => set(() => ({undo: undo})),
     redo: false,
     setRedo: (redo: boolean): void => set(() => ({redo: redo})),
+    reset: false,
+    setReset: (reset: boolean) => set(() => ({reset: reset})),
+    segmentationTransparency: 30,
+    setSegmentationTransparency: (segmentationTransparency: number) => set(() => ({segmentationTransparency: segmentationTransparency})),
     correctionMode: false,
     setCorrectionMode: (correctionMode: boolean): void => set(() => ({correctionMode: correctionMode})),
+    activeSeries: "",
+    setActiveSeries: (activeSeries: string) => set(() => ({activeSeries: activeSeries})),
+    activeImageID: "",
+    setActiveImageID: (activeImageID: string) => set(() => ({activeImageID: activeImageID})),
     toolStates: [],
     setToolStates: (toolStates: ToolState[]): void => set(() => ({toolStates: toolStates})),
 }))
+
 
 const Image = (props: ImageProps): ReactElement => {
     const activePatient: Patient = useRadnotateStore((state: RadnotateState) => state.activePatient)
@@ -51,12 +66,50 @@ const Image = (props: ImageProps): ReactElement => {
 
     const setUndo = useImageStore((state: ImageState) => state.setUndo)
     const setRedo = useImageStore((state: ImageState) => state.setRedo)
+    const setReset = useImageStore((state: ImageState) => state.setRedo)
     const setCorrectionMode = useImageStore((state: ImageState) => state.setCorrectionMode)
     const toolStates = useImageStore((state: ImageState) => state.toolStates)
+
+    const _updateImageIDs = (activePatient: Patient): ImageStack => {
+        let imageIDs: string[] = []
+        const instanceNumbers: Map<string, number> = new Map<string, number>()
+        const seriesDescriptions: TSMap<string, Array<string>> = new TSMap<string, Array<string>>()
+        if (activePatient === null) {
+            return {
+                imageIDs: imageIDs,
+                instanceNumbers: instanceNumbers,
+                seriesDescriptions: seriesDescriptions,
+            }
+        } else {
+            activePatient.studies.forEach((study) => {
+                study.series.forEach((series) => {
+                    const imageIdsTemp = new Array<string>(series.images.length)
+                    series.images.forEach((image) => {
+                        imageIdsTemp[image.instanceNumber - 1] = image.imageID
+                        instanceNumbers.set(image.imageID, image.instanceNumber);
+                    })
+                    // ToDo If multiple studies within one patient, with same name and same series number exist, this approach will fail
+                    const seriesDescription = series.seriesDescription + " " + series.seriesNumber // + "/" + study.studyID  ???
+                    seriesDescriptions.set(seriesDescription, imageIdsTemp)
+                    imageIDs = [...imageIDs, ...imageIdsTemp]
+                })
+            })
+            return {
+                imageIDs: imageIDs,
+                instanceNumbers: instanceNumbers,
+                seriesDescriptions: seriesDescriptions
+            }
+        }
+    }
+    const [imageStack, setImageStack] = useState(() => {
+        return _updateImageIDs(activePatient)
+    }) 
+    const setActiveSeries = useImageStore((state: ImageState) => state.setActiveSeries)
 
     const [snackbarOpen, setSnackbarOpen] = useState(false)
     const [snackbarText, setSnackbarText] = useState("")
     const [, setActiveAnnotations, activeAnnotationsRef] = useStateRef<TSMap<string, string>[]>([])
+
 
     useEffect(() => {
         document.addEventListener("keydown", handleKeyPress, false)
@@ -68,6 +121,23 @@ const Image = (props: ImageProps): ReactElement => {
     }, [])
 
     useEffect(() => {
+        const imageStack = _updateImageIDs(activePatient)
+        setImageStack(imageStack)
+    }, [activePatient])
+
+    useEffect(() => {
+        let currentSeriesDescription: string = ""
+        imageStack.seriesDescriptions.keys().forEach((seriesDescription: string) => {
+            imageStack.seriesDescriptions.get(seriesDescription).forEach((imageID: string) => {
+                if (imageID === imageStack.imageIDs[0]) {
+                    currentSeriesDescription = seriesDescription
+                }
+            })
+        })
+        setActiveSeries(currentSeriesDescription)
+    }, [imageStack])
+
+    useEffect(() => {
         activeVariableRef.current = activeVariable
         activePatientRef.current = activePatient
     }, [activeVariable, activePatient])
@@ -77,7 +147,6 @@ const Image = (props: ImageProps): ReactElement => {
         toolStates.forEach(async (toolState: ToolState) => {
           activeAnnotations.push(await _process(toolState))
         })
-        console.log(toolStates)
         setActiveAnnotations(activeAnnotations)
     }, [toolStates])
 
@@ -154,7 +223,7 @@ const Image = (props: ImageProps): ReactElement => {
         return roi
     }
 
-    //TODO Fix return type of cooridinates, it actually returns numbers not string, cast to string
+    //TODO Fix return type of coordinates, it actually returns numbers not string, cast to string
     const _processLength = (data: {handles: {start: {x: string, y: string}, end: {x: string, y: string}}, length: string}) => {
         const coordinates = data.handles
         const length = new TSMap<string, string>()
@@ -195,42 +264,42 @@ const Image = (props: ImageProps): ReactElement => {
         })
     }
 
-    const _updateIntegerOrIntegerVariable = (key: string) => {
-        if (activeVariableRef.current.type === VariableType.boolean) {
-            if (key === "Escape") {
+    const _processBoolean = (key: string) => {
+        if (key === "Delete") {
+            setSnackbarOpen(true)
+            setSnackbarText('"Delete" key was pressed. Cached value deleted.')
+            setActiveAnnotations([new TSMap<string, string>([["value", "delete"]])])
+        } else if (key === "0") {
+            setSnackbarOpen(true)
+            setSnackbarText('"0" key was pressed. Cached value deleted.')
+            setActiveAnnotations([new TSMap<string, string>([["boolean", "false"]])])
+        } else if (key === "1") {
+            setSnackbarOpen(true)
+            setSnackbarText('"1" key was pressed. Cached value deleted.')
+            setActiveAnnotations([new TSMap<string, string>([["boolean", "true"]])])
+        } else {
+            key = key.toLowerCase()
+            if (key === "f") {
                 setSnackbarOpen(true)
-                setSnackbarText('"Escape" key was pressed. Cached value deleted.')
-                setActiveAnnotations([new TSMap<string, string>([["value", "escape"]])])
-            } else if (key === "0") {
-                setSnackbarOpen(true)
-                setSnackbarText('"0" key was pressed. Cached value deleted.')
+                setSnackbarText('"f" key was pressed. Cached value deleted.')
                 setActiveAnnotations([new TSMap<string, string>([["boolean", "false"]])])
-            } else if (key === "1") {
+            } else if (key === "t") {
                 setSnackbarOpen(true)
-                setSnackbarText('"1" key was pressed. Cached value deleted.')
+                setSnackbarText('"t" key was pressed. Cached value deleted.')
                 setActiveAnnotations([new TSMap<string, string>([["boolean", "true"]])])
-            } else {
-                key = key.toLowerCase()
-                if (key === "f") {
-                    setSnackbarOpen(true)
-                    setSnackbarText('"f" key was pressed. Cached value deleted.')
-                    setActiveAnnotations([new TSMap<string, string>([["boolean", "false"]])])
-                } else if (key === "t") {
-                    setSnackbarOpen(true)
-                    setSnackbarText('"t" key was pressed. Cached value deleted.')
-                    setActiveAnnotations([new TSMap<string, string>([["boolean", "true"]])])
-                }
             }
-        } else if (activeVariableRef.current.type === VariableType.integer) {
-            if (key === "Escape") {
-                setSnackbarOpen(true)
-                setSnackbarText('"Escape" key was pressed. Cached value deleted.')
-                setActiveAnnotations([new TSMap<string, string>([["value", "escape"]])])
-            } else if ((!isNaN(Number(key)))) {
-                setSnackbarOpen(true)
-                setSnackbarText('"' + key + '" key was pressed. Cached value deleted.')
-                setActiveAnnotations([new TSMap<string, string>([["integer", key]])])
-            }
+        }
+    }
+
+    const _processInteger = (key: string) => {
+        if (key === "Delete") {
+            setSnackbarOpen(true)
+            setSnackbarText('"Delete" key was pressed. Cached value deleted.')
+            setActiveAnnotations([new TSMap<string, string>([["value", "delete"]])])
+        } else if ((!isNaN(Number(key)))) {
+            setSnackbarOpen(true)
+            setSnackbarText('"' + key + '" key was pressed. Cached value deleted.')
+            setActiveAnnotations([new TSMap<string, string>([["integer", key]])])
         }
     }
 
@@ -249,8 +318,12 @@ const Image = (props: ImageProps): ReactElement => {
                         setActiveAnnotations([])
                     }
                 })
-            } else {
-                _updateIntegerOrIntegerVariable(event.key)
+            } else if (activeVariableRef.current.type === VariableType.boolean) {
+                _processBoolean(event.key)
+            } else if (activeVariableRef.current.type === VariableType.integer) {
+                _processInteger(event.key)
+            } else if (event.key === "Delete") {
+                setReset(true)
             }
         } else if (event.type === "keyup") {
             if (event.key === "Control") {
@@ -261,8 +334,8 @@ const Image = (props: ImageProps): ReactElement => {
     
     return(
         <div>
-            {/* <Settings/> */}
-            <Viewport/>
+            <Settings imageStack={imageStack}/>
+            <Viewport imageStack={imageStack}/>
             <Snackbar open={snackbarOpen}
                 autoHideDuration={6000}
                 anchorOrigin={{vertical: "top", horizontal: "right"}}

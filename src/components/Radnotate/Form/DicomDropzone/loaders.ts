@@ -9,7 +9,8 @@ const patientDict = (dataSet: typeof DataSet): PatientType => ({
 const studyDict = (dataSet: typeof DataSet): StudyType => ({
     studyInstanceUID: dataSet.string('x0020000d'),
     studyDescription: dataSet.string('x00081030'),
-    studyDate: dataSet.string('x00080020')
+    studyDate: dataSet.string('x00080020'),
+    studyID: dataSet.string('x00200010')
 })
 
 const seriesDict = (dataSet: typeof DataSet): SeriesType => ({
