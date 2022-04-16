@@ -4,12 +4,11 @@ import Variable, {VariableToolType, VariableType} from "./Form/variable";
 import {ImageType, Patient, Patients, Series, Study} from "./Form/DicomDropzone/dicomObject";
 import {GridRowsProp,} from "@mui/x-data-grid";
 import {Box} from "@mui/material";
-import {TSMap} from "typescript-map"
 import {LicenseInfo} from "@mui/x-data-grid-pro";
 import {Settings} from "./Settings";
 import Annotation, { AnnotationState, useAnnotationStore } from "./Annotation";
 import create from "zustand";
-import { ImageState, StoreState, useImageStore, useToolStateStore } from "./Annotation/Image";
+import { ImageState, useImageStore } from "./Annotation/Image";
 
 LicenseInfo.setLicenseKey("07a54c751acde4192070a1600dac24bdT1JERVI6MCxFWFBJUlk9MTc5OTc3Njg5NjA4NCxLRVlWRVJTSU9OPTE=",);
 
