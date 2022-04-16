@@ -2,7 +2,7 @@ import { ReactElement, useEffect, useRef, useState } from "react";
 import { Settings } from "./Settings";
 import { Viewport } from "./Viewport";
 import {loadImage} from "cornerstone-core";
-import { AnnotationToolData, ImageStack, RadnotateState, SegmentationToolData, ToolState, useRadnotateStore } from "../..";
+import { AnnotationToolData, RadnotateState, SegmentationToolData, ToolState, useRadnotateStore } from "../..";
 import Variable, { VariableType } from "../../Form/variable";
 import create from "zustand";
 import { Alert, Snackbar } from "@mui/material";
@@ -15,6 +15,12 @@ import produce, {applyPatches} from "immer"
 import {enablePatches} from "immer"
 enablePatches()
 
+export type ImageStack = {
+    imageIDs: string[],
+    instanceNumbers: Map<string, number>,
+    seriesDescriptions: TSMap<string, Array<string>>,
+}
+
 type ImageProps = {
     setActiveAnnotations: Function,
 }
@@ -26,16 +32,20 @@ export type ImageState = {
     setRedo: (redo: boolean) => void,
     reset: boolean,
     setReset: (reset: boolean) => void, 
-    segmentationTransparency: number,
-    setSegmentationTransparency: (segmentationTransparency: number) => void,
     correctionMode: boolean,
     setCorrectionMode: (correctionMode: boolean) => void,
     activeSeries: string,
     setActiveSeries: (activeSeries: string) => void,
-    activeImageID: string,
-    setActiveImageID: (activeImageID: string) => void,
     toolStates: ToolState[],
     setToolStates: (toolStates: ToolState[]) => void,
+    segmentationTransparency: number,
+    setSegmentationTransparency: (segmentationTransparency: number) => void,
+    activeSeriesDescription: string,
+    setActiveSeriesDescription: (imageStack: ImageStack) => void,
+    activeImageID: string,
+    setActiveImageID: (activeImageID: string) => void,
+    imageStack: ImageStack,
+    setImageStack: (activePatient: Patient) => void,
 }
 
 export const useImageStore = create((set: Function): ImageState => ({
@@ -45,8 +55,6 @@ export const useImageStore = create((set: Function): ImageState => ({
     setRedo: (redo: boolean): void => set(() => ({redo: redo})),
     reset: false,
     setReset: (reset: boolean) => set(() => ({reset: reset})),
-    segmentationTransparency: 30,
-    setSegmentationTransparency: (segmentationTransparency: number) => set(() => ({segmentationTransparency: segmentationTransparency})),
     correctionMode: false,
     setCorrectionMode: (correctionMode: boolean): void => set(() => ({correctionMode: correctionMode})),
     activeSeries: "",
@@ -55,6 +63,63 @@ export const useImageStore = create((set: Function): ImageState => ({
     setActiveImageID: (activeImageID: string) => set(() => ({activeImageID: activeImageID})),
     toolStates: [],
     setToolStates: (toolStates: ToolState[]): void => set(() => ({toolStates: toolStates})),
+    segmentationTransparency: 50,
+    setSegmentationTransparency: (segmentationTransparency: number) => set(() => ({segmentationTransparency: segmentationTransparency})),
+    activeSeriesDescription: "",
+    setActiveSeriesDescription: (imageStack: ImageStack) => set(() => ({activeSeriesDescription: () => {
+        let activeSeriesDescription: string = ""
+            imageStack.seriesDescriptions.keys().forEach(seriesDescription => {
+                imageStack.seriesDescriptions.get(seriesDescription).forEach(imageID => {
+                    if (imageID === imageStack.imageIDs[0]) {
+                        activeSeriesDescription = seriesDescription
+                    }
+                })
+            })
+            return activeSeriesDescription
+    }})),
+    imageStack: {
+        imageIDs: [],
+        instanceNumbers: new Map<string, number>(),
+        seriesDescriptions: new TSMap<string, string[]>()
+    },
+    setImageStack: (activePatient: Patient) => set(() => ({imageStack: () => {
+        let imageIDs: string[] = []
+        const instanceNumbers: Map<string, number> = new Map<string, number>()
+        const seriesDescriptions: TSMap<string, Array<string>> = new TSMap<string, Array<string>>()
+        // if (activePatient === undefined) {
+        //     return {imageIds, instanceNumbers, seriesDescriptions}
+        // }
+        if (activePatient === null) {
+            return {
+                imageIDs: [],
+                instanceNumbers: new Map<string, number>(),
+                seriesDescriptions: new TSMap<string, string[]>()
+            }
+        } else {
+            activePatient.studies.forEach((study) => {
+                study.series.forEach((series) => {
+                    const imageIdsTemp = new Array<string>(series.images.length)
+                    series.images.forEach((image) => {
+                        imageIdsTemp[image.instanceNumber - 1] = image.imageID
+                        instanceNumbers.set(image.imageID, image.instanceNumber);
+                    })
+                    // ToDo If multiple studies within one patient, with same name and same series number exist, this approach will fail
+                    if (seriesDescriptions.has(series.seriesDescription)) {
+                        const seriesDescription = series.seriesDescription + " " + series.seriesNumber
+                        seriesDescriptions.set(seriesDescription, imageIdsTemp)
+                    } else {
+                        seriesDescriptions.set(series.seriesDescription, imageIdsTemp)
+                    }
+                    imageIDs = [...imageIDs, ...imageIdsTemp]
+                })
+            })
+            return {
+                imageIDs: imageIDs,
+                instanceNumbers: instanceNumbers,
+                seriesDescriptions: seriesDescriptions
+            }
+        }
+    }})),
 }))
 
 

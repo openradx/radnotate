@@ -4,7 +4,7 @@ import Variable, { VariableType } from "../../../Form/variable"
 import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
-import { useRadnotateStore, RadnotateState, ImageStack } from "../../..";
+import { useRadnotateStore, RadnotateState } from "../../..";
 import { Patient } from "../../../Form/DicomDropzone/dicomObject";
 import { ImageState, useImageStore } from "..";
 
@@ -13,21 +13,21 @@ type SettingsProps = {
     imageStack: ImageStack
 }
 
+// @ts-ignore
 export const Settings = (props: SettingsProps): ReactElement => {
     const activePatient: Patient = useRadnotateStore((state: RadnotateState) => state.activePatient)
     const activeVariable: Variable = useRadnotateStore((state: RadnotateState) => state.activeVariable)
-
-    const [openTooltip, setOpenTooltip] = useState(false)
-    const correctionMode = useImageStore((state: ImageState) => state.correctionMode)
+    
     const setUndo = useImageStore((state: ImageState) => state.setUndo)
     const setRedo = useImageStore((state: ImageState) => state.setRedo)
     const setReset = useImageStore((state: ImageState) => state.setReset)
     const segmentationTransparency = useImageStore((state: ImageState) => state.segmentationTransparency)
     const setSegmentationTransparency = useImageStore((state: ImageState) => state.setSegmentationTransparency)
+    const correctionMode = useImageStore((state: ImageState) => state.correctionMode) 
     const setCorrectionMode = useImageStore((state: ImageState) => state.setCorrectionMode)
-
-    const activeSeries = useImageStore((state: ImageState) => state.activeSeries)
     const setActiveImageID = useImageStore((state: ImageState) => state.setActiveImageID)
+    const [openTooltip, setOpenTooltip] = useState(false)
+    const activeSeries = useImageStore((state: ImageState) => state.activeSeries)
     const [modeLabel, setModeLabel] = useState(() => {
         if (activeVariable.type === VariableType.segmentation) {
             return "Correction mode"

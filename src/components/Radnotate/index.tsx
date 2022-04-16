@@ -43,12 +43,6 @@ type RadnotateProps = {
     colorMode: {toggleColorMode: Function}
 }
 
-export type ImageStack = {
-    imageIDs: string[],
-    instanceNumbers: Map<string, number>,
-    seriesDescriptions: TSMap<string, Array<string>>,
-}
-
 export type RadnotateState = {
     patients: Patients,
     setPatients: (patients: Patients) => void,

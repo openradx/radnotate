@@ -1,5 +1,5 @@
 import { ReactElement, useCallback, useEffect, useRef, useState } from "react";
-import { ImageStack, RadnotateState, ToolState, ToolType, useRadnotateStore } from "../../..";
+import { RadnotateState, ToolState, ToolType, useRadnotateStore } from "../../..";
 import Variable, { VariableType, VariableToolType } from "../../../Form/variable";
 
 
@@ -161,6 +161,7 @@ export const Viewport = (props: ViewportProps): ReactElement => {
                 _setToolStates(ToolType.segmentation)
             } else {
                 _setToolStates(ToolType.annotation)
+
             }
         })
     }, [activePatient])
