@@ -9,11 +9,7 @@ import { Alert, Snackbar } from "@mui/material";
 import { TSMap } from "typescript-map";
 import useStateRef from "react-usestateref";
 import { Patient } from "../../Form/DicomDropzone/dicomObject";
-import produce, {applyPatches} from "immer"
-
-// version 6
-import {enablePatches} from "immer"
-enablePatches()
+import { useToolStateStore, ToolStateStore } from "./Viewport/store";
 
 export type ImageStack = {
     imageIDs: string[],
@@ -36,8 +32,8 @@ export type ImageState = {
     setCorrectionMode: (correctionMode: boolean) => void,
     activeSeries: string,
     setActiveSeries: (activeSeries: string) => void,
-    toolStates: ToolState[],
-    setToolStates: (toolStates: ToolState[]) => void,
+    // toolStates: ToolState[],
+    // setToolStates: (toolStates: ToolState[]) => void,
     segmentationTransparency: number,
     setSegmentationTransparency: (segmentationTransparency: number) => void,
     activeSeriesDescription: string,
@@ -61,8 +57,8 @@ export const useImageStore = create((set: Function): ImageState => ({
     setActiveSeries: (activeSeries: string) => set(() => ({activeSeries: activeSeries})),
     activeImageID: "",
     setActiveImageID: (activeImageID: string) => set(() => ({activeImageID: activeImageID})),
-    toolStates: [],
-    setToolStates: (toolStates: ToolState[]): void => set(() => ({toolStates: toolStates})),
+    // toolStates: [],
+    // setToolStates: (toolStates: ToolState[]): void => set(() => ({toolStates: toolStates})),
     segmentationTransparency: 50,
     setSegmentationTransparency: (segmentationTransparency: number) => set(() => ({segmentationTransparency: segmentationTransparency})),
     activeSeriesDescription: "",
@@ -122,7 +118,6 @@ export const useImageStore = create((set: Function): ImageState => ({
     }})),
 }))
 
-
 const Image = (props: ImageProps): ReactElement => {
     const activePatient: Patient = useRadnotateStore((state: RadnotateState) => state.activePatient)
     const activePatientRef = useRef(activePatient)
@@ -133,7 +128,7 @@ const Image = (props: ImageProps): ReactElement => {
     const setRedo = useImageStore((state: ImageState) => state.setRedo)
     const setReset = useImageStore((state: ImageState) => state.setRedo)
     const setCorrectionMode = useImageStore((state: ImageState) => state.setCorrectionMode)
-    const toolStates = useImageStore((state: ImageState) => state.toolStates)
+    const toolStates = useToolStateStore((state: ToolStateStore) => state.toolStates)
 
     const _updateImageIDs = (activePatient: Patient): ImageStack => {
         let imageIDs: string[] = []

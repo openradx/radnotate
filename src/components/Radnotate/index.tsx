@@ -8,7 +8,7 @@ import {LicenseInfo} from "@mui/x-data-grid-pro";
 import {Settings} from "./Settings";
 import Annotation, { AnnotationState, useAnnotationStore } from "./Annotation";
 import create from "zustand";
-import { ImageState, useImageStore } from "./Annotation/Image";
+import { useToolStateStore, ToolStateStore } from "./Annotation/Image/Viewport/store";
 
 LicenseInfo.setLicenseKey("07a54c751acde4192070a1600dac24bdT1JERVI6MCxFWFBJUlk9MTc5OTc3Njg5NjA4NCxLRVlWRVJTSU9OPTE=",);
 
@@ -87,7 +87,8 @@ const Radnotate = (props: RadnotateProps): ReactElement => {
     const setPreviousPatientIndex = useAnnotationStore((state: AnnotationState) => state.setPreviousPatientIndex)
     const setPreviousVariableIndex = useAnnotationStore((state: AnnotationState) => state.setPreviousVariableIndex)
 
-    const setToolStates = useImageStore((state: ImageState) => state.setToolStates)
+    const toolStates = useToolStateStore((state: ToolStateStore) => state.toolStates)
+    const setToolStates = useToolStateStore((state: ToolStateStore) => state.setToolStates)
 
     const [annotationMode, setAnnotationMode] = useState<boolean>(false)
     const [, setSopUidToImageID] = useState<Map<string, string>>()
@@ -182,9 +183,9 @@ const Radnotate = (props: RadnotateProps): ReactElement => {
         setActiveVariable(variables[startVariableIndex])
 
         const sopUidToImageID = _initSopUidToImageID(patients)
-        const toolStates = _initToolStates(rows, sopUidToImageID)
+        const activeToolStates = _initToolStates(rows, sopUidToImageID)
         setSopUidToImageID(sopUidToImageID)
-        setToolStates(toolStates)
+        setToolStates(toolStates, activeToolStates)
         setAnnotationMode(true)
     }
 
