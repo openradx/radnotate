@@ -10,9 +10,9 @@ import cornerstoneWADOImageLoader from "cornerstone-wado-image-loader";
 import useStateRef from "react-usestateref";
 import { Patient } from "../../../Form/DicomDropzone/dicomObject";
 import { ImageStack, ImageState, useImageStore} from "..";
-import { applyPatches } from "immer";
-import { useToolStateStore, ToolStateStore, changes} from "./store";
-
+import { useToolStateStore, ToolStateStore, undoPatches, redoPatches } from "./store";
+import deepClone from 'deep-clone';
+import {applyPatches} from "immer";
 
 
 cornerstoneTools.external.cornerstone = cornerstone;
@@ -156,6 +156,8 @@ export const Viewport = (props: ViewportProps): ReactElement => {
     }, [props.imageStack])
 
     useEffect(() => {
+        undoPatches.length = 0
+        redoPatches.length = 0
         activePatientRef.current = activePatient
         awaitTimeout(500).then(() => {
             _initSegmentations(activePatient, imageStackRef.current.imageIDs, segmentationToolStatesRef.current)
@@ -172,6 +174,8 @@ export const Viewport = (props: ViewportProps): ReactElement => {
 
     useEffect(() => {
         if (activeVariable !== null) {
+            undoPatches.length = 0
+            redoPatches.length = 0
             tools.slice(0, 6).forEach((tool: {name: string, mode: string}) => {
                 if (tool.name === activeVariable.tool) {
                     tool.mode = "Active"
@@ -226,11 +230,10 @@ export const Viewport = (props: ViewportProps): ReactElement => {
                 setters.undo(viewport);
                 
             } else if (activeVariable.type !== VariableType.boolean && activeVariable.type !== VariableType.integer) {
-                const undo = changes.pop()
+                const undo = undoPatches.pop()
                 if (undo) {
-                    console.log("Old state", toolStateStore.toolStates)
                     const newState = applyPatches(toolStateStore, [undo])
-                    console.log("New state", newState.toolStates)
+                    setToolStates(toolStateStore, newState.toolStates, undo)
                 }
             }
             setUndo(false)
@@ -244,8 +247,14 @@ export const Viewport = (props: ViewportProps): ReactElement => {
                     setters,
                 } = cornerstoneTools.getModule("segmentation");
                 setters.redo(viewport);
-                setRedo(false)
+            } else if (activeVariable.type !== VariableType.boolean && activeVariable.type !== VariableType.integer) {
+                const redo = redoPatches.pop()
+                if (redo) {
+                    const newState = applyPatches(toolStateStore, [redo])
+                    setToolStates(toolStateStore, newState.toolStates)
+                }
             }
+            setRedo(false)
         }
     }, [redo])
 
@@ -285,25 +294,18 @@ export const Viewport = (props: ViewportProps): ReactElement => {
     }, [reset])
 
     useEffect(() => {
-        changes.forEach(change => {
-            console.log(change.value.data.data.length)
+        _deleteAnnotations(activeVariable.type, props.imageStack.imageIDs)
+        toolStates.forEach((toolState: ToolState) => {
+            if (toolState.type === ToolType.annotation) {
+                // @ts-ignore
+                const {id, type, patientID, variableID, imageID, variableType, data} = deepClone(toolState)
+                toolStateManager.addImageIdToolState(imageID, data.tool, data.data)
+                existingAnnotationsCount.set(data.data.uuid, {
+                    patientID: patientID,
+                    variableID: variableID,
+                })
+            } 
         })
-        //console.log(changes)
-        // if (toolStates.length > 0) {
-        //     console.log(toolStates[0].data.data.length)
-        // }
-        // _deleteAnnotations(activeVariable.type, props.imageStack.imageIDs)
-        // toolStates.forEach((toolState: ToolState) => {
-        //     if (toolState.type === ToolType.annotation) {
-        //         // @ts-ignore
-        //         const {type, patientID, variableID, imageID, variableType, data} = toolState
-        //         toolStateManager.addImageIdToolState(imageID, data.tool, data.data)
-        //         existingAnnotationsCount.set(data.data.uuid, {
-        //             patientID: patientID,
-        //             variableID: variableID,
-        //         })
-        //     } 
-        // })
 
         toolStatesRef.current = toolStates
     }, [toolStates])
@@ -405,7 +407,6 @@ export const Viewport = (props: ViewportProps): ReactElement => {
                     const pixelData = annotations[imageIndex].pixelData
                     if (pixelData.some(value => value !== 0)) {
                         const toolState: ToolState = {
-                            counter: 0,
                             type: ToolType.segmentation,
                             patientID: activePatient.patientID,
                             variableID: activeVariable.id,
@@ -433,7 +434,8 @@ export const Viewport = (props: ViewportProps): ReactElement => {
             if (keys.includes(imageId) && activeVariable.tool in state[imageId]) {
                 const annotations = state[imageId][activeVariable.tool].data
                 for (let annotationsCounter = 0; annotationsCounter < annotations.length; annotationsCounter++) {
-                    const data = annotations[annotationsCounter]
+                    const data = deepClone(annotations[annotationsCounter])
+                    data.active = false
                     const toolState: ToolState = {
                         type: ToolType.annotation,
                         patientID: activePatient.patientID,

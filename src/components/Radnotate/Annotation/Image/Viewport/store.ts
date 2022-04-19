@@ -1,7 +1,9 @@
-import { setAutoFreeze, produceWithPatches, enablePatches } from 'immer';
-import { useRef } from 'react';
+import { setAutoFreeze, produceWithPatches, enablePatches, Patch } from 'immer';
 import create from "zustand";
-import { ToolState } from '../../..';
+import { ToolState, ToolType } from '../../..';
+import deepClone from 'deep-clone';
+import * as _ from 'lodash';
+import { equal, processAnnotation } from '../utils';
 
 setAutoFreeze(false);
 enablePatches()
@@ -11,24 +13,41 @@ export interface ToolStateStore {
     setToolStates: (toolStates: ToolState[]) => void,
 }
 
+export const redoPatches: Patch[] = []
+export const undoPatches: Patch[] = []
 
-export const changes: any[] = []
-export const inverseChanges: any[] = []
-
-export const useToolStateStore = create((set: Function) => ({
+export const useToolStateStore = create((set: Function, get: Function) => ({
     toolStates: [],
-    setToolStates: (previousToolStateStore: ToolStateStore, activeToolStates: ToolState[]) => set(() => {
-            const [nextToolStateStore, patches, inversePatches] = produceWithPatches(
+    setToolStates: (previousToolStateStore: ToolStateStore, activeToolStates: ToolState[], appliedPatch: Patch) => set(() => {
+            const [nextToolStateStore, , inversePatches] = produceWithPatches(
                 previousToolStateStore,
                 (draft: ToolStateStore) => {
-                    activeToolStates.forEach((toolState: ToolState, index: number) => {
-                        draft.toolStates[index] = toolState   
-                    })
+                    if (activeToolStates.length) {
+                        activeToolStates.forEach((toolState: ToolState, index: number) => {
+                            if (toolState.type === ToolType.annotation) {
+                                const deepToolState = deepClone(toolState)
+                                const draftToolState = deepClone(get().toolStates[index])
+                                if (draftToolState === undefined || !equal(processAnnotation(draftToolState), processAnnotation(deepToolState))) {
+                                    draft.toolStates[index] = deepToolState
+                                }
+                            }
+                        })
+                    }
+                    if (appliedPatch !== undefined && appliedPatch.path[1] === "length") {
+                        draft.toolStates.pop()
+                    }
                 }  
-            ) 
-            changes.push(...patches)
-            inverseChanges.push(...inversePatches)
-            console.log("Changes", changes)
+            )
+            // Redo or undefined
+            if (appliedPatch === undefined) { 
+                // inversePatches.forEach(patch => {
+                //     console.log("Patch", patch.path)
+                // })
+                undoPatches.push(...inversePatches)
+            // Undo
+            } else {
+                redoPatches.push(...inversePatches)
+            }
             return nextToolStateStore
         }
     ),
