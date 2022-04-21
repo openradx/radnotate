@@ -1,4 +1,4 @@
-import { setAutoFreeze, produceWithPatches, enablePatches, Patch } from 'immer';
+import produce, { setAutoFreeze, produceWithPatches, enablePatches, Patch, enableMapSet } from 'immer';
 import create from "zustand";
 import { ToolState, ToolType } from '../../..';
 import deepClone from 'deep-clone';
@@ -7,11 +7,15 @@ import { equal, processAnnotation } from '../utils';
 
 setAutoFreeze(false);
 enablePatches()
+enableMapSet()
 
 export interface ToolStateStore {
     toolStates: ToolState[],
     setToolStates: (toolStates: ToolState[]) => void,
-}
+    previousAnnotations: Map<string, Object>,
+    addPreviousAnnotation: (string: uuid, variableID: number, patientID: number) => void,
+    clearPreviousAnnotations: () => void,
+ }
 
 export const redoPatches: Patch[] = []
 export const undoPatches: Patch[] = []
@@ -51,5 +55,8 @@ export const useToolStateStore = create((set: Function, get: Function) => ({
             return nextToolStateStore
         }
     ),
-  })
+    previousAnnotations: new Map<string, Object>(),
+    addPreviousAnnotation: (uuid: string, variableID: number, patientID: number) => set((toolStateStore: ToolStateStore) => ({previousAnnotations: toolStateStore.previousAnnotations.set(uuid, {variableID: variableID, patientID: patientID})})),
+    clearPreviousAnnotations: () => set(() => ({previousAnnotations: new Map<string, Object>()}))
+})
 )
