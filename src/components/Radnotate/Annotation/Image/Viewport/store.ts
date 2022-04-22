@@ -4,59 +4,113 @@ import { ToolState, ToolType } from '../../..';
 import deepClone from 'deep-clone';
 import * as _ from 'lodash';
 import { equal, processAnnotation } from '../utils';
+import { convertToFalseColorImage } from 'cornerstone-core';
 
 setAutoFreeze(false);
 enablePatches()
 enableMapSet()
 
+interface CellID {
+    patientID: string, 
+    variableID: number
+}
+
 export interface ToolStateStore {
+    undoPatches: Patch[],
+    redoPatches: Patch[],
     toolStates: ToolState[],
     setToolStates: (toolStates: ToolState[]) => void,
+    clearToolStates: () => void,
     previousAnnotations: Map<string, Object>,
-    addPreviousAnnotation: (string: uuid, variableID: number, patientID: number) => void,
+    addPreviousAnnotation: (uuid: string, variableID: number, patientID: number) => void,
     clearPreviousAnnotations: () => void,
- }
-
-export const redoPatches: Patch[] = []
-export const undoPatches: Patch[] = []
+    inactiveToolStates: Map<CellID, ToolState[]>,
+    addInactiveToolStates: (patientID: string, variableID: number, toolStates: ToolState[]) => void,
+}
 
 export const useToolStateStore = create((set: Function, get: Function) => ({
+    undoPatches: [],
+    redoPatches: [],
     toolStates: [],
-    setToolStates: (previousToolStateStore: ToolStateStore, activeToolStates: ToolState[], appliedPatch: Patch) => set(() => {
-            const [nextToolStateStore, , inversePatches] = produceWithPatches(
-                previousToolStateStore,
-                (draft: ToolStateStore) => {
-                    if (activeToolStates.length) {
-                        activeToolStates.forEach((toolState: ToolState, index: number) => {
+    setToolStates: (activeToolStates: ToolState[], appliedPatch: Patch) => {
+            const [nextToolStates, , inversePatches] = produceWithPatches(
+                get().toolStates,
+                (draft: ToolState[]) => {
+                    if (activeToolStates.length >= get().toolStates.length) {
+                        const append: ToolState[] = []
+                        activeToolStates.forEach((toolState: ToolState) => {
                             if (toolState.type === ToolType.annotation) {
-                                const deepToolState = deepClone(toolState)
-                                const draftToolState = deepClone(get().toolStates[index])
-                                if (draftToolState === undefined || !equal(processAnnotation(draftToolState), processAnnotation(deepToolState))) {
-                                    draft.toolStates[index] = deepToolState
+                                toolState = deepClone(toolState)
+                                const uuid = toolState.data.data.uuid
+                                const index = get().toolStates.findIndex((toolState: ToolState) => toolState.data.data.uuid === uuid)
+                                if (index >= 0) {
+                                    const draftToolState = deepClone(get().toolStates[index])
+                                    if (draftToolState === undefined || !equal(processAnnotation(draftToolState), processAnnotation(toolState))) {
+                                        draft[index] = toolState
+                                    }
+                                } else {
+                                    append.push(toolState)
                                 }
                             }
                         })
-                    }
-                    if (appliedPatch !== undefined && appliedPatch.path[1] === "length") {
-                        draft.toolStates.pop()
+                        if (append.length) {
+                            draft.push(...append)
+                        }
+                    } 
+                    else if (get().toolStates.length) {
+                        let deleteCount = 0
+                        get().toolStates.forEach((toolState: ToolState, deleteIndex: number) => {
+                            const uuid = toolState.data.data.uuid
+                            const index = activeToolStates.findIndex((toolState: ToolState) => toolState.data.data.uuid === uuid)
+                            if (index < 0) {
+                                draft.splice(deleteIndex - deleteCount, 1)
+                                deleteCount++
+                            }
+                        })
                     }
                 }  
             )
-            // Redo or undefined
-            if (appliedPatch === undefined) { 
-                // inversePatches.forEach(patch => {
-                //     console.log("Patch", patch.path)
-                // })
-                undoPatches.push(...inversePatches)
+            // Redo or manual changes
+            if (appliedPatch === undefined) {
+                const undoPatches = get().undoPatches
+                if(get().toolStates.length > nextToolStates.length) {
+                    const redoPatches = get().redoPatches
+                    redoPatches.push(...inversePatches)
+                    set({redoPatches: redoPatches})
+                } else {
+                    undoPatches.push(...inversePatches)
+                }
+                set({undoPatches: undoPatches})
             // Undo
             } else {
+                const redoPatches = get().redoPatches
                 redoPatches.push(...inversePatches)
+                set({redoPatches: redoPatches})
             }
-            return nextToolStateStore
+            set({toolStates: nextToolStates})
+    },
+    clearToolStates: () => set(() => ({
+        undoPatches: [],
+        redoPatches: [],
+        toolStates: [],
+    })),
+    previousAnnotations: new Map<CellID, Object>(),
+    addPreviousAnnotation: (uuid: string, variableID: number, patientID: number) => set((toolStateStore: ToolStateStore) => ({
+        previousAnnotations: toolStateStore.previousAnnotations.set(uuid, {variableID: variableID, patientID: patientID})
+    })),
+    clearPreviousAnnotations: () => set(() => ({previousAnnotations: new Map<string, Object>()})),
+    inactiveToolStates: new Map<CellID, ToolState[]>(),
+    addInactiveToolStates: (patientID: string, variableID: number, toolStates: ToolState[]) => (toolStateStore: ToolStateStore) => {
+        const cellID: CellID = {
+            patientID: patientID,
+            variableID: variableID
         }
-    ),
-    previousAnnotations: new Map<string, Object>(),
-    addPreviousAnnotation: (uuid: string, variableID: number, patientID: number) => set((toolStateStore: ToolStateStore) => ({previousAnnotations: toolStateStore.previousAnnotations.set(uuid, {variableID: variableID, patientID: patientID})})),
-    clearPreviousAnnotations: () => set(() => ({previousAnnotations: new Map<string, Object>()}))
+        const previous = toolStateStore.inactiveToolStates.get(cellID)
+        if (previous === undefined) {
+            set({inactiveAnnotations: toolStateStore.inactiveToolStates.set(cellID, toolStates)})
+        } else {
+            set({inactiveAnnotations: toolStateStore.inactiveToolStates.set(cellID, [ ...previous,...toolStates])})
+        }
+    },
 })
 )

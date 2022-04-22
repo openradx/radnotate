@@ -10,8 +10,8 @@ import {ReactElement, useMemo, useState} from "react";
 import {getTheme} from "./components/Radnotate/styles";
 
 const App = (): ReactElement => {
-    const prefersLightMode = useMediaQuery('(prefers-color-scheme: light)');
-    const [mode, setMode] = useState<PaletteMode>(prefersLightMode ? "light" : "dark");
+    const prefersLightMode = useMediaQuery('(prefers-color-scheme: dark)');
+    const [mode, setMode] = useState<PaletteMode>(prefersLightMode ? "dark" : "light");
 
     const theme = useMemo(() => createTheme(getTheme(mode)), [mode]);
 
