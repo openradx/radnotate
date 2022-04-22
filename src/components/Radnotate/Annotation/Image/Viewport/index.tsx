@@ -262,26 +262,35 @@ export const Viewport = (props: ViewportProps): ReactElement => {
 
     useEffect(() => {
         if (reset) {
-            if (activeVariable.variableType === VariableType.segmentation) {
-                const stackStartImageId = props.imageStack.imageIDs[0]
-                const segmentationIndex = activeVariable.segmentationIndex
-                _deleteSegmentations(stackStartImageId, segmentationIndex)
-            } else {
-                _deleteAnnotations(activeVariable.variableType, props.imageStack.imageIDs)
+            if (activeVariable.type === VariableType.segmentation) {
+                const {state, setters} = cornerstoneTools.getModule("segmentation");
+                const imageIDState = state.series[imageStackRef.current.imageIDs[0]]
+                if (imageIDState !== undefined && imageIDState.labelmaps3D !== undefined) {
+                    // @ts-ignore
+                    const labelmaps3D = imageIDState.labelmaps3D[activeVariable.segmentationIndex]
+                    while(labelmaps3D.undo.length) {
+                        setters.undo(viewport);
+                    }
+                }
+                setReset(false)
+            } else if (activeVariable.type !== VariableType.boolean && activeVariable.type !== VariableType.integer) {
+                setToolStates([])
+                console.log("Reset")
             }
-            setReset(false)
         }
     }, [reset])
 
     useEffect(() => {
-        if (toolStates.length > 0 || undo) {
+        if (toolStates.length > 0 || undo || reset) {
             setUndo(false)
+            setReset(false)
             _deleteAnnotations(activePatient, activeVariable, imageStackRef.current.imageIDs)
             toolStates.forEach((toolState: ToolState) => {
                 if (toolState.type === ToolType.annotation) {
+                    const {type, patientID, variableID, imageID, variableType, data} = deepClone(toolState)
                     // @ts-ignore
-                    const {id, type, patientID, variableID, imageID, variableType, data} = deepClone(toolState)
                     toolStateManager.addImageIdToolState(imageID, data.tool, data.data)
+                    // @ts-ignore
                     addPreviousAnnotation(data.data.uuid, variableID, patientID)
                 } 
             })
