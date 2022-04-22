@@ -210,6 +210,7 @@ export const Viewport = (props: ViewportProps): ReactElement => {
             if (activeVariable.type === VariableType.segmentation) {
                 const {setters} = cornerstoneTools.getModule("segmentation");
                 setters.undo(viewport);
+                _setToolStates()
                 setUndo(false)
             } else if (activeVariable.type !== VariableType.boolean && activeVariable.type !== VariableType.integer) {
                 const undo = undoPatches.pop()
@@ -226,6 +227,7 @@ export const Viewport = (props: ViewportProps): ReactElement => {
             if (activeVariable.type === VariableType.segmentation) {
                 const {setters} = cornerstoneTools.getModule("segmentation");
                 setters.redo(viewport);
+                _setToolStates()
             } else if (activeVariable.type !== VariableType.boolean && activeVariable.type !== VariableType.integer) {
                 const redo = redoPatches.pop()
                 if (redo) {
@@ -272,15 +274,16 @@ export const Viewport = (props: ViewportProps): ReactElement => {
                         setters.undo(viewport);
                     }
                 }
+                setToolStates([])
                 setReset(false)
             } else if (activeVariable.type !== VariableType.boolean && activeVariable.type !== VariableType.integer) {
                 setToolStates([])
-                console.log("Reset")
             }
         }
     }, [reset])
 
     useEffect(() => {
+        console.log(toolStates)
         if (toolStates.length > 0 || undo || reset) {
             setUndo(false)
             setReset(false)
@@ -446,12 +449,6 @@ export const Viewport = (props: ViewportProps): ReactElement => {
         return toolStates
     }
 
-    const _deleteSegmentations = (stackStartImageId: string, segmentationIndex: number) => {
-        const {state} = cornerstoneTools.getModule("segmentation")
-        state.series[stackStartImageId].labelmaps3D[segmentationIndex].labelmaps2D = []
-        cornerstone.updateImage(viewportRef.current)
-    }
-
     const _deleteAnnotations = (activePatient: Patient, activeVariable: Variable, imageIDs: string[] | undefined) => {
         const cornerstoneToolState = toolStateManager.saveToolState()
         const deleteAnnotations = (imageID, tool) => {
@@ -468,11 +465,6 @@ export const Viewport = (props: ViewportProps): ReactElement => {
                 removeIndices.forEach((index, counter) => {
                     annotations.splice(index-counter, 1)
                 })
-                // let annotationsCount = annotations.length
-                // while (annotationsCount > 0) {
-                //     annotations.pop()
-                //     annotationsCount = annotations.length
-                // }
             }
         }
 

@@ -51,6 +51,9 @@ export const useToolStateStore = create((set: Function, get: Function) => ({
                                 } else {
                                     append.push(toolState)
                                 }
+                            } else {
+                                draft.length = 0
+                                draft.push(...activeToolStates)
                             }
                         })
                         if (append.length) {
@@ -60,13 +63,20 @@ export const useToolStateStore = create((set: Function, get: Function) => ({
                     else if (get().toolStates.length) {
                         let deleteCount = 0
                         get().toolStates.forEach((toolState: ToolState, deleteIndex: number) => {
-                            const uuid = toolState.data.data.uuid
-                            const index = activeToolStates.findIndex((toolState: ToolState) => toolState.data.data.uuid === uuid)
-                            if (index < 0) {
-                                draft.splice(deleteIndex - deleteCount, 1)
-                                deleteCount++
+                            if (toolState.type === ToolType.annotation) {
+                                const uuid = toolState.data.data.uuid
+                                const index = activeToolStates.findIndex((toolState: ToolState) => toolState.data.data.uuid === uuid)
+                                if (index < 0) {
+                                    draft.splice(deleteIndex - deleteCount, 1)
+                                    deleteCount++
+                                }
+                            } else {
+                                draft.length = 0
+                                draft.push(...activeToolStates)
                             }
                         })
+                    } else {
+                        console.log("Awa")
                     }
                 }  
             )

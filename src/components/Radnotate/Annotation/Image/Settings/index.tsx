@@ -1,12 +1,12 @@
 import { Stack, Divider, Tooltip, FormGroup, FormControlLabel, Switch, Button, Box, Slider, Typography, FormControl, MenuItem, Select, SelectChangeEvent } from "@mui/material"
-import { ReactElement, useEffect, useState } from "react"
+import { ReactElement, useEffect, useRef, useState } from "react"
 import Variable, { VariableType } from "../../../Form/variable"
 import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { useRadnotateStore, RadnotateState } from "../../..";
 import { Patient } from "../../../Form/DicomDropzone/dicomObject";
-import { ImageState, useImageStore } from "..";
+import { ImageStack, ImageState, useImageStore } from "..";
 
 
 type SettingsProps = {
@@ -15,7 +15,6 @@ type SettingsProps = {
 
 // @ts-ignore
 export const Settings = (props: SettingsProps): ReactElement => {
-    const activePatient: Patient = useRadnotateStore((state: RadnotateState) => state.activePatient)
     const activeVariable: Variable = useRadnotateStore((state: RadnotateState) => state.activeVariable)
     
     const setUndo = useImageStore((state: ImageState) => state.setUndo)
@@ -43,6 +42,31 @@ export const Settings = (props: SettingsProps): ReactElement => {
             setModeLabel("Deletion mode")
         }
     }, [activeVariable])
+
+    const renderUndoRedoResetButton = (activeVariable: Variable) => {
+        if (activeVariable !== null && activeVariable.type !== VariableType.boolean && activeVariable.type !== VariableType.integer ) {
+            return(
+                <Stack direction={"row"} sx={{marginBottom: 1}}
+                   justifyContent={"flex-start"}
+                   alignItems={"center"}
+                   spacing={1}
+                   divider={<Divider orientation="vertical" flexItem/>}>
+                    <Button sx={{minWidth: 80}} onClick={() => setUndo(true)} color="primary" variant="outlined"
+                            startIcon={<UndoIcon/>}>
+                        Undo
+                    </Button>
+                    <Button sx={{minWidth: 80}} onClick={() => setRedo(true)} color="primary" variant="outlined"
+                            startIcon={<RedoIcon/>}>
+                        Redo
+                    </Button>
+                    <Button sx={{minWidth: 80}} onClick={() => setReset(true)} color="primary" variant="outlined"
+                            startIcon={<RestartAltIcon/>}>
+                        Reset
+                    </Button>
+                </Stack>
+            )
+        }
+    }
 
     return (
         <Stack direction={"row"} sx={{marginBottom: 1}}
@@ -85,18 +109,7 @@ export const Settings = (props: SettingsProps): ReactElement => {
                                         label={modeLabel}/>
                 </FormGroup>
             </Tooltip>
-            <Button sx={{minWidth: 80}} onClick={() => setUndo(true)} color="primary" variant="outlined"
-                    startIcon={<UndoIcon/>}>
-                Undo
-            </Button>
-            <Button sx={{minWidth: 80}} onClick={() => setRedo(true)} color="primary" variant="outlined"
-                    startIcon={<RedoIcon/>}>
-                Redo
-            </Button>
-            <Button sx={{minWidth: 80}} onClick={() => setReset(true)} color="primary" variant="outlined"
-                    startIcon={<RestartAltIcon/>}>
-                Reset
-            </Button>
+            {renderUndoRedoResetButton(activeVariable)}
             {activeVariable !== null && activeVariable.type === VariableType.segmentation ?
                 <Box sx={{minWidth: 250, paddingLeft: 1}}>
                     <Stack direction={"row"} alignItems={"center"} justifyContent={"flex-start"}>
