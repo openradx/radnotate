@@ -20,6 +20,7 @@ function createWindow() {
         }
     })
     //mainWindow.setMenu(null)
+    console.log(__dirname)
     mainWindow.maximize()
     mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY)
 

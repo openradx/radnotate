@@ -14,3 +14,4 @@ declare module "*.png";
 declare module "export-from-json";
 declare module "zustand";
 declare module "fast-deep-equal";
+declare module "*.woff2";

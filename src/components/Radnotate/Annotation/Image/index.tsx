@@ -127,7 +127,7 @@ const Image = (props: ImageProps): ReactElement => {
 
     const setUndo = useImageStore((state: ImageState) => state.setUndo)
     const setRedo = useImageStore((state: ImageState) => state.setRedo)
-    const setReset = useImageStore((state: ImageState) => state.setRedo)
+    const setReset = useImageStore((state: ImageState) => state.setReset)
     const setCorrectionMode = useImageStore((state: ImageState) => state.setCorrectionMode)
     const toolStates = useToolStateStore((state: ToolStateStore) => state.toolStates)
 
