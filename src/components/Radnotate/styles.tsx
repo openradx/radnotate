@@ -12,18 +12,24 @@ export const getTheme = (mode: PaletteMode) => ({
         ...(mode === 'light'
             ? {
                 primary: {
-                    main: '#00376d',
+                    main: "#5e1024", //'#00376d'
                 },
                 secondary: {
-                    main: '#e85818',
+                    main: "#5e1024",
+                },
+                background: {
+                    default: "#f0f0f0",
                 },
             }
             : {
                 primary: {
-                    main: '#e85818',//'#de751a'
+                    main: "#f0f0f0",//'#e85818',//'#de751a'
                 },
                 secondary: {
-                    main: '#e85818',
+                    main: "#5e1024",
+                },
+                background: {
+                    default: "#424242",
                 },
             }),
     },

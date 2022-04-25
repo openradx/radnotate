@@ -51,18 +51,24 @@ export const Settings = (props: SettingsProps): ReactElement => {
                    alignItems={"center"}
                    spacing={1}
                    divider={<Divider orientation="vertical" flexItem/>}>
-                    <Button sx={{minWidth: 80}} onClick={() => setUndo(true)} color="primary" variant="outlined"
-                            startIcon={<UndoIcon/>}>
-                        Undo
-                    </Button>
-                    <Button sx={{minWidth: 80}} onClick={() => setRedo(true)} color="primary" variant="outlined"
-                            startIcon={<RedoIcon/>}>
-                        Redo
-                    </Button>
-                    <Button sx={{minWidth: 80}} onClick={() => setReset(true)} color="primary" variant="outlined"
-                            startIcon={<RestartAltIcon/>}>
-                        Reset
-                    </Button>
+                    <Tooltip title={"Trigger by pressing Control key and Z key"}>
+                        <Button sx={{minWidth: 80}} onClick={() => setUndo(true)} color="primary" variant="outlined"
+                                startIcon={<UndoIcon/>}>
+                            Undo
+                        </Button>
+                    </Tooltip>
+                    <Tooltip title={"Trigger by pressing Control key and Y key"}>
+                        <Button sx={{minWidth: 80}} onClick={() => setRedo(true)} color="primary" variant="outlined"
+                                startIcon={<RedoIcon/>}>
+                            Redo
+                        </Button>
+                    </Tooltip>
+                    <Tooltip title={"Trigger by pressing Delete key"}>
+                        <Button sx={{minWidth: 80}} onClick={() => setReset(true)} color="primary" variant="outlined"
+                                startIcon={<RestartAltIcon/>}>
+                            Reset
+                        </Button>
+                    </Tooltip>
                 </Stack>
             )
         }
@@ -75,7 +81,7 @@ export const Settings = (props: SettingsProps): ReactElement => {
                    spacing={1}
                    divider={<Divider orientation="vertical" flexItem/>}>
             <Tooltip title={"Select series by series description"} followCursor={true} disableTouchListener={true}
-                    disableFocusListener={true} disableInteractive={true} open={openTooltip}>
+                    disableFocusListener={false} disableInteractive={true} open={openTooltip}>
                 <FormControl sx={{width: 250}} size={"small"}>
                     <Select value={activeSeries}
                             onOpen={() => setOpenTooltip(true)}

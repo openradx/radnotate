@@ -29,7 +29,7 @@ type SettingsProps = {
 export const Settings = (props: SettingsProps): ReactElement => {
     const [actions, setActions] = useState<{icon: ReactElement, name: string}[]>([
             {icon: <HelpOutlineIcon/>, name: "Help"},
-            {icon: <LightModeOutlinedIcon/>, name: 'Light mode'}
+            {icon: <DarkModeOutlinedIcon/>, name: 'Dark mode'}
         ]
     )
     const [alertDialogOpen, setAlertDialogOpen] = useState(false)
@@ -44,14 +44,14 @@ export const Settings = (props: SettingsProps): ReactElement => {
             const additonalActions = [
                 {icon: <RestartAltOutlinedIcon/>, name: "Restart from variable definition"},
                 {icon: <StartIcon/>, name: "Restart from beginning"},
-                {icon: <DeleteSweepOutlinedIcon/>, name: "Clear table"}
+                // {icon: <DeleteSweepOutlinedIcon/>, name: "Clear table"}
             ]
             additonalActions.push(...actions)
             setActions(additonalActions)
             setHelpDialogText(helpAnnotationMode)
         } else {
             if (actions.length > 2) {
-                setActions([...actions.slice(3, 5)])
+                setActions([...actions.slice(2, 4)])
             } else {
                 setActions([...actions.slice(0, 2)])
             }
@@ -85,12 +85,12 @@ export const Settings = (props: SettingsProps): ReactElement => {
                 setAlertDialogText("If you proceed, your annotation data and definitions will be lost. Be sure to " +
                     "export your annotation data before you proceed. Always export your annotations as CSV. Are you sure you want to proceed?")
                 break;
-            case "Clear table":
-                setAlertDialogOpen(true)
-                setAlertDialogType("clear")
-                setAlertDialogText("If you proceed, your annotation data will be lost. Be sure to export your " +
-                    "annotation data before you proceed. Always export your annotations as CSV. Are you sure you want to proceed?")
-                break;
+            // case "Clear table":
+            //     setAlertDialogOpen(true)
+            //     setAlertDialogType("clear")
+            //     setAlertDialogText("If you proceed, your annotation data will be lost. Be sure to export your " +
+            //         "annotation data before you proceed. Always export your annotations as CSV. Are you sure you want to proceed?")
+            //     break;
             case "Restart from beginning":
                 props.restartAnnotating()
                 break;
@@ -112,19 +112,13 @@ export const Settings = (props: SettingsProps): ReactElement => {
         setAlertDialogOpen(false)
     }
 
-    let sx
-    if (props.annotationMode) {
-        sx = {position: 'absolute', left: 5, bottom: 8}
-    } else {
-        sx = {position: 'absolute', left: 5, top: 8}
-    }
     return (
         <div>
             <SpeedDial
                 ariaLabel="SpeedDial"
-                direction={props.annotationMode ? "right" : "down"}
+                direction={"right"}
                 // @ts-ignore
-                sx={sx}
+                sx={{position: 'absolute', left: 5, bottom: 8}}
                 icon={<SettingsOutlinedIcon/>}>
                 {actions.map((action) => (
                     <SpeedDialAction

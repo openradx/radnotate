@@ -38,8 +38,10 @@ export const useToolStateStore = create((set: Function, get: Function) => ({
                 (draft: ToolState[]) => {
                     if (activeToolStates.length >= get().toolStates.length) {
                         const append: ToolState[] = []
+                        let isAnnotation = false
                         activeToolStates.forEach((toolState: ToolState) => {
                             if (toolState.type === ToolType.annotation) {
+                                isAnnotation = true
                                 toolState = deepClone(toolState)
                                 const uuid = toolState.data.data.uuid
                                 const index = get().toolStates.findIndex((toolState: ToolState) => toolState.data.data.uuid === uuid)
@@ -52,11 +54,13 @@ export const useToolStateStore = create((set: Function, get: Function) => ({
                                     append.push(toolState)
                                 }
                             } else {
-                                draft.length = 0
-                                draft.push(...activeToolStates)
+                                append.push(toolState)
                             }
                         })
                         if (append.length) {
+                            if (!isAnnotation) {
+                                draft.length = 0
+                            }
                             draft.push(...append)
                         }
                     } 
@@ -75,18 +79,27 @@ export const useToolStateStore = create((set: Function, get: Function) => ({
                                 draft.push(...activeToolStates)
                             }
                         })
-                    } else {
-                        console.log("Awa")
                     }
                 }  
             )
-            // Redo or manual changes
+            // Redo, Reset or manual changes
             if (appliedPatch === undefined) {
                 const undoPatches = get().undoPatches
+                // Manual erase or reset
                 if(get().toolStates.length > nextToolStates.length) {
-                    const redoPatches = get().redoPatches
-                    redoPatches.push(...inversePatches)
-                    set({redoPatches: redoPatches})
+                    const undoPatches = get().undoPatches
+                    const newUndos: Patch[] = []
+                    inversePatches.forEach((patch: Patch) => {
+                        if (patch.op === "replace") {
+                            newUndos.push(patch)
+                        }
+                    })
+                    // Reset
+                    if (newUndos.length === 0) {
+                        newUndos.push(...inversePatches)
+                    }
+                    set({undoPatches: undoPatches.push(...newUndos)})
+                // Redo
                 } else {
                     undoPatches.push(...inversePatches)
                 }

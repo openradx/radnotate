@@ -23,11 +23,12 @@ import Variable, {VariableType} from "./variable";
 import DicomDropzone from "./DicomDropzone";
 import Papa from "papaparse";
 import {CustomWidthTooltip} from "../styles";
+import {RadnotateState, useRadnotateStore} from "../../Radnotate";
+import { Patient, Study } from "./DicomDropzone/dicomObject";
+import { GridRowsProp } from "@mui/x-data-grid-pro";
 import dirLogo from "./dir_logo.png";
 import ukhdLogo from "./ukhd_logo.png";
-import {RadnotateState, useRadnotateStore} from "../../Radnotate";
-import { Patient, Patients, Study } from "./DicomDropzone/dicomObject";
-import { GridRowsProp } from "@mui/x-data-grid-pro";
+import logo from "./logo.png"
 
 export enum AnnotationLevel {
     // eslint-disable-next-line no-unused-vars
@@ -57,6 +58,9 @@ const Form = (props: FormProps): ReactElement => {
         }
     })
     const [saveAnnotationButtonDisabled, setSaveAnnotationButtonDisabled] = useState(true)
+
+    useEffect(() => {
+    }, [])
 
     useEffect(() => {
         if (globalVariables.length > 1 || globalVariables[0].name !== "") {
@@ -354,7 +358,10 @@ const Form = (props: FormProps): ReactElement => {
         <Box sx={{marginLeft: 8}}>
             <Stack direction="row" divider={<Divider orientation="horizontal" flexItem/>}>
                 <Stack direction="column" divider={<Divider orientation="horizontal" flexItem/>}
-                       spacing={2}>
+                       spacing={2} >
+                    <Box component={"img"} alignItems={"center"}
+                        sx={{width: 300, alignItems: "center"}}
+                        src={logo}/>
                     <Stack direction="row" divider={<Divider orientation="vertical" flexItem/>}
                            spacing={2} alignItems={"center"}>
                         <DicomDropzone setPatients={setPatients}/>
@@ -365,7 +372,7 @@ const Form = (props: FormProps): ReactElement => {
                                    onInput={((event: FormEvent<HTMLInputElement>): void => _loadExport(event))}/>
                         </Button>
                         <CustomWidthTooltip
-                            title={"Load annotations from previous export CSV file for validation purposes"}>
+                            title={"Load annotations from previous export CSV file for validation purposes or just to continue where you left off"}>
                             <FormGroup sx={{minWidth: 140, maxWidth: 140}}>
                                 <FormControlLabel control={<Switch disabled={loadAnnotationsDisabled}
                                                                    checked={loadAnnotations}

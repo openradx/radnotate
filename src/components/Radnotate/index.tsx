@@ -113,7 +113,8 @@ const Radnotate = (props: RadnotateProps): ReactElement => {
         rows.forEach((row) => {
             const patientID: string = row["PatientID"]
             const fields = Object.keys(row)
-            fields.forEach((field, variableID) => {
+            let variableID = 0
+            fields.forEach((field) => {
                 if (field !== "PatientID" && field !== "id") {
                     if (row[field] !== "") {
                         const annotations = JSON.parse(row[field])
@@ -123,7 +124,7 @@ const Radnotate = (props: RadnotateProps): ReactElement => {
                                 const toolState: ToolState = {
                                     type: ToolType.segmentation,
                                     patientID: patientID,
-                                    variableID: variableID - 1,
+                                    variableID: variableID,
                                     imageID: sopUidToImageID.get(annotation.sopUid),
                                     variableType: type,
                                     data: {width: annotation.width, height: annotation.height, segmentationIndex: annotation.segmentationIndex, pixelData: new Uint8Array(atob(annotation.pixelData).split("").map(function (c) {
@@ -135,14 +136,15 @@ const Radnotate = (props: RadnotateProps): ReactElement => {
                                 const toolState: ToolState = {
                                     type: ToolType.annotation,
                                     patientID: patientID,
-                                    variableID: variableID - 1,
+                                    variableID: variableID,
                                     imageID: sopUidToImageID.get(annotation.sopUid),
                                     variableType: type,
-                                    data: {tool: VariableToolType.get(type), data: JSON.parse(annotation.data)},
+                                    data: JSON.parse(annotation.data),
                                 }
                                 toolStates.push(toolState)
                             }
                         })
+                        variableID++
                     }
                 }
             })
@@ -185,7 +187,7 @@ const Radnotate = (props: RadnotateProps): ReactElement => {
         const sopUidToImageID = _initSopUidToImageID(patients)
         const activeToolStates = _initToolStates(rows, sopUidToImageID)
         setSopUidToImageID(sopUidToImageID)
-        setToolStates(toolStates, activeToolStates)
+        setToolStates(activeToolStates)
         setAnnotationMode(true)
     }
 
@@ -221,6 +223,7 @@ const Radnotate = (props: RadnotateProps): ReactElement => {
             {annotationMode ?
                 <Annotation/>
                 :
+                
                 <Form saveAnnotationForm={saveAnnotationForm}/>
             }
             <Settings clearTable={clearTable}

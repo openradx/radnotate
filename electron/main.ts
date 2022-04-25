@@ -11,7 +11,7 @@ if (require('electron-squirrel-startup')) app.quit();
 function createWindow() {
     mainWindow = new BrowserWindow({
         // icon: path.join(assetsPath, 'assets', 'icon.png'),
-        backgroundColor: '#191622',
+        backgroundColor: '#8a8a8a',
         title: "Radnotate",
         webPreferences: {
             nodeIntegration: false,

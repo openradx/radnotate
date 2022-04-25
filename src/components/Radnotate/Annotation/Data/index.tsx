@@ -241,7 +241,7 @@ const Data = (props: DataProps): ReactElement => {
         <Box sx={{width: String(props.width) + "%", height: "100vh"}}>
             <Stack direction={"column"}>
                 <Stack direction={"row"} spacing={2} sx={{marginBottom: 1}}>
-                    <Box sx={{width: 140, minWidth: 70}}>
+                    <Box sx={{width: 140, minWidth: 140}}>
                         <CSVLink ref={csvLinkRef} data={csvData} filename={"radnotate_" + getNow() + ".csv"}
                                  separator={";"} enclosingCharacter={""}>
                         </CSVLink>
@@ -250,7 +250,7 @@ const Data = (props: DataProps): ReactElement => {
                             Export CSV
                         </Button>
                     </Box>
-                    <Button variant={"outlined"} component={"label"} sx={{width: 140, minWidth: 70}}
+                    <Button variant={"outlined"} component={"label"} sx={{width: 140, minWidth: 140}}
                             startIcon={<SaveAltIcon/>} onClick={(): void => {
                         handleExportXLSButton()
                     }}>
@@ -261,7 +261,8 @@ const Data = (props: DataProps): ReactElement => {
                     height: "92vh",
                     overflow: "auto",
                     '& .isActive': {
-                        backgroundColor: "#e85818"
+                        backgroundColor: "#5e1024",
+                        color: "#ffffff"
                     },
                 }}>
                     <DataGridPro apiRef={apiRef}
