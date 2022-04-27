@@ -1,10 +1,11 @@
 import { loadImage } from "cornerstone-core";
 import { TSMap } from "typescript-map";
+import { ImageStack } from ".";
 import { ToolState, AnnotationToolData, SegmentationToolData, ToolType } from "../..";
 import { VariableType } from "../../Form/variable";
 
 
-export const process = async (toolState: ToolState) => {
+export const process = async (toolState: ToolState, imageStack: ImageStack, activeSeries: string) => {
     let activeAnnotation: TSMap<string, string>
     switch(toolState.type){
         case ToolType.annotation:
@@ -12,10 +13,10 @@ export const process = async (toolState: ToolState) => {
             activeAnnotation.set("data", JSON.stringify(toolState.data))
             break;
         case ToolType.segmentation:
-            activeAnnotation = await _processSegmentation((toolState.data as SegmentationToolData).pixelData, toolState.imageID, toolState.data.segmentationIndex)
+            activeAnnotation = _processSegmentation((toolState.data as SegmentationToolData).pixelData, toolState.data.segmentationIndex)
             break;
     }
-    const defaultValues = await _processImage(toolState.imageID)
+    const defaultValues = await _processImage(toolState.imageID, imageStack, activeSeries)
     activeAnnotation = new TSMap<string, string>([...activeAnnotation.entries(), ...defaultValues.entries()])
     return activeAnnotation
 }
@@ -50,18 +51,12 @@ export const equal = (object: TSMap<string, string>, other: TSMap<string, string
     return equal
 }
 
-const _processSegmentation = async (pixelData: Uint8Array, imageID: string, segmentationIndex: number): Promise<TSMap<string, string>> => {
-    return await new Promise(resolve => {
-        loadImage(imageID).then((image) => {
-            const segmentation = new TSMap<string, number | string>()
-            const b64encoded = btoa(String.fromCharCode.apply(null, pixelData));
-            segmentation.set("pixelData", b64encoded)
-            segmentation.set("width", image.width)
-            segmentation.set("height", image.height)
-            segmentation.set("segmentationIndex", segmentationIndex)
-            resolve(segmentation)
-        })
-    })
+const _processSegmentation = (pixelData: Uint8Array, segmentationIndex: number): TSMap<string, string> => {
+    const segmentation = new TSMap<string, string>()
+    const b64encoded = btoa(String.fromCharCode.apply(null, pixelData));
+    segmentation.set("pixelData", b64encoded)
+    segmentation.set("segmentationIndex", String(segmentationIndex))
+    return segmentation
 }
 
 const _processSeed = (data: {cachedStats: {x: string, y: string}}) => {
@@ -122,10 +117,18 @@ const _processLength = (data: {handles: {start: {x: string, y: string}, end: {x:
     return length
 }
 
-const _processImage = async (imageID: string): Promise<TSMap<string, string>> => {
+const _processImage = async (imageID: string, imageStack: ImageStack, activeSeries: string): Promise<TSMap<string, string>> => {
     return await new Promise(resolve => {
         loadImage(imageID).then((image) => {
             const defaultValue = new TSMap<string, string>()
+            const instanceNumber = imageStack.instanceNumbers.get(imageID)
+            const numberOfInstances = imageStack.seriesDescriptions.get(activeSeries).length
+            defaultValue.set("instanceNumber", String(instanceNumber))
+            defaultValue.set("width", String(image.width))
+            defaultValue.set("height", String(image.height))
+            defaultValue.set("pixelSpacing", image.data.string('x00280030'))
+            defaultValue.set("sliceThickness", image.data.string('x00180050'))
+            defaultValue.set("numberOfInstances", String(numberOfInstances))
             defaultValue.set("studyUid", image.data.string('x0020000d'))
             defaultValue.set("seriesUid", image.data.string('x0020000e'))
             defaultValue.set("sopUid", image.data.string('x00080018'))

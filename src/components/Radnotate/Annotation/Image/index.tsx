@@ -165,6 +165,7 @@ const Image = (props: ImageProps): ReactElement => {
     const [imageStack, setImageStack] = useState(() => {
         return _updateImageIDs(activePatient)
     }) 
+    const activeSeries = useImageStore((state: ImageState) => state.activeSeries)
     const setActiveSeries = useImageStore((state: ImageState) => state.setActiveSeries)
 
     const [snackbarOpen, setSnackbarOpen] = useState(false)
@@ -206,7 +207,7 @@ const Image = (props: ImageProps): ReactElement => {
     useEffect(() => {
         const activeAnnotations: TSMap<string, string>[] = []
         toolStates.forEach(async (toolState: ToolState) => {
-          activeAnnotations.push(await process(toolState))
+            activeAnnotations.push(await process(toolState, imageStack, activeSeries))
         })
         setActiveAnnotations(activeAnnotations)
     }, [toolStates])

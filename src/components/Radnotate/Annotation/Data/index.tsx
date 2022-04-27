@@ -89,6 +89,23 @@ const Data = (props: DataProps): ReactElement => {
                             delete element.seriesUid
                             delete element.sopUid
                             delete element.data
+                            delete element.seriesNumber
+                            delete element.tablePosition
+                            delete element.numberOfInstances
+                            delete element.segmentationIndex
+                            delete element.height
+                            delete element.width
+                            delete element.pixelSpacing
+                            delete element.sliceThickness
+                            if (variable.type !== VariableType.segmentation) {
+                                delete element.instanceNumber
+                            }
+                            Object.keys(element).forEach((key: string) => {
+                                const n = element[key]
+                                if (Number(n) === n && n % 1 !== 0) {
+                                    element[key] = Math.round((n + Number.EPSILON) * 100) / 100
+                                }
+                            })
                         })
                         value = JSON.stringify(value)
                     }

@@ -116,10 +116,10 @@
   "config": {
     "forge": {
       "packagerConfig": {
-        "name": "Radnnotate",
-        "title": "Radnnotate",
-        "executableName": "Radnnotate",
-        "icon": "assets/icon",
+        "name": "Radnotate",
+        "title": "Radnotate",
+        "executableName": "Radnotate",
+        "icon": "src/assets/icon",
         "extraResource": [
           "assets"
         ]
@@ -142,8 +142,8 @@
                 }
               ]
             },
-            "port": 3003,
-            "loggerPort": 9009
+            "port": 2999,
+            "loggerPort": 8999
           }
         ]
       ],

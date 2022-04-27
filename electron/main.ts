@@ -1,5 +1,6 @@
 import {app, BrowserWindow, ipcMain, dialog} from 'electron'
 import installExtension, {REACT_DEVELOPER_TOOLS} from 'electron-devtools-installer';
+import path from "path";
 
 let mainWindow: BrowserWindow | null
 
@@ -10,8 +11,8 @@ if (require('electron-squirrel-startup')) app.quit();
 
 function createWindow() {
     mainWindow = new BrowserWindow({
-        // icon: path.join(assetsPath, 'assets', 'icon.png'),
-        backgroundColor: '#8a8a8a',
+        icon: path.join(__dirname, "assets/icon"),
+        backgroundColor: '#f0f0f0',
         title: "Radnotate",
         webPreferences: {
             nodeIntegration: false,
