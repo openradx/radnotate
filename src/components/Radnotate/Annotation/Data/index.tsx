@@ -218,20 +218,23 @@ const Data = (props: DataProps): ReactElement => {
                     }
                 } else {
                     const newCell: string[] = []
-                    const cell = JSON.parse(row[field])
-                    cell.forEach((annotation: {value: string, length: string}) => {
-                        switch (variable.type) {
-                            case VariableType.boolean:
-                                newCell.push(annotation.value)
-                                break;
-                            case VariableType.integer:
-                                newCell.push(annotation.value)
-                                break;
-                            case VariableType.length:
-                                newCell.push(annotation.length)
-                                break;
-                        }
-                    })
+                    console.log(row[field])
+                    if (row[field] !== "") {
+                        const cell = JSON.parse(row[field])
+                        cell.forEach((annotation: {value: string, length: string}) => {
+                            switch (variable.type) {
+                                case VariableType.boolean:
+                                    newCell.push(annotation.value)
+                                    break;
+                                case VariableType.integer:
+                                    newCell.push(annotation.value)
+                                    break;
+                                case VariableType.length:
+                                    newCell.push(annotation.length)
+                                    break;
+                            }
+                        })
+                    }
                     delete row[field]
                     if (newCell.length) {
                         const tmp = {}
@@ -267,12 +270,16 @@ const Data = (props: DataProps): ReactElement => {
                             Export CSV
                         </Button>
                     </Box>
-                    <Button variant={"outlined"} component={"label"} sx={{width: 140, minWidth: 140}}
-                            startIcon={<SaveAltIcon/>} onClick={(): void => {
-                        handleExportXLSButton()
-                    }}>
-                        Export XLS
-                    </Button>
+                    <Tooltip title={"Not yet supported"}>
+                        <div>
+                            <Button disabled={true} variant={"outlined"} component={"label"} sx={{width: 140, minWidth: 140}}
+                                    startIcon={<SaveAltIcon/>} onClick={(): void => {
+                                handleExportXLSButton()
+                            }}>
+                                Export XLS
+                            </Button>
+                        </div>
+                    </Tooltip>
                 </Stack>
                 <Box sx={{
                     height: "92vh",

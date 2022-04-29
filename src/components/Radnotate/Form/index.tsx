@@ -58,6 +58,7 @@ const Form = (props: FormProps): ReactElement => {
         }
     })
     const [saveAnnotationButtonDisabled, setSaveAnnotationButtonDisabled] = useState(true)
+    const [loadAnnotationsTooltipText, setLoadAnnotationsTooltipText] = useState("Load exported CSV to enable")
 
     useEffect(() => {
     }, [])
@@ -78,7 +79,12 @@ const Form = (props: FormProps): ReactElement => {
     }, [patients, variables])
 
     useEffect(() => {
-    }, [loadAnnotations])
+        if (loadAnnotationsDisabled) {
+            setLoadAnnotationsTooltipText("Load exported CSV to enable")
+        } else {
+            setLoadAnnotationsTooltipText("Load annotations from export CSV file for validation or to continue annotation")
+        }
+    }, [loadAnnotationsDisabled])
 
     const _addVariable = (id: number): void => {
         const variable = variables.pop()
@@ -360,19 +366,19 @@ const Form = (props: FormProps): ReactElement => {
                 <Stack direction="column" divider={<Divider orientation="horizontal" flexItem/>}
                        spacing={2} >
                     <Box component={"img"} alignItems={"center"}
-                        sx={{width: 300, alignItems: "center"}}
+                        sx={{width: 350, alignItems: "center"}}
                         src={logo}/>
                     <Stack direction="row" divider={<Divider orientation="vertical" flexItem/>}
                            spacing={2} alignItems={"center"}>
                         <DicomDropzone setPatients={setPatients}/>
-                        <Button sx={{minWidth: 175, maxWidth: 175, textAlign: "center"}} variant="outlined"
+                        <Button sx={{minWidth: 175, minHeight: 55, maxWidth: 175, textAlign: "center"}} variant="outlined"
                                 component="label">
-                            Load previous export CSV file
+                            Load exported CSV
                             <input type="file" hidden={true}
                                    onInput={((event: FormEvent<HTMLInputElement>): void => _loadExport(event))}/>
                         </Button>
                         <CustomWidthTooltip
-                            title={"Load annotations from previous export CSV file for validation purposes or just to continue where you left off"}>
+                            title={loadAnnotationsTooltipText}>
                             <FormGroup sx={{minWidth: 140, maxWidth: 140}}>
                                 <FormControlLabel control={<Switch disabled={loadAnnotationsDisabled}
                                                                    checked={loadAnnotations}
@@ -388,8 +394,12 @@ const Form = (props: FormProps): ReactElement => {
                                         onChange={(event: ChangeEvent<HTMLInputElement>): void => _addAnnotationLevel(event)}>
                                 <FormControlLabel value={AnnotationLevel.patient} control={<Radio/>}
                                                   label="patient"/>
-                                <FormControlLabel value={AnnotationLevel.study} control={<Radio/>}
+                                <Tooltip title={"Not yet supported"}>
+                                    <div>
+                                        <FormControlLabel value={AnnotationLevel.study} control={<Radio/>}
                                                   label="study" disabled={true}/>
+                                    </div>
+                                </Tooltip>
                             </RadioGroup>
                         </FormControl>
                     </Stack>

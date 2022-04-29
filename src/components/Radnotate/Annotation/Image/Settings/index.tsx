@@ -43,7 +43,7 @@ export const Settings = (props: SettingsProps): ReactElement => {
         }
     }, [activeVariable])
 
-    const renderUndoRedoResetButton = (activeVariable: Variable) => {
+    const renderCorrectionUndoRedoButton = (activeVariable: Variable) => {
         if (activeVariable !== null && activeVariable.type !== VariableType.boolean && activeVariable.type !== VariableType.integer ) {
             return(
                 <Stack direction={"row"} sx={{marginBottom: 1}}
@@ -51,6 +51,20 @@ export const Settings = (props: SettingsProps): ReactElement => {
                    alignItems={"center"}
                    spacing={1}
                    divider={<Divider orientation="vertical" flexItem/>}>
+                    <Tooltip title={"Enable by pressing Control key"}>
+                        <FormGroup sx={{minWidth: 100}}>
+                            <FormControlLabel control={<Switch checked={correctionMode}
+                                                                value={correctionMode}
+                                                                onChange={() => {
+                                                                    if (correctionMode) {
+                                                                        setCorrectionMode(false)
+                                                                    } else {
+                                                                        setCorrectionMode(true)
+                                                                    }
+                                                                }}/>}
+                                                label={modeLabel}/>
+                        </FormGroup>
+                    </Tooltip>
                     <Tooltip title={"Trigger by pressing Control key and Z key"}>
                         <Button sx={{minWidth: 80}} onClick={() => setUndo(true)} color="primary" variant="outlined"
                                 startIcon={<UndoIcon/>}>
@@ -63,19 +77,13 @@ export const Settings = (props: SettingsProps): ReactElement => {
                             Redo
                         </Button>
                     </Tooltip>
-                    <Tooltip title={"Trigger by pressing Delete key"}>
-                        <Button sx={{minWidth: 80}} onClick={() => setReset(true)} color="primary" variant="outlined"
-                                startIcon={<RestartAltIcon/>}>
-                            Reset
-                        </Button>
-                    </Tooltip>
                 </Stack>
             )
         }
     }
 
     return (
-        <Stack direction={"row"} sx={{marginBottom: 1}}
+        <Stack direction={"row"} sx={{marginBottom: 0.5}}
                    justifyContent={"flex-start"}
                    alignItems={"center"}
                    spacing={1}
@@ -100,22 +108,13 @@ export const Settings = (props: SettingsProps): ReactElement => {
                     </Select>
                 </FormControl>
             </Tooltip>
-
-            <Tooltip title={"Enable by pressing Control key"}>
-                <FormGroup sx={{minWidth: 100}}>
-                    <FormControlLabel control={<Switch checked={correctionMode}
-                                                        value={correctionMode}
-                                                        onChange={() => {
-                                                            if (correctionMode) {
-                                                                setCorrectionMode(false)
-                                                            } else {
-                                                                setCorrectionMode(true)
-                                                            }
-                                                        }}/>}
-                                        label={modeLabel}/>
-                </FormGroup>
+            {renderCorrectionUndoRedoButton(activeVariable)}
+            <Tooltip title={"Trigger by pressing Delete key"}>
+                <Button sx={{minWidth: 80}} onClick={() => setReset(true)} color="primary" variant="outlined"
+                        startIcon={<RestartAltIcon/>}>
+                    Reset
+                </Button>
             </Tooltip>
-            {renderUndoRedoResetButton(activeVariable)}
             {activeVariable !== null && activeVariable.type === VariableType.segmentation ?
                 <Box sx={{minWidth: 250, paddingLeft: 1}}>
                     <Stack direction={"row"} alignItems={"center"} justifyContent={"flex-start"}>

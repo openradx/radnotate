@@ -4,7 +4,7 @@ import {Patients} from "./dicomObject";
 import {trackPromise} from "react-promise-tracker";
 import {fromEvent, FileWithPath} from "file-selector";
 import {loadFile} from "./loaders";
-import {Box, Button, CircularProgress, CircularProgressProps, Snackbar, Typography} from "@mui/material";
+import {Box, Button, CircularProgress, CircularProgressProps, Snackbar, Tooltip, Typography} from "@mui/material";
 import cornerstoneWADOImageLoader from "cornerstone-wado-image-loader";
 import cornerstone from "cornerstone-core";
 import dicomParser from "dicom-parser";
@@ -52,7 +52,7 @@ const DicomDropzone = (props: DicomDropzoneProps): ReactElement => {
     const [loadingPatients, setLoadingPatients] = useState(false)
     const [loadingAcceptedFiles, setLoadingAcceptedFiles] = useState(false)
     const [progress, setProgress] = useState(0)
-    const [buttonText, setButtonText] = useState("Select or drop folders or dicom files")
+    const [buttonText, setButtonText] = useState("Select DICOM files")
     const [openSnackbar, setOpenSnackbar] = useState(false)
 
     const processAcceptedFiles = (acceptedFiles: Blob[]): void => {
@@ -85,7 +85,7 @@ const DicomDropzone = (props: DicomDropzoneProps): ReactElement => {
                 props.setPatients(patients)
                 setProgress(100)
                 setLoadingPatients(false)
-                setButtonText("Select or drop folders or files")
+                setButtonText("Select DICOM files")
                 setOpenSnackbar(true)
             })
         );
@@ -140,9 +140,12 @@ const DicomDropzone = (props: DicomDropzoneProps): ReactElement => {
                     }} {...getRootProps()}>
                         <input {...getInputProps()} directory={""} webkitdirectory={""} mozdirectory={""}
                                type={"file"} multiple={true}/>
-                        <Button sx={{minWidth: 200, minHeight: 55}} variant="outlined">
-                            {buttonText}
-                        </Button>
+                        
+                        <Tooltip title={"Or drag and drop"}>
+                            <Button sx={{minWidth: 200, minHeight: 55}} variant="outlined">
+                                {buttonText}
+                            </Button>
+                        </Tooltip>
                         {
                             renderProgress()
                         }

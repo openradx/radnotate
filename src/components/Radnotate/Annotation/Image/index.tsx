@@ -127,6 +127,7 @@ const Image = (props: ImageProps): ReactElement => {
 
     const setUndo = useImageStore((state: ImageState) => state.setUndo)
     const setRedo = useImageStore((state: ImageState) => state.setRedo)
+    const reset = useImageStore((state: ImageState) => state.reset)
     const setReset = useImageStore((state: ImageState) => state.setReset)
     const setCorrectionMode = useImageStore((state: ImageState) => state.setCorrectionMode)
     const toolStates = useToolStateStore((state: ToolStateStore) => state.toolStates)
@@ -212,6 +213,18 @@ const Image = (props: ImageProps): ReactElement => {
         setActiveAnnotations(activeAnnotations)
     }, [toolStates])
 
+    useEffect(() => {
+        if (reset) {
+            if (activeVariable.type === VariableType.boolean) {
+                _processBoolean("Delete")
+                setReset(false)
+            } else if (activeVariable.type === VariableType.integer) {
+                _processInteger("Delete")
+                setReset(false)
+            }
+        }
+    }, [reset])
+
     const _processBoolean = (key: string) => {
         if (key === "Delete") {
             setSnackbarOpen(true)
@@ -219,21 +232,21 @@ const Image = (props: ImageProps): ReactElement => {
             setActiveAnnotations([new TSMap<string, string>([["value", "delete"]])])
         } else if (key === "0") {
             setSnackbarOpen(true)
-            setSnackbarText('"0" key was pressed. Cached value deleted.')
+            setSnackbarText('"0" key was pressed.')
             setActiveAnnotations([new TSMap<string, string>([["boolean", "false"]])])
         } else if (key === "1") {
             setSnackbarOpen(true)
-            setSnackbarText('"1" key was pressed. Cached value deleted.')
+            setSnackbarText('"1" key was pressed.')
             setActiveAnnotations([new TSMap<string, string>([["boolean", "true"]])])
         } else {
             key = key.toLowerCase()
             if (key === "f") {
                 setSnackbarOpen(true)
-                setSnackbarText('"f" key was pressed. Cached value deleted.')
+                setSnackbarText('"f" key was pressed.')
                 setActiveAnnotations([new TSMap<string, string>([["boolean", "false"]])])
             } else if (key === "t") {
                 setSnackbarOpen(true)
-                setSnackbarText('"t" key was pressed. Cached value deleted.')
+                setSnackbarText('"t" key was pressed.')
                 setActiveAnnotations([new TSMap<string, string>([["boolean", "true"]])])
             }
         }
@@ -246,7 +259,7 @@ const Image = (props: ImageProps): ReactElement => {
             setActiveAnnotations([new TSMap<string, string>([["value", "delete"]])])
         } else if ((!isNaN(Number(key)))) {
             setSnackbarOpen(true)
-            setSnackbarText('"' + key + '" key was pressed. Cached value deleted.')
+            setSnackbarText('"' + key + '" key was pressed.')
             setActiveAnnotations([new TSMap<string, string>([["integer", key]])])
         }
     }
